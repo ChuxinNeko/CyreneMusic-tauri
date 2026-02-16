@@ -59,9 +59,9 @@ export function Sidebar() {
         <div className="hidden md:flex w-60 border-r bg-muted/10 h-full flex-col">
             <div className="h-14 flex items-center px-6 border-b select-none" data-tauri-drag-region>
                 {/* Logo Placeholder */}
-                <div className="flex items-center gap-2 font-bold text-lg pointer-events-none">
+                <div className="flex items-center gap-2 font-bold text-base pointer-events-none whitespace-nowrap">
                     <Image src="/ico.png" alt="Logo" width={24} height={24} className="w-6 h-6" />
-                    Cyrene Music
+                    CyreneMusicNext
                 </div>
             </div>
 

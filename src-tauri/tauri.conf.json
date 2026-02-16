@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "cyrene_music_tauri",
+        "title": "Cyrene Music Next",
         "width": 1280,
         "height": 820,
         "decorations": false

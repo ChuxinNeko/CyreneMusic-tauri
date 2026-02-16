@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cyrene Music",
+  title: "Cyrene Music Next",
   description: "A professional music player supported by Tauri",
 };
 
