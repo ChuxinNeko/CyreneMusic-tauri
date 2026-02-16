@@ -1,22 +1,51 @@
 "use client"
 
+import { Howl } from 'howler'
+// 暂时停用插件生成的 SMTC，改用浏览器原生的 MediaSession
+// import { 
+//     initializeSession, 
+//     mediaControls, 
+//     PlaybackStatus, 
+//     MediaControlEventType 
+// } from 'tauri-plugin-media-api'
 import { audioSourceService, AudioQuality } from "./audioSourceService"
 import { AudioSourceType } from "../models/audioSourceConfig"
 import { usePlayerStore } from "../store/usePlayerStore"
 import { useAudioSourceStore } from "../store/useAudioSourceStore"
 import { Track } from "../models/track"
 
+import { listen, emit } from '@tauri-apps/api/event'
+
 class PlayerService {
     private static instance: PlayerService
-    private audio: HTMLAudioElement | null = null
+    private howl: Howl | null = null
     private progressInterval: any = null
+    private fadeDuration = 500 // 500ms cross-fade
 
     private constructor() {
         if (typeof window !== "undefined") {
-            this.audio = new Audio()
-            this.setupInitialVolume()
-            this.setupEvents()
+            this.setupSMTC()
+            this.setupRemoteControl()
         }
+    }
+
+    private setupRemoteControl() {
+        // Listen for commands from other windows (like Tray)
+        listen('player:command', (event) => {
+            const command = event.payload as string
+            console.log(`[PlayerService] Received remote command: ${command}`)
+            switch (command) {
+                case 'toggle-play':
+                    this.togglePlay()
+                    break
+                case 'next':
+                    this.playNext()
+                    break
+                case 'prev':
+                    this.playPrevious()
+                    break
+            }
+        })
     }
 
     public static getInstance(): PlayerService {
@@ -26,66 +55,94 @@ class PlayerService {
         return PlayerService.instance
     }
 
-    private setupInitialVolume() {
-        if (!this.audio) return
-        const volume = usePlayerStore.getState().volume
-        this.audio.volume = volume
+    private async setupSMTC() {
+        // try {
+        //     await initializeSession('com.cyrene.music', 'Cyrene Music')
+
+        //     // Register SMTC events
+        //     mediaControls.setEventHandler((event) => {
+        //         switch (event.eventType) {
+        //             case MediaControlEventType.Play:
+        //             case MediaControlEventType.Pause:
+        //             case MediaControlEventType.PlayPause:
+        //                 this.togglePlay()
+        //                 break
+        //             case MediaControlEventType.Next:
+        //                 this.playNext()
+        //                 break
+        //             case MediaControlEventType.Previous:
+        //                 this.playPrevious()
+        //                 break
+        //             case MediaControlEventType.SeekTo:
+        //             case MediaControlEventType.SetPosition:
+        //                 if (event.data !== undefined) {
+        //                     this.seek(Number(event.data))
+        //                 }
+        //                 break
+        //             default:
+        //                 break
+        //         }
+        //     })
+        //     console.log("[PlayerService] SMTC registered and initialized")
+        // } catch (error) {
+        //     console.error("[PlayerService] Failed to register SMTC:", error)
+        // }
     }
 
-    private setupEvents() {
-        if (!this.audio) return
-
-        this.audio.onplay = () => {
+    private setupEvents(howl: Howl) {
+        howl.on('play', () => {
             usePlayerStore.getState().setIsPlaying(true)
+            usePlayerStore.getState().setIsLoading(false)
             this.startProgressTimer()
-        }
+            // Update SMTC state (WebView2 will handle this via MediaSession automagically if synchronized)
+            this.broadcastState()
+        })
 
-        this.audio.onpause = () => {
+        howl.on('pause', () => {
             usePlayerStore.getState().setIsPlaying(false)
             this.stopProgressTimer()
-        }
+            this.broadcastState()
+        })
 
-        this.audio.onwaiting = () => {
-            usePlayerStore.getState().setIsLoading(true)
-        }
-
-        this.audio.oncanplay = () => {
+        howl.on('load', () => {
             usePlayerStore.getState().setIsLoading(false)
-        }
+            const duration = howl.duration()
+            usePlayerStore.getState().setDuration(duration)
 
-        this.audio.onloadedmetadata = () => {
-            if (this.audio) {
-                usePlayerStore.getState().setDuration(this.audio.duration)
+            // Update metadata with duration
+            const track = usePlayerStore.getState().currentTrack
+            if (track) {
+                this.updateSMTCMetadata(track, duration)
             }
-        }
+        })
 
-        this.audio.onended = () => {
+        howl.on('loaderror', (id, err) => {
+            console.error("[PlayerService] Howl load error:", id, err)
+            usePlayerStore.getState().setIsLoading(false)
+            usePlayerStore.getState().setIsPlaying(false)
+        })
+
+        howl.on('end', () => {
             usePlayerStore.getState().playNext()
             const nextTrack = usePlayerStore.getState().currentTrack
             if (nextTrack) {
                 this.playTrack(nextTrack)
             }
-        }
-
-        this.audio.onerror = (e) => {
-            console.error("[PlayerService] Audio error:", e)
-            usePlayerStore.getState().setIsLoading(false)
-            usePlayerStore.getState().setIsPlaying(false)
-        }
+        })
     }
 
     private startProgressTimer() {
         this.stopProgressTimer()
         this.progressInterval = setInterval(() => {
-            if (this.audio) {
-                const currentTime = this.audio.currentTime
-                const duration = this.audio.duration
+            if (this.howl && this.howl.playing()) {
+                const currentTime = this.howl.seek() as number
+                const duration = this.howl.duration()
                 if (duration) {
                     usePlayerStore.getState().setCurrentTime(currentTime)
                     usePlayerStore.getState().setProgress(currentTime / duration)
                 }
             }
-        }, 500)
+        }, 1000)
     }
 
     private stopProgressTimer() {
@@ -95,21 +152,54 @@ class PlayerService {
         }
     }
 
-    public async playTrack(track: Track) {
-        if (!this.audio) return
+    private updateSMTCMetadata(track: Track, duration?: number) {
+        try {
+            // 广播至其他窗口 (如托盘)
+            this.broadcastState()
 
+            // 仅使用浏览器内置 MediaSession (WebView2 SMTC)
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: track.name,
+                    artist: track.artists,
+                    album: track.album || '',
+                    artwork: [
+                        { src: track.picUrl || '', sizes: '512x512', type: 'image/jpeg' }
+                    ]
+                })
+
+                // 设置浏览器侧的操作处理，确保与 App 逻辑一致
+                navigator.mediaSession.setActionHandler('play', () => this.togglePlay())
+                navigator.mediaSession.setActionHandler('pause', () => this.togglePlay())
+                navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrevious())
+                navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext())
+                navigator.mediaSession.setActionHandler('seekto', (details) => {
+                    if (details.seekTime !== undefined) {
+                        this.seek(details.seekTime)
+                    }
+                })
+            }
+        } catch (error) {
+            console.error("[PlayerService] Failed to set SMTC metadata:", error)
+        }
+    }
+
+    public async playTrack(track: Track) {
         try {
             usePlayerStore.getState().setIsLoading(true)
             usePlayerStore.getState().setCurrentTrack(track)
 
-            // 获取当前活跃的音源配置
+            // Update SMTC metadata (preliminary)
+            this.updateSMTCMetadata(track)
+
+            // Get active audio source config
             const activeConfigSource = useAudioSourceStore.getState().getActiveSource()
             if (!activeConfigSource) {
                 throw new Error("No active audio source configured")
             }
 
-            // 构建播放 URL
-            const quality = AudioQuality.ExHigh // 默认高音质
+            // Build initial playback URL
+            const quality = AudioQuality.ExHigh
             let url = audioSourceService.buildPlaybackUrl(
                 activeConfigSource,
                 track.source as any,
@@ -121,18 +211,16 @@ class PlayerService {
                 throw new Error(`Failed to build playback URL for source: ${track.source}`)
             }
 
-            // 特殊处理 OmniParse 网易云：需要 POST 请求获取真实地址 (Form Data + X-API-Key)
+            // Special handling for OmniParse Netease Form POST
             if (activeConfigSource.type === AudioSourceType.OmniParse && track.source === 'netease') {
-                const baseUrl = activeConfigSource.url.replace(/\/$/, '');
-                const apiUrl = `${baseUrl}/song`;
+                const baseUrl = activeConfigSource.url.replace(/\/$/, '')
+                const apiUrl = `${baseUrl}/song`
 
-                console.log(`[PlayerService] Fetching Netease real URL via Form POST: ${apiUrl}`);
-
-                const formData = new URLSearchParams();
-                formData.append('ids', track.id.toString());
-                formData.append('url', ''); // 保持空，根据 curl 示例
-                formData.append('level', quality);
-                formData.append('type', 'json');
+                const formData = new URLSearchParams()
+                formData.append('ids', track.id.toString())
+                formData.append('url', '')
+                formData.append('level', quality)
+                formData.append('type', 'json')
 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
@@ -141,27 +229,42 @@ class PlayerService {
                         'X-API-Key': activeConfigSource.apiKey || ''
                     },
                     body: formData.toString()
-                });
+                })
 
-                const result = await response.json();
-                // 示例显示 url 就在根路径上
+                const result = await response.json()
                 if (result.status === 200 && result.url) {
-                    url = result.url;
-                    // 如果有歌词，可以在此处理或存入 store
-                    console.log(`[PlayerService] Successfully fetched real URL and metadata for: ${result.name}`);
+                    url = result.url
                 } else {
-                    throw new Error(`Failed to fetch Netease real URL: ${result.msg || 'Unknown error'}`);
+                    throw new Error(`Failed to fetch Netease real URL: ${result.msg || 'Unknown error'}`)
                 }
             }
 
-            console.log(`[PlayerService] Playing: ${track.name} from ${url}`)
+            console.log(`[PlayerService] Playing via Howler (MediaSession fallback): ${track.name}`)
 
-            this.audio.src = url
-            await this.audio.play()
+            // Handle Cross-fade for existing audio
+            if (this.howl) {
+                const oldHowl = this.howl
+                oldHowl.fade(oldHowl.volume(), 0, this.fadeDuration)
+                setTimeout(() => oldHowl.unload(), this.fadeDuration)
+            }
+
+            // Create new Howl instance
+            this.howl = new Howl({
+                src: [url],
+                html5: true,
+                volume: usePlayerStore.getState().volume,
+                autoplay: true,
+                format: ['mp3', 'flac', 'm4a', 'wav']
+            })
+
+            this.setupEvents(this.howl)
+
+            // Force state update for UI
+            usePlayerStore.getState().setIsPlaying(true)
+            usePlayerStore.getState().setIsLoading(false)
         } catch (error) {
             console.error("[PlayerService] Play error:", error)
             usePlayerStore.getState().setIsLoading(false)
-            // TODO: 这里可以实现自动跳过或降级逻辑
         }
     }
 
@@ -182,25 +285,40 @@ class PlayerService {
     }
 
     public togglePlay() {
-        if (!this.audio) return
-        if (this.audio.paused) {
-            this.audio.play()
+        if (!this.howl) return
+        if (this.howl.playing()) {
+            this.howl.pause()
         } else {
-            this.audio.pause()
+            this.howl.play()
         }
     }
 
     public seek(time: number) {
-        if (this.audio) {
-            this.audio.currentTime = time
+        if (this.howl) {
+            this.howl.seek(time)
             usePlayerStore.getState().setCurrentTime(time)
         }
     }
 
     public setVolume(volume: number) {
-        if (this.audio) {
-            this.audio.volume = volume
-            usePlayerStore.getState().setVolume(volume)
+        if (this.howl) {
+            this.howl.volume(volume)
+        }
+        usePlayerStore.getState().setVolume(volume)
+    }
+
+    private broadcastState() {
+        if (typeof window === 'undefined') return
+        const state = usePlayerStore.getState()
+        emit('player:state-change', {
+            currentTrack: state.currentTrack,
+            isPlaying: state.isPlaying
+        })
+    }
+
+    public cleanup() {
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = null
         }
     }
 }

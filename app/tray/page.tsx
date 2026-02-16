@@ -1,40 +1,72 @@
-
 "use client"
 
-import { useEffect } from "react"
-import { Monitor, Power, Settings } from "lucide-react"
-import { getCurrentWindow } from "@tauri-apps/api/window"
-import { getAllWindows } from "@tauri-apps/api/window"
+import { useEffect, useState } from "react"
+import { Monitor, Power, Settings, Play, Pause, SkipForward, SkipBack } from "lucide-react"
+import { getCurrentWindow, getAllWindows } from "@tauri-apps/api/window"
 import { exit } from "@tauri-apps/plugin-process"
+import { listen, emit } from "@tauri-apps/api/event"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { usePlayerStore } from "@/lib/store/usePlayerStore"
+import { Track } from "@/lib/models/track"
 
 export default function TrayPage() {
+    const [currentTrack, setCurrentTrack] = useState<Track | null>(null)
+    const [isPlaying, setIsPlaying] = useState(false)
+
+    const resizeWindow = async () => {
+        const container = document.getElementById('tray-container');
+        if (container) {
+            // Wait a tick for DOM to update
+            setTimeout(async () => {
+                const height = container.scrollHeight;
+                const { LogicalSize } = await import('@tauri-apps/api/window');
+                const win = getCurrentWindow();
+                await win.setSize(new LogicalSize(200, height));
+            }, 0);
+        }
+    }
+
     useEffect(() => {
+        // Initialize from store
+        const state = usePlayerStore.getState()
+        setCurrentTrack(state.currentTrack)
+        setIsPlaying(state.isPlaying)
+
+        // Listen for state changes from main window
+        const unlisten = listen('player:state-change', (event: any) => {
+            const payload = event.payload
+            setCurrentTrack(payload.currentTrack)
+            setIsPlaying(payload.isPlaying)
+        })
+
         // Prevent right click on tray menu
         const handleContextMenu = (e: MouseEvent) => {
             e.preventDefault()
         }
 
-        // Hide window when it loses focus (clicked outside)
+        // Hide window when it loses focus
         const handleBlur = async () => {
             await getCurrentWindow().hide()
         }
 
         document.addEventListener("contextmenu", handleContextMenu)
-
-        // We need to attach blur listener to the window
-        // But getCurrentWindow() returns a Promise in v2 usually, or we can use the window object if it's available?
-        // Actually @tauri-apps/api/window getCurrentWindow() returns the WebviewWindow instance.
-        // We can listen to the Tauri window event using .listen or just standard window.addEventListener('blur')?
-        // Standard window 'blur' event works for webview losing focus.
         window.addEventListener("blur", handleBlur)
 
         return () => {
+            unlisten.then(f => f())
             document.removeEventListener("contextmenu", handleContextMenu)
             window.removeEventListener("blur", handleBlur)
         }
     }, [])
+
+    useEffect(() => {
+        resizeWindow();
+    }, [currentTrack]);
+
+    const sendCommand = (command: string) => {
+        emit('player:command', command)
+    }
 
     const showMainWindow = async () => {
         const windows = await getAllWindows()
@@ -44,7 +76,6 @@ export default function TrayPage() {
             await main.show()
             await main.setFocus()
         }
-        // Hide tray window
         await getCurrentWindow().hide()
     }
 
@@ -56,8 +87,6 @@ export default function TrayPage() {
         const windows = await getAllWindows()
         const main = windows.find((w) => w.label === "main")
         if (main) {
-            // In a real app we might navigate to settings, but for now just show window
-            // Navigating remotely is harder, we'll just show window
             await main.unminimize()
             await main.show()
             await main.setFocus()
@@ -66,15 +95,67 @@ export default function TrayPage() {
     }
 
     return (
-        <div className="h-full w-full bg-background border rounded-lg shadow-lg flex flex-col p-1">
+        <div
+            id="tray-container"
+            className="h-fit w-full bg-background border rounded-lg shadow-lg flex flex-col p-1 overflow-hidden"
+        >
             <style global jsx>{`
                 body {
                     user-select: none;
+                    overflow: hidden;
+                    background: transparent;
                 }
                 nextjs-portal, #__next-build-watcher {
                     display: none !important;
                 }
             `}</style>
+
+            {/* Media Control Section */}
+            {currentTrack && (
+                <div className="px-2 py-2 flex flex-col gap-1.5">
+                    <div className="flex flex-col">
+                        <span className="text-sm font-semibold truncate max-w-[180px]">
+                            {currentTrack.name}
+                        </span>
+                        <span className="text-xs text-muted-foreground truncate max-w-[180px]">
+                            {currentTrack.artists}
+                        </span>
+                    </div>
+                    <div className="flex items-center justify-between px-1">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => sendCommand('prev')}
+                        >
+                            <SkipBack className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => sendCommand('toggle-play')}
+                        >
+                            {isPlaying ? (
+                                <Pause className="h-4 w-4 fill-current" />
+                            ) : (
+                                <Play className="h-4 w-4 fill-current ml-0.5" />
+                            )}
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => sendCommand('next')}
+                        >
+                            <SkipForward className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {currentTrack && <Separator className="my-1" />}
+
             <Button
                 variant="ghost"
                 className="justify-start gap-2 h-9 px-2 font-normal"

@@ -64,15 +64,23 @@ export const usePlayerStore = create<PlayerState>()(
             repeatMode: RepeatMode.All,
 
             setCurrentTrack: (track) => {
-                const { currentTrack } = get()
-                if (currentTrack && currentTrack.id === track?.id && currentTrack.source === track?.source) {
-                    return
-                }
-                set({ currentTrack, isPlaying: !!track, progress: 0, currentTime: 0 })
+                const { currentTrack, history } = get()
+
+                // 状态快照更新
+                set({
+                    currentTrack: track,
+                    isPlaying: !!track,
+                    progress: 0,
+                    currentTime: 0,
+                    isLoading: !!track
+                })
+
                 if (track) {
-                    const { history } = get()
-                    const newHistory = [track, ...history.filter(t => t.id !== track.id || t.source !== track.source)].slice(0, 100)
-                    set({ history: newHistory })
+                    const isSameTrack = currentTrack?.id === track.id && currentTrack?.source === track.source
+                    if (!isSameTrack) {
+                        const newHistory = [track, ...history.filter(t => t.id !== track.id || t.source !== track.source)].slice(0, 100)
+                        set({ history: newHistory })
+                    }
                 }
             },
 
