@@ -3,6 +3,8 @@
 import * as React from "react"
 import { useSearchParams } from "next/navigation"
 import { searchService } from "@/lib/services/searchService"
+import { playerService } from "@/lib/services/playerService"
+import { usePlayerStore } from "@/lib/store/usePlayerStore"
 import { Track } from "@/lib/models/track"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
@@ -66,6 +68,10 @@ export default function SearchPage() {
                         <div
                             key={key}
                             className="grid grid-cols-[48px_1fr_1fr_1fr_48px] gap-4 px-4 py-2.5 items-center rounded-lg hover:bg-accent/50 group transition-all cursor-pointer"
+                            onClick={() => {
+                                playerService.playTrack(track);
+                                usePlayerStore.getState().setQueue(tracks);
+                            }}
                         >
                             <div className="flex justify-center items-center relative">
                                 <span className="text-sm text-muted-foreground group-hover:opacity-0">{index + 1}</span>

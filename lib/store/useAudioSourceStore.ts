@@ -1,4 +1,3 @@
-
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { AudioSourceConfig, AudioSourceType } from '../models/audioSourceConfig'
@@ -14,6 +13,7 @@ interface AudioSourceState {
     removeSource: (id: string) => void
     setActiveSource: (id: string) => void
     setInitialized: (initialized: boolean) => void
+    getActiveSource: () => AudioSourceConfig | null
 }
 
 export const useAudioSourceStore = create<AudioSourceState>()(
@@ -46,6 +46,11 @@ export const useAudioSourceStore = create<AudioSourceState>()(
             setActiveSource: (id) => set({ activeSourceId: id }),
 
             setInitialized: (initialized) => set({ isInitialized: initialized }),
+
+            getActiveSource: () => {
+                const state = get()
+                return state.sources.find((s) => s.id === state.activeSourceId) || null
+            }
         }),
         {
             name: 'audio-source-storage',

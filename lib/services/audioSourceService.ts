@@ -118,12 +118,17 @@ class AudioSourceService {
             [MusicSource.Kugou]: 'kugou/song',
             [MusicSource.Kuwo]: 'kuwo/song',
             [MusicSource.Apple]: 'apple/song',
+            [MusicSource.Spotify]: 'spotify/stream',
         };
 
         const path = sourcePathMap[source];
         if (!path) return '';
 
-        return `${baseUrl}/${path}?id=${songId}&quality=${quality}`;
+        let url = `${baseUrl}/${path}?id=${songId}&quality=${quality}`;
+        if (source === MusicSource.Netease) {
+            url += '&type=json';
+        }
+        return url;
     }
 
     private buildLxMusicUrl(baseUrl: string, config: AudioSourceConfig, source: MusicSource, songId: string | number, quality: AudioQuality): string {
