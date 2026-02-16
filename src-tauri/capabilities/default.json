@@ -3,7 +3,8 @@
   "identifier": "default",
   "description": "Capability for the main window",
   "windows": [
-    "main"
+    "main",
+    "tray"
   ],
   "permissions": [
     "core:default",
@@ -12,6 +13,11 @@
     "core:window:allow-maximize",
     "core:window:allow-toggle-maximize",
     "core:window:allow-close",
-    "core:window:allow-start-dragging"
+    "core:window:allow-unminimize",
+    "core:window:allow-show",
+    "core:window:allow-set-focus",
+    "core:window:allow-hide",
+    "core:window:allow-start-dragging",
+    "process:default"
   ]
 }

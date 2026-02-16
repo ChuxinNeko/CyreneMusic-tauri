@@ -30,7 +30,7 @@ function SidebarItem({ icon: Icon, label, href, isActive }: SidebarItemProps) {
 
 export function Sidebar() {
     return (
-        <div className="w-60 border-r bg-muted/10 h-full flex flex-col">
+        <div className="hidden md:flex w-60 border-r bg-muted/10 h-full flex-col">
             <div className="h-14 flex items-center px-6 border-b select-none" data-tauri-drag-region>
                 {/* Logo Placeholder */}
                 <div className="flex items-center gap-2 font-bold text-lg pointer-events-none">
