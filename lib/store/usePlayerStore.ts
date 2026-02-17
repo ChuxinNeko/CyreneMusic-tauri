@@ -29,6 +29,8 @@ interface PlayerState {
     volume: number
     // Repeat mode
     repeatMode: RepeatMode
+    // Fullscreen state
+    isFullscreen: boolean
 
     // Actions
     setCurrentTrack: (track: Track | null) => void
@@ -44,6 +46,7 @@ interface PlayerState {
     setDuration: (duration: number) => void
     setVolume: (volume: number) => void
     setRepeatMode: (mode: RepeatMode) => void
+    setIsFullscreen: (value: boolean) => void
 
     playNext: () => void
     playPrevious: () => void
@@ -62,6 +65,7 @@ export const usePlayerStore = create<PlayerState>()(
             duration: 0,
             volume: 0.8,
             repeatMode: RepeatMode.All,
+            isFullscreen: false,
 
             setCurrentTrack: (track) => {
                 const { currentTrack, history } = get()
@@ -108,6 +112,7 @@ export const usePlayerStore = create<PlayerState>()(
             setDuration: (duration) => set({ duration }),
             setVolume: (volume) => set({ volume }),
             setRepeatMode: (repeatMode) => set({ repeatMode }),
+            setIsFullscreen: (isFullscreen) => set({ isFullscreen }),
 
             playNext: () => {
                 const { queue, currentTrack, repeatMode } = get()

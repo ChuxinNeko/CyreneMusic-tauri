@@ -5,6 +5,7 @@ import { Sidebar } from "./Sidebar"
 import { TitleBar } from "./TitleBar"
 import { MobileNav } from "./MobileNav"
 import { PlayerBar } from "../player/PlayerBar"
+import { FullscreenPlayer } from "../player/FullscreenPlayer"
 
 export function MainLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
@@ -27,6 +28,7 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             </div>
             <PlayerBar />
             <MobileNav />
+            <FullscreenPlayer />
         </div>
     )
 }

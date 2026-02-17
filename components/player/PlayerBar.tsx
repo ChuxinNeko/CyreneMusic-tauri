@@ -32,7 +32,8 @@ export function PlayerBar() {
         volume,
         repeatMode,
         setVolume,
-        setRepeatMode
+        setRepeatMode,
+        setIsFullscreen
     } = usePlayerStore()
 
     const formatTime = (seconds: number) => {
@@ -73,7 +74,10 @@ export function PlayerBar() {
         <div className="h-20 border-t bg-background/60 backdrop-blur-xl px-4 flex items-center justify-between z-50">
             {/* Left: Track Info */}
             <div className="flex items-center gap-3 w-1/4 min-w-[200px]">
-                <div className="relative group cursor-pointer overflow-hidden rounded-md w-12 h-12 bg-muted flex-shrink-0 border">
+                <div
+                    className="relative group cursor-pointer overflow-hidden rounded-md w-12 h-12 bg-muted flex-shrink-0 border"
+                    onClick={() => setIsFullscreen(true)}
+                >
                     {currentTrack?.picUrl ? (
                         <img
                             src={currentTrack.picUrl}
@@ -194,14 +198,7 @@ export function PlayerBar() {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                    onClick={() => {
-                        if (currentTrack) {
-                            // 这里应该更新 store 中的状态，而不是直接解构修改
-                            // 假设 store 有 toggleFullscreen 或类似方法，或者通过 setCurrentTrack 更新
-                            // 根据之前的 usePlayerStore 定义，它不包含 isFullscreen
-                            // 如果是 UI 状态，应该用本地状态或专门的 store 字段
-                        }
-                    }}
+                    onClick={() => setIsFullscreen(true)}
                 >
                     <Maximize2 className="h-4 w-4" />
                 </Button>

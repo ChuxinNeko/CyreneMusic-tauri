@@ -17,6 +17,10 @@ export interface Track {
     picUrl: string;
     /** 音乐来源 */
     source: MusicSource;
+    /** 歌词数据 (JSON 字符串) */
+    lyric?: string;
+    /** 逐字歌词数据 (JSON 字符串) */
+    yrc?: string;
 }
 
 /**

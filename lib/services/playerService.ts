@@ -1,13 +1,6 @@
 "use client"
 
 import { Howl } from 'howler'
-// 暂时停用插件生成的 SMTC，改用浏览器原生的 MediaSession
-// import { 
-//     initializeSession, 
-//     mediaControls, 
-//     PlaybackStatus, 
-//     MediaControlEventType 
-// } from 'tauri-plugin-media-api'
 import { audioSourceService, AudioQuality } from "./audioSourceService"
 import { AudioSourceType } from "../models/audioSourceConfig"
 import { usePlayerStore } from "../store/usePlayerStore"
@@ -56,37 +49,7 @@ class PlayerService {
     }
 
     private async setupSMTC() {
-        // try {
-        //     await initializeSession('com.cyrene.music', 'Cyrene Music')
-
-        //     // Register SMTC events
-        //     mediaControls.setEventHandler((event) => {
-        //         switch (event.eventType) {
-        //             case MediaControlEventType.Play:
-        //             case MediaControlEventType.Pause:
-        //             case MediaControlEventType.PlayPause:
-        //                 this.togglePlay()
-        //                 break
-        //             case MediaControlEventType.Next:
-        //                 this.playNext()
-        //                 break
-        //             case MediaControlEventType.Previous:
-        //                 this.playPrevious()
-        //                 break
-        //             case MediaControlEventType.SeekTo:
-        //             case MediaControlEventType.SetPosition:
-        //                 if (event.data !== undefined) {
-        //                     this.seek(Number(event.data))
-        //                 }
-        //                 break
-        //             default:
-        //                 break
-        //         }
-        //     })
-        //     console.log("[PlayerService] SMTC registered and initialized")
-        // } catch (error) {
-        //     console.error("[PlayerService] Failed to register SMTC:", error)
-        // }
+        // SMTC setup placeholder
     }
 
     private setupEvents(howl: Howl) {
@@ -94,7 +57,6 @@ class PlayerService {
             usePlayerStore.getState().setIsPlaying(true)
             usePlayerStore.getState().setIsLoading(false)
             this.startProgressTimer()
-            // Update SMTC state (WebView2 will handle this via MediaSession automagically if synchronized)
             this.broadcastState()
         })
 
@@ -109,7 +71,6 @@ class PlayerService {
             const duration = howl.duration()
             usePlayerStore.getState().setDuration(duration)
 
-            // Update metadata with duration
             const track = usePlayerStore.getState().currentTrack
             if (track) {
                 this.updateSMTCMetadata(track, duration)
@@ -154,10 +115,7 @@ class PlayerService {
 
     private updateSMTCMetadata(track: Track, duration?: number) {
         try {
-            // 广播至其他窗口 (如托盘)
             this.broadcastState()
-
-            // 仅使用浏览器内置 MediaSession (WebView2 SMTC)
             if ('mediaSession' in navigator) {
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: track.name,
@@ -168,7 +126,6 @@ class PlayerService {
                     ]
                 })
 
-                // 设置浏览器侧的操作处理，确保与 App 逻辑一致
                 navigator.mediaSession.setActionHandler('play', () => this.togglePlay())
                 navigator.mediaSession.setActionHandler('pause', () => this.togglePlay())
                 navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrevious())
@@ -189,16 +146,13 @@ class PlayerService {
             usePlayerStore.getState().setIsLoading(true)
             usePlayerStore.getState().setCurrentTrack(track)
 
-            // Update SMTC metadata (preliminary)
             this.updateSMTCMetadata(track)
 
-            // Get active audio source config
             const activeConfigSource = useAudioSourceStore.getState().getActiveSource()
             if (!activeConfigSource) {
                 throw new Error("No active audio source configured")
             }
 
-            // Build initial playback URL
             const quality = AudioQuality.ExHigh
             let url = audioSourceService.buildPlaybackUrl(
                 activeConfigSource,
@@ -211,7 +165,6 @@ class PlayerService {
                 throw new Error(`Failed to build playback URL for source: ${track.source}`)
             }
 
-            // Special handling for OmniParse Netease Form POST
             if (activeConfigSource.type === AudioSourceType.OmniParse && track.source === 'netease') {
                 const baseUrl = activeConfigSource.url.replace(/\/$/, '')
                 const apiUrl = `${baseUrl}/song`
@@ -234,21 +187,23 @@ class PlayerService {
                 const result = await response.json()
                 if (result.status === 200 && result.url) {
                     url = result.url
+                    if (result.lyric) {
+                        const updatedTrack = { ...track, lyric: result.lyric }
+                        usePlayerStore.getState().setCurrentTrack(updatedTrack)
+                    }
                 } else {
                     throw new Error(`Failed to fetch Netease real URL: ${result.msg || 'Unknown error'}`)
                 }
             }
 
-            console.log(`[PlayerService] Playing via Howler (MediaSession fallback): ${track.name}`)
+            console.log(`[PlayerService] Playing via Howler: ${track.name}`)
 
-            // Handle Cross-fade for existing audio
             if (this.howl) {
                 const oldHowl = this.howl
                 oldHowl.fade(oldHowl.volume(), 0, this.fadeDuration)
                 setTimeout(() => oldHowl.unload(), this.fadeDuration)
             }
 
-            // Create new Howl instance
             this.howl = new Howl({
                 src: [url],
                 html5: true,
@@ -258,8 +213,6 @@ class PlayerService {
             })
 
             this.setupEvents(this.howl)
-
-            // Force state update for UI
             usePlayerStore.getState().setIsPlaying(true)
             usePlayerStore.getState().setIsLoading(false)
         } catch (error) {
@@ -317,9 +270,7 @@ class PlayerService {
     }
 
     public cleanup() {
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.metadata = null
-        }
+        // Cleanup logic
     }
 }
 
