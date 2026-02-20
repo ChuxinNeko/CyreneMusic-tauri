@@ -185,10 +185,11 @@ class PlayerService {
                 })
 
                 const result = await response.json()
+                console.log("[PlayerService] /song Response:", result)
                 if (result.status === 200 && result.url) {
                     url = result.url
-                    if (result.lyric) {
-                        const updatedTrack = { ...track, lyric: result.lyric }
+                    if (result.lyric || result.yrc) {
+                        const updatedTrack = { ...track, lyric: result.lyric, yrc: result.yrc, tlyric: result.tlyric, ytlrc: result.ytlrc }
                         usePlayerStore.getState().setCurrentTrack(updatedTrack)
                     }
                 } else {
@@ -251,6 +252,17 @@ class PlayerService {
             this.howl.seek(time)
             usePlayerStore.getState().setCurrentTime(time)
         }
+    }
+
+    /**
+     * 获取实时播放位置（秒），直接从 Howl 读取，不经过 Zustand store 的 1s 延迟。
+     * 用于逐字歌词等需要高精度时间的场景。
+     */
+    public getCurrentTime(): number {
+        if (this.howl && this.howl.playing()) {
+            return this.howl.seek() as number
+        }
+        return usePlayerStore.getState().currentTime
     }
 
     public setVolume(volume: number) {

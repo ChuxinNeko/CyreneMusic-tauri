@@ -17,6 +17,8 @@ interface LyricLineData {
     endTime: number
     startTime: number
     words: WordData[]
+    isVerbatim: boolean
+    translation?: string
 }
 
 interface LyricLineHelper {
@@ -30,7 +32,6 @@ interface LyricLineHelper {
         padding: number
         height: number
         animating: boolean
-        floatAnim?: Animation
         maskAnim?: Animation
     }[]
     height: number
@@ -126,10 +127,9 @@ function InterludeDots({ time, interlude }: { time: number, interlude: { start: 
 }
 
 export function LyricPlayer() {
-    const { currentTime, currentTrack, isPlaying } = usePlayerStore()
+    const { currentTrack, isPlaying, showTranslation } = usePlayerStore()
     const containerRef = useRef<HTMLDivElement>(null)
     const linesHelperRef = useRef<LyricLineHelper[]>([])
-    const lastLayoutTimeRef = useRef(0)
     const currentScrollIndexRef = useRef(-1)
     const requestRef = useRef<number>()
     const lastFrameTimeRef = useRef<number>()
@@ -140,7 +140,9 @@ export function LyricPlayer() {
 
     // Parse lyrics
     useEffect(() => {
-        const lyricSource = (currentTrack?.yrc && currentTrack.yrc.trim()) ? currentTrack.yrc : (currentTrack?.lyric || "");
+        const hasYrc = currentTrack?.yrc && currentTrack.yrc.trim().length > 0;
+        const lyricSource = hasYrc ? currentTrack.yrc : (currentTrack?.lyric || "");
+        console.log("[LyricPlayer] Init parsing", { hasYrc, yrcLength: currentTrack?.yrc?.length, hasLyric: !!currentTrack?.lyric });
         if (!lyricSource) {
             setParsedLyrics([])
             return
@@ -148,6 +150,7 @@ export function LyricPlayer() {
 
         try {
             const rawLines = lyricSource.split('\n').filter(l => l.trim())
+            console.log(`[LyricPlayer] Parsing ${rawLines.length} lines. First line:`, rawLines[0]);
             const lrcRegex = /^\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)$/
             const yrcLineRegex = /^\[(\d+),(\d+)\]/
             const yrcWordRegex = /\((\d+),(\d+),\d+\)([^(\[]+)/g
@@ -168,7 +171,7 @@ export function LyricPlayer() {
                             endTime: timeMs + 1000,
                             duration: 1000
                         }))
-                        return { time: timeMs, startTime: timeMs, endTime: timeMs + 1000, words }
+                        return { time: timeMs, startTime: timeMs, endTime: timeMs + 1000, words, isVerbatim: false }
                     } catch (e) { return null }
                 }
 
@@ -194,7 +197,7 @@ export function LyricPlayer() {
                     }
 
                     if (words.length > 0) {
-                        return { time: timeMs, startTime: timeMs, endTime, words }
+                        return { time: timeMs, startTime: timeMs, endTime, words, isVerbatim: true }
                     }
                 }
 
@@ -211,7 +214,7 @@ export function LyricPlayer() {
                         endTime: timeMs + 2000,
                         duration: 2000
                     }]
-                    return { time: timeMs, startTime: timeMs, endTime: timeMs + 2000, words }
+                    return { time: timeMs, startTime: timeMs, endTime: timeMs + 2000, words, isVerbatim: false }
                 }
 
                 return null
@@ -236,12 +239,51 @@ export function LyricPlayer() {
                 }
             })
 
+            console.log(`[LyricPlayer] Parse success. Verbatim lines: ${processed.filter(l => l.isVerbatim).length}/${processed.length}`);
+
+            // 解析翻译歌词并按时间匹配
+            const translationSource = hasYrc ? currentTrack?.ytlrc : currentTrack?.tlyric;
+            if (translationSource && translationSource.trim().length > 0) {
+                const tLines = translationSource.split('\n').filter(l => l.trim())
+                const tLrcRegex = /^\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/
+                const translationMap: { time: number, text: string }[] = []
+
+                for (const tLine of tLines) {
+                    const m = tLine.match(tLrcRegex)
+                    if (m) {
+                        const mins = parseInt(m[1])
+                        const secs = parseInt(m[2])
+                        const ms = parseInt(m[3].padEnd(3, '0').slice(0, 3))
+                        const tMs = (mins * 60 + secs) * 1000 + ms + INTRO_DELAY
+                        const text = m[4].trim()
+                        if (text) translationMap.push({ time: tMs, text })
+                    }
+                }
+
+                // 按时间匹配翻译到主歌词行（容差500ms）
+                for (const lyricLine of processed) {
+                    let bestMatch: { time: number, text: string } | null = null
+                    let bestDiff = Infinity
+                    for (const t of translationMap) {
+                        const diff = Math.abs(t.time - lyricLine.time)
+                        if (diff < bestDiff) {
+                            bestDiff = diff
+                            bestMatch = t
+                        }
+                    }
+                    if (bestMatch && bestDiff < 500) {
+                        lyricLine.translation = bestMatch.text
+                    }
+                }
+                console.log(`[LyricPlayer] Translations matched: ${processed.filter(l => l.translation).length}/${processed.length}`);
+            }
+
             setParsedLyrics(processed)
         } catch (error) {
             console.error("Lyric parsing error:", error)
             setParsedLyrics([])
         }
-    }, [currentTrack?.lyric, currentTrack?.yrc])
+    }, [currentTrack?.lyric, currentTrack?.yrc, currentTrack?.tlyric, currentTrack?.ytlrc])
 
     // Measurements & Setup
     useEffect(() => {
@@ -272,6 +314,12 @@ export function LyricPlayer() {
             const helper: LyricLineHelper = { el, index, data, wordEls, height: el.clientHeight || 60, springs: { posY, scale } }
 
             wordEls.forEach(w => {
+                if (!data.isVerbatim) {
+                    // 对于整句歌词（无逐字时间戳），直接全量展示，无需半透明遮罩
+                    w.span.style.maskImage = 'none'
+                    w.span.style.webkitMaskImage = 'none'
+                    return
+                }
                 const fadeWidth = w.height * WORD_FADE_WIDTH
                 const totalAspect = 2 + (fadeWidth / Math.max(1, (w.width + w.padding * 2)))
                 const leftPos = (1 - (fadeWidth / Math.max(1, (w.width + w.padding * 2))) / totalAspect) / 2
@@ -286,6 +334,19 @@ export function LyricPlayer() {
         }).filter(l => l !== null)
         updateLayoutTargets(0, null, true)
     }, [parsedLyrics])
+
+    // 翻译行显示/隐藏时重新测量行高并更新布局
+    useEffect(() => {
+        if (linesHelperRef.current.length === 0) return
+        // 等待 DOM 更新后重新测量
+        requestAnimationFrame(() => {
+            linesHelperRef.current.forEach(l => {
+                if (l && l.el) l.height = l.el.clientHeight || 60
+            })
+            const idx = Math.max(0, currentScrollIndexRef.current)
+            updateLayoutTargets(idx, null)
+        })
+    }, [showTranslation])
 
     const updateLayoutTargets = (targetIndex: number, activeInterlude: { lineIndex: number } | null, immediate = false) => {
         if (!containerRef.current || linesHelperRef.current.length === 0) return
@@ -322,15 +383,13 @@ export function LyricPlayer() {
             const isActive = i === targetIndex
             if (immediate) {
                 l.springs.posY.setPosition(curPos)
-                l.springs.scale.setPosition(isActive ? 100 : 97)
+                l.springs.scale.setPosition(100)
             } else {
                 l.springs.posY.setTargetPosition(curPos, delay)
-                l.springs.scale.setTargetPosition(isActive ? 100 : 97)
+                l.springs.scale.setTargetPosition(100)
             }
 
-            let blur = isActive ? 0 : 1 + Math.abs(targetIndex - i)
-            l.el.style.filter = `blur(${Math.min(8, blur)}px)`
-            l.el.style.opacity = isActive ? "1" : "0.5"
+            l.el.style.opacity = isActive ? "1" : "0.4"
 
             if (curPos >= 0 && !immediate) {
                 delay += baseDelay
@@ -354,14 +413,24 @@ export function LyricPlayer() {
             const duration = w.data.duration
             if (delay < -duration - 1000) return
 
-            w.floatAnim = w.span.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-0.05em)' }], {
-                delay: delay, duration: Math.max(1000, duration), fill: 'both', easing: 'ease-out', composite: 'add'
-            })
-            const fadeWidth = w.height * WORD_FADE_WIDTH
-            const wTotal = w.width + w.padding * 2 + fadeWidth
-            w.maskAnim = w.span.animate([{ maskPosition: `${-wTotal}px 0` }, { maskPosition: `0px 0` }], {
-                delay: delay, duration: duration, fill: 'both', easing: 'linear'
-            })
+            if (lineHelper.data.isVerbatim) {
+                const fadeWidth = w.height * WORD_FADE_WIDTH
+                const wTotal = w.width + w.padding * 2 + fadeWidth
+
+                // 由于 YRC 数据每个字自带 duration，可能因为停顿而和下个字之间存在空白 gap
+                // 但为了在视觉上掩盖不平滑，我们需要在原唱 duration 的基础上加一点点尾随平滑时间，
+                // 并且某些字的 duration 可能极度短暂，给 duration 增加 minimum 300ms 且带长尾阻尼保底
+                const animDuration = Math.max(duration + 100, 300)
+
+                w.maskAnim = w.span.animate([{ maskPosition: `${-wTotal}px 0` }, { maskPosition: `0px 0` }], {
+                    delay: delay, duration: animDuration, fill: 'both', easing: 'linear'
+                })
+            }
+
+            if (!usePlayerStore.getState().isPlaying) {
+                if (w.maskAnim) w.maskAnim.pause()
+            }
+
             w.animating = true
         })
     }
@@ -378,32 +447,34 @@ export function LyricPlayer() {
         return null
     }, [parsedLyrics])
 
-    const resetAnimations = () => {
+    const resetAnimations = (clearAll: boolean = false) => {
         linesHelperRef.current.forEach(l => l.wordEls.forEach(w => {
-            if (w.floatAnim) w.floatAnim.cancel()
-            if (w.maskAnim) w.maskAnim.cancel()
-            w.animating = false
+            if (clearAll || !w.maskAnim || w.maskAnim.playState !== 'running') {
+                if (w.maskAnim) w.maskAnim.cancel()
+                w.animating = false
+            }
         }))
     }
 
-    // Animation Loop
+    // Animation Loop — 使用 playerService.getCurrentTime() 实时读取播放位置
     const loop = (timestamp: number) => {
         if (!lastFrameTimeRef.current) lastFrameTimeRef.current = timestamp
         const dt = (timestamp - lastFrameTimeRef.current) / 1000
         lastFrameTimeRef.current = timestamp
 
-        const loopTime = currentTime * 1000 + INTRO_DELAY
+        const realTime = playerService.getCurrentTime()
+        const loopTime = realTime * 1000 + INTRO_DELAY
+
         let activeIndex = 0
         for (let i = 0; i < parsedLyrics.length; i++) {
             if (loopTime >= parsedLyrics[i].time) activeIndex = i
         }
 
         const currentInterlude = getActiveInterlude(loopTime)
-        if (currentScrollIndexRef.current !== activeIndex || currentInterlude?.start !== interlude?.start || Math.abs(loopTime - lastLayoutTimeRef.current) > 500) {
+        if (currentScrollIndexRef.current !== activeIndex || currentInterlude?.start !== interlude?.start) {
             currentScrollIndexRef.current = activeIndex
             setInterlude(currentInterlude)
             updateLayoutTargets(activeIndex, currentInterlude)
-            lastLayoutTimeRef.current = loopTime
         }
 
         if (linesHelperRef.current[activeIndex]) updateWordAnimations(linesHelperRef.current[activeIndex], loopTime)
@@ -425,16 +496,28 @@ export function LyricPlayer() {
     useEffect(() => {
         requestRef.current = requestAnimationFrame(loop)
         return () => { if (requestRef.current) cancelAnimationFrame(requestRef.current) }
-    }, [currentTime, parsedLyrics, interlude])
+    }, [parsedLyrics])
+
+    useEffect(() => {
+        linesHelperRef.current.forEach(l => {
+            l.wordEls.forEach(w => {
+                if (isPlaying) {
+                    if (w.maskAnim?.playState === 'paused') w.maskAnim.play()
+                } else {
+                    if (w.maskAnim?.playState === 'running') w.maskAnim.pause()
+                }
+            })
+        })
+    }, [isPlaying])
 
     const handleLineClick = (lineTime: number) => {
         const timeInSeconds = (lineTime - INTRO_DELAY) / 1000
         playerService.seek(timeInSeconds)
-        resetAnimations()
+        resetAnimations(true)
     }
 
     return (
-        <div ref={containerRef} className="w-full h-full overflow-hidden relative">
+        <div ref={containerRef} className="w-full h-full overflow-hidden relative" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, white 15%, white 80%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, white 15%, white 80%, transparent 100%)' }}>
             <div className="lyric-content relative w-full h-full">
                 {parsedLyrics.map((line, index) => (
                     <div
@@ -443,17 +526,22 @@ export function LyricPlayer() {
                         className="lyricLine absolute left-0 right-0 py-4 px-[6%] will-change-transform cursor-pointer hover:bg-white/5 rounded-2xl transition-colors duration-300"
                         style={{ transform: 'translateY(100vh)' }}
                     >
-                        <div className="lyricMainLine flex flex-wrap gap-x-[0.3em]">
+                        <div className="lyricMainLine flex flex-wrap">
                             {line.words.map((word, wIndex) => (
-                                <span key={wIndex} className="lyricWord inline-block text-[clamp(24px,3.5vw,42px)] font-bold leading-tight text-white/90" style={{ paddingLeft: '0.1em', paddingRight: '0.1em' }}>
+                                <span key={wIndex} className="lyricWord inline-block text-[clamp(19px,2.8vw,34px)] font-bold leading-tight text-white/90 whitespace-pre-wrap" style={{ paddingLeft: '0.1em', paddingRight: '0.1em', marginLeft: '-0.1em', marginRight: '-0.1em', fontFamily: 'MiSans, sans-serif' }}>
                                     {word.text}
                                 </span>
                             ))}
                         </div>
+                        {showTranslation && line.translation && (
+                            <div className="lyricTranslation mt-1 text-[clamp(11px,1.4vw,18px)] font-medium text-white/50 leading-snug" style={{ fontFamily: 'MiSans, sans-serif' }}>
+                                {line.translation}
+                            </div>
+                        )}
                     </div>
                 ))}
                 <div style={{ transform: `translate(${interludeDotsPosRef.current.x}px, ${interludeDotsPosRef.current.y}px)`, position: 'absolute', left: '6%', top: 0, zIndex: 5 }}>
-                    <InterludeDots time={currentTime * 1000 + INTRO_DELAY} interlude={interlude} />
+                    <InterludeDots time={playerService.getCurrentTime() * 1000 + INTRO_DELAY} interlude={interlude} />
                 </div>
             </div>
         </div>

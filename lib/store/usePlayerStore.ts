@@ -31,6 +31,8 @@ interface PlayerState {
     repeatMode: RepeatMode
     // Fullscreen state
     isFullscreen: boolean
+    // Show lyric translation
+    showTranslation: boolean
 
     // Actions
     setCurrentTrack: (track: Track | null) => void
@@ -47,6 +49,7 @@ interface PlayerState {
     setVolume: (volume: number) => void
     setRepeatMode: (mode: RepeatMode) => void
     setIsFullscreen: (value: boolean) => void
+    toggleTranslation: () => void
 
     playNext: () => void
     playPrevious: () => void
@@ -66,6 +69,7 @@ export const usePlayerStore = create<PlayerState>()(
             volume: 0.8,
             repeatMode: RepeatMode.All,
             isFullscreen: false,
+            showTranslation: true,
 
             setCurrentTrack: (track) => {
                 const { currentTrack, history } = get()
@@ -113,6 +117,7 @@ export const usePlayerStore = create<PlayerState>()(
             setVolume: (volume) => set({ volume }),
             setRepeatMode: (repeatMode) => set({ repeatMode }),
             setIsFullscreen: (isFullscreen) => set({ isFullscreen }),
+            toggleTranslation: () => set((state) => ({ showTranslation: !state.showTranslation })),
 
             playNext: () => {
                 const { queue, currentTrack, repeatMode } = get()

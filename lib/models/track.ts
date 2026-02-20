@@ -21,6 +21,10 @@ export interface Track {
     lyric?: string;
     /** 逐字歌词数据 (JSON 字符串) */
     yrc?: string;
+    /** 歌词翻译 (LRC 格式) */
+    tlyric?: string;
+    /** 逐字歌词翻译 (LRC 格式) */
+    ytlrc?: string;
 }
 
 /**
