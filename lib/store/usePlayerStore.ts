@@ -33,6 +33,11 @@ interface PlayerState {
     isFullscreen: boolean
     // Show lyric translation
     showTranslation: boolean
+    // Audio visualization (rhythm response)
+    audioVisualization: boolean
+    // Lyric Appearance
+    lyricFontSize: number
+    lyricBlurStrength: number
 
     // Actions
     setCurrentTrack: (track: Track | null) => void
@@ -50,6 +55,9 @@ interface PlayerState {
     setRepeatMode: (mode: RepeatMode) => void
     setIsFullscreen: (value: boolean) => void
     toggleTranslation: () => void
+    toggleAudioVisualization: () => void
+    setLyricFontSize: (size: number) => void
+    setLyricBlurStrength: (strength: number) => void
 
     playNext: () => void
     playPrevious: () => void
@@ -70,6 +78,9 @@ export const usePlayerStore = create<PlayerState>()(
             repeatMode: RepeatMode.All,
             isFullscreen: false,
             showTranslation: true,
+            audioVisualization: true,
+            lyricFontSize: 34,
+            lyricBlurStrength: 6,
 
             setCurrentTrack: (track) => {
                 const { currentTrack, history } = get()
@@ -118,6 +129,9 @@ export const usePlayerStore = create<PlayerState>()(
             setRepeatMode: (repeatMode) => set({ repeatMode }),
             setIsFullscreen: (isFullscreen) => set({ isFullscreen }),
             toggleTranslation: () => set((state) => ({ showTranslation: !state.showTranslation })),
+            toggleAudioVisualization: () => set((state) => ({ audioVisualization: !state.audioVisualization })),
+            setLyricFontSize: (size) => set({ lyricFontSize: size }),
+            setLyricBlurStrength: (strength) => set({ lyricBlurStrength: strength }),
 
             playNext: () => {
                 const { queue, currentTrack, repeatMode } = get()
@@ -155,7 +169,10 @@ export const usePlayerStore = create<PlayerState>()(
                 currentTrack: state.currentTrack,
                 volume: state.volume,
                 repeatMode: state.repeatMode,
-                history: state.history
+                history: state.history,
+                audioVisualization: state.audioVisualization,
+                lyricFontSize: state.lyricFontSize,
+                lyricBlurStrength: state.lyricBlurStrength
             }),
         }
     )

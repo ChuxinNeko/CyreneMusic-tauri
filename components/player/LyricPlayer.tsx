@@ -3,7 +3,6 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from "react"
 import { usePlayerStore } from "@/lib/store/usePlayerStore"
 import { playerService } from "@/lib/services/playerService"
-import { Spring } from "@/lib/utils/spring"
 
 interface WordData {
     text: string
@@ -33,19 +32,15 @@ interface LyricLineHelper {
         height: number
         animating: boolean
         maskAnim?: Animation
+        floatAnim?: Animation
     }[]
     height: number
-    springs: {
-        posY: Spring
-        scale: Spring
-    }
 }
 
-const ALIGN_POSITION = 0.45
+const ALIGN_POSITION = 0.5
 const WORD_FADE_WIDTH = 0.5
-const POS_Y_SPRING_PARAMS = { mass: 0.9, damping: 15, stiffness: 90 }
-const SCALE_SPRING_PARAMS = { mass: 2, damping: 25, stiffness: 100 }
 const INTRO_DELAY = 4000
+const LYRIC_TRANSITION = "800ms cubic-bezier(0.44, 0.05, 0.55, 0.95)"
 
 // Helper component for Interlude dots
 function InterludeDots({ time, interlude }: { time: number, interlude: { start: number, end: number } | null }) {
@@ -70,6 +65,12 @@ function InterludeDots({ time, interlude }: { time: number, interlude: { start: 
         const interludeDuration = end - start
         const currentDuration = time - start
 
+        if (interludeDuration <= 0) {
+            containerRef.current.style.transform = "scale(0)"
+            containerRef.current.style.opacity = "0"
+            return
+        }
+
         if (currentDuration <= interludeDuration && currentDuration >= 0) {
             const clamp = (min: number, cur: number, max: number) => Math.max(min, Math.min(cur, max))
             const easeOutExpo = (x: number) => x === 1 ? 1 : 1 - 2 ** (-10 * x)
@@ -85,28 +86,43 @@ function InterludeDots({ time, interlude }: { time: number, interlude: { start: 
             let scale = Math.sin(1.5 * Math.PI - (currentDuration / breatheDuration) * 2) / 20 + 1
             let globalOpacity = 1
 
-            // Entry
-            if (currentDuration < 2000) scale *= easeOutExpo(currentDuration / 2000)
+            // 2. Entry Scale
+            if (currentDuration < 2000) scale *= easeOutExpo(clamp(0, currentDuration / 2000, 1))
+
+            // 3. Global opacity fade-in
             if (currentDuration < 500) globalOpacity = 0
             else if (currentDuration < 1000) globalOpacity *= (currentDuration - 500) / 500
 
-            // Exit
+            // 4. Exit Scale (bounce and fade)
             if (interludeDuration - currentDuration < 750) {
-                scale *= 1 - easeInOutBack((750 - (interludeDuration - currentDuration)) / 750 / 2)
+                scale *= 1 - easeInOutBack(clamp(0, (750 - (interludeDuration - currentDuration)) / 750 / 2, 1))
+            }
+            if (interludeDuration - currentDuration < 375) {
+                globalOpacity *= clamp(0, (interludeDuration - currentDuration) / 375, 1)
             }
 
-            scale = Math.max(0, scale) * 0.7
+            scale = Math.max(0, scale) * 0.75 // 桌面端微调
             containerRef.current.style.transform = `scale(${scale})`
             containerRef.current.style.opacity = "1"
+            containerRef.current.style.transformOrigin = "left center"
 
+            // 5. Dots Waterfall calculation
             const dotsDuration = Math.max(0, interludeDuration - 750)
-            const dot0Opacity = clamp(0.25, ((currentDuration * 3) / dotsDuration) * 0.75, 1)
-            const dot1Opacity = clamp(0.25, (((currentDuration - dotsDuration / 3) * 3) / dotsDuration) * 0.75, 1)
-            const dot2Opacity = clamp(0.25, (((currentDuration - (dotsDuration / 3) * 2) * 3) / dotsDuration) * 0.75, 1)
+            const getRawDotOpacity = (t: number) => {
+                if (dotsDuration <= 0) return 0.25
+                const val = (t * 3 / dotsDuration) * 0.75
+                return clamp(0.25, val, 1.0)
+            }
 
-            dot0Ref.current.style.opacity = String(Math.max(0, globalOpacity * dot0Opacity))
-            dot1Ref.current.style.opacity = String(Math.max(0, globalOpacity * dot1Opacity))
-            dot2Ref.current.style.opacity = String(Math.max(0, globalOpacity * dot2Opacity))
+            const d0 = getRawDotOpacity(currentDuration)
+            const d1 = getRawDotOpacity(currentDuration - dotsDuration / 3)
+            const d2 = getRawDotOpacity(currentDuration - (dotsDuration / 3) * 2)
+
+            const finalize = (dotOp: number) => clamp(0, globalOpacity * dotOp, 1).toString()
+
+            dot0Ref.current.style.opacity = finalize(d0)
+            dot1Ref.current.style.opacity = finalize(d1)
+            dot2Ref.current.style.opacity = finalize(d2)
         } else {
             containerRef.current.style.transform = "scale(0)"
             containerRef.current.style.opacity = "0"
@@ -117,22 +133,23 @@ function InterludeDots({ time, interlude }: { time: number, interlude: { start: 
         <div
             ref={containerRef}
             className="interlude-dots absolute flex gap-4 transition-opacity duration-300"
-            style={{ transform: 'scale(0)', opacity: 0 }}
+            style={{ transform: 'scale(0)', opacity: 0, transformOrigin: 'left center', height: '40px', alignItems: 'center' }}
         >
-            <span ref={dot0Ref} className="w-2 h-2 rounded-full bg-white/60" />
-            <span ref={dot1Ref} className="w-2 h-2 rounded-full bg-white/60" />
-            <span ref={dot2Ref} className="w-2 h-2 rounded-full bg-white/60" />
+            <span ref={dot0Ref} className="w-4 h-4 rounded-full bg-white transition-opacity duration-100" />
+            <span ref={dot1Ref} className="w-4 h-4 rounded-full bg-white transition-opacity duration-100" />
+            <span ref={dot2Ref} className="w-4 h-4 rounded-full bg-white transition-opacity duration-100" />
         </div>
     )
 }
 
 export function LyricPlayer() {
-    const { currentTrack, isPlaying, showTranslation } = usePlayerStore()
+    const { currentTrack, isPlaying, showTranslation, lyricFontSize, lyricBlurStrength } = usePlayerStore()
     const containerRef = useRef<HTMLDivElement>(null)
     const linesHelperRef = useRef<LyricLineHelper[]>([])
     const currentScrollIndexRef = useRef(-1)
-    const requestRef = useRef<number>()
-    const lastFrameTimeRef = useRef<number>()
+    const requestRef = useRef<number>(0)
+    const lastFrameTimeRef = useRef<number>(0)
+    const interludeContainerRef = useRef<HTMLDivElement>(null)
 
     const [parsedLyrics, setParsedLyrics] = useState<LyricLineData[]>([])
     const [interlude, setInterlude] = useState<{ start: number, end: number, lineIndex: number } | null>(null)
@@ -306,12 +323,7 @@ export function LyricPlayer() {
                 return { span, data: w, width: span.clientWidth - padding * 2, padding, height: span.clientHeight - padding * 2, animating: false }
             }).filter(w => w !== null)
 
-            const posY = new Spring(window.innerHeight * 0.5)
-            const scale = new Spring(100)
-            posY.updateParams(POS_Y_SPRING_PARAMS)
-            scale.updateParams(SCALE_SPRING_PARAMS)
-
-            const helper: LyricLineHelper = { el, index, data, wordEls, height: el.clientHeight || 60, springs: { posY, scale } }
+            const helper: LyricLineHelper = { el, index, data, wordEls, height: el.clientHeight || 60 }
 
             wordEls.forEach(w => {
                 if (!data.isVerbatim) {
@@ -335,7 +347,7 @@ export function LyricPlayer() {
         updateLayoutTargets(0, null, true)
     }, [parsedLyrics])
 
-    // 翻译行显示/隐藏时重新测量行高并更新布局
+    // 翻译行显示/隐藏及设置变更时重新测量行高并更新布局
     useEffect(() => {
         if (linesHelperRef.current.length === 0) return
         // 等待 DOM 更新后重新测量
@@ -344,64 +356,102 @@ export function LyricPlayer() {
                 if (l && l.el) l.height = l.el.clientHeight || 60
             })
             const idx = Math.max(0, currentScrollIndexRef.current)
-            updateLayoutTargets(idx, null)
+            updateLayoutTargets(idx, null, true)
         })
-    }, [showTranslation])
+    }, [showTranslation, lyricFontSize, lyricBlurStrength])
 
     const updateLayoutTargets = (targetIndex: number, activeInterlude: { lineIndex: number } | null, immediate = false) => {
         if (!containerRef.current || linesHelperRef.current.length === 0) return
 
         const playerHeight = containerRef.current.clientHeight
-        let scrollOffset = 0
-        const DOT_HEIGHT = 20
-        const DOT_MARGIN = 30
-        const INTERLUDE_TOTAL_HEIGHT = DOT_HEIGHT + (DOT_MARGIN * 2)
+        const DOT_HEIGHT = 40
+        const INTERLUDE_TOTAL_HEIGHT = 80
+
+        let virtualY = 0
+        let activeCenterY = 0
+
+        const linesY = new Array(linesHelperRef.current.length).fill(0)
+        let interludeY: number | null = null
 
         if (activeInterlude && activeInterlude.lineIndex === -1) {
-            scrollOffset += INTERLUDE_TOTAL_HEIGHT
+            interludeY = virtualY
+            virtualY += INTERLUDE_TOTAL_HEIGHT
         }
 
-        for (let i = 0; i < targetIndex; i++) {
-            scrollOffset += linesHelperRef.current[i].height
+        for (let i = 0; i < linesHelperRef.current.length; i++) {
+            linesY[i] = virtualY
+            virtualY += linesHelperRef.current[i].height
+
             if (activeInterlude && activeInterlude.lineIndex === i) {
-                scrollOffset += INTERLUDE_TOTAL_HEIGHT
+                interludeY = virtualY
+                virtualY += INTERLUDE_TOTAL_HEIGHT
             }
         }
 
-        let curPos = -scrollOffset + playerHeight * ALIGN_POSITION
-        curPos -= linesHelperRef.current[targetIndex].height / 2
-
-        if (activeInterlude && activeInterlude.lineIndex === -1) {
-            const dotsY = curPos - DOT_MARGIN - DOT_HEIGHT
-            interludeDotsPosRef.current = { x: 0, y: dotsY }
+        if (activeInterlude && interludeY !== null) {
+            activeCenterY = interludeY + INTERLUDE_TOTAL_HEIGHT / 2
+        } else {
+            if (linesHelperRef.current[targetIndex]) {
+                activeCenterY = linesY[targetIndex] + linesHelperRef.current[targetIndex].height / 2
+            }
         }
 
-        let delay = 0
-        let baseDelay = immediate ? 0 : 0.05
+        const offsetToCenter = playerHeight * ALIGN_POSITION - activeCenterY
+
+        if (activeInterlude && interludeY !== null) {
+            const dotsY = interludeY + offsetToCenter + (INTERLUDE_TOTAL_HEIGHT - DOT_HEIGHT) / 2
+            interludeDotsPosRef.current = { x: 0, y: dotsY }
+            if (interludeContainerRef.current) interludeContainerRef.current.style.transform = `translate(0px, ${dotsY}px)`
+        }
+
+        const currentBlurStrength = usePlayerStore.getState().lyricBlurStrength
 
         linesHelperRef.current.forEach((l, i) => {
-            const isActive = i === targetIndex
-            if (immediate) {
-                l.springs.posY.setPosition(curPos)
-                l.springs.scale.setPosition(100)
+            let diff = 0
+            if (activeInterlude) {
+                if (i <= activeInterlude.lineIndex) {
+                    diff = i - activeInterlude.lineIndex - 1
+                } else {
+                    diff = i - activeInterlude.lineIndex
+                }
             } else {
-                l.springs.posY.setTargetPosition(curPos, delay)
-                l.springs.scale.setTargetPosition(100)
+                diff = i - targetIndex
             }
 
-            l.el.style.opacity = isActive ? "1" : "0.4"
+            const delayMs = immediate ? 0 : Math.abs(diff) * 50
 
-            if (curPos >= 0 && !immediate) {
-                delay += baseDelay
-                if (i >= targetIndex) baseDelay /= 1.05
-            }
-            curPos += l.height
+            const sineOffset = Math.sin(diff * 0.8) * 20.0
+            const targetY = linesY[i] + offsetToCenter + sineOffset
 
-            if (activeInterlude && activeInterlude.lineIndex === i) {
-                curPos += DOT_MARGIN
-                interludeDotsPosRef.current = { x: 0, y: curPos }
-                curPos += DOT_HEIGHT + DOT_MARGIN
+            // Opacity
+            let targetOpacity = 0
+            if (Math.abs(diff) > 4) {
+                targetOpacity = 0.0
+            } else {
+                targetOpacity = 1.0 - Math.abs(diff) * 0.2
             }
+
+            // Blur
+            const blurSigma = currentBlurStrength
+            let targetBlur = blurSigma
+            if (diff === 0) targetBlur = 0.0
+            else if (Math.abs(diff) === 1) targetBlur = blurSigma * 0.25
+
+            const lyricColor = diff === 0 ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.4)'
+            const transColor = diff === 0 ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.2)'
+
+            if (immediate) {
+                l.el.style.transition = 'none'
+            } else {
+                l.el.style.transition = `transform ${LYRIC_TRANSITION} ${delayMs}ms, opacity 800ms linear ${delayMs}ms, filter 800ms linear ${delayMs}ms, background-color 300ms ease-in-out`
+                l.el.style.setProperty('--lyric-color-transition', `color 800ms linear ${delayMs}ms`)
+            }
+
+            l.el.style.transform = `translateY(${targetY.toFixed(1)}px)`
+            l.el.style.opacity = Math.max(0, targetOpacity).toFixed(3)
+            l.el.style.filter = `blur(${targetBlur}px)`
+            l.el.style.setProperty('--lyric-color', lyricColor)
+            l.el.style.setProperty('--trans-color', transColor)
         })
     }
 
@@ -425,10 +475,15 @@ export function LyricPlayer() {
                 w.maskAnim = w.span.animate([{ maskPosition: `${-wTotal}px 0` }, { maskPosition: `0px 0` }], {
                     delay: delay, duration: animDuration, fill: 'both', easing: 'linear'
                 })
+
+                w.floatAnim = w.span.animate([{ transform: 'translateY(0px)' }, { transform: 'translateY(-2px)' }], {
+                    delay: Math.max(0, delay), duration: 1000, fill: 'both', easing: 'cubic-bezier(0.215, 0.61, 0.355, 1)' // easeOutCubic
+                })
             }
 
             if (!usePlayerStore.getState().isPlaying) {
                 if (w.maskAnim) w.maskAnim.pause()
+                if (w.floatAnim) w.floatAnim.pause()
             }
 
             w.animating = true
@@ -451,6 +506,7 @@ export function LyricPlayer() {
         linesHelperRef.current.forEach(l => l.wordEls.forEach(w => {
             if (clearAll || !w.maskAnim || w.maskAnim.playState !== 'running') {
                 if (w.maskAnim) w.maskAnim.cancel()
+                if (w.floatAnim) w.floatAnim.cancel()
                 w.animating = false
             }
         }))
@@ -479,17 +535,7 @@ export function LyricPlayer() {
 
         if (linesHelperRef.current[activeIndex]) updateWordAnimations(linesHelperRef.current[activeIndex], loopTime)
 
-        if (dt > 0 && dt < 0.1) {
-            linesHelperRef.current.forEach(l => {
-                if (l && l.springs) {
-                    l.springs.posY.update(dt)
-                    l.springs.scale.update(dt)
-                    const y = l.springs.posY.getCurrentPosition()
-                    const s = l.springs.scale.getCurrentPosition() / 100
-                    l.el.style.transform = `translateY(${y.toFixed(1)}px) scale(${s.toFixed(4)})`
-                }
-            })
-        }
+        // DOM updates for positions are now handled by CSS transitions in updateLayoutTargets
         requestRef.current = requestAnimationFrame(loop)
     }
 
@@ -503,8 +549,10 @@ export function LyricPlayer() {
             l.wordEls.forEach(w => {
                 if (isPlaying) {
                     if (w.maskAnim?.playState === 'paused') w.maskAnim.play()
+                    if (w.floatAnim?.playState === 'paused') w.floatAnim.play()
                 } else {
                     if (w.maskAnim?.playState === 'running') w.maskAnim.pause()
+                    if (w.floatAnim?.playState === 'running') w.floatAnim.pause()
                 }
             })
         })
@@ -517,7 +565,7 @@ export function LyricPlayer() {
     }
 
     return (
-        <div ref={containerRef} className="w-full h-full overflow-hidden relative" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, white 15%, white 80%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, white 15%, white 80%, transparent 100%)' }}>
+        <div ref={containerRef} className="w-full h-full overflow-hidden relative select-none" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, white 15%, white 80%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, white 15%, white 80%, transparent 100%)' }}>
             <div className="lyric-content relative w-full h-full">
                 {parsedLyrics.map((line, index) => (
                     <div
@@ -528,19 +576,19 @@ export function LyricPlayer() {
                     >
                         <div className="lyricMainLine flex flex-wrap">
                             {line.words.map((word, wIndex) => (
-                                <span key={wIndex} className="lyricWord inline-block text-[clamp(19px,2.8vw,34px)] font-bold leading-tight text-white/90 whitespace-pre-wrap" style={{ paddingLeft: '0.1em', paddingRight: '0.1em', marginLeft: '-0.1em', marginRight: '-0.1em', fontFamily: 'MiSans, sans-serif' }}>
+                                <span key={wIndex} className="lyricWord inline-block font-bold leading-tight whitespace-pre-wrap" style={{ paddingLeft: '0.1em', paddingRight: '0.1em', marginLeft: '-0.1em', marginRight: '-0.1em', fontFamily: 'MiSans, sans-serif', color: 'var(--lyric-color, rgba(255,255,255,0.4))', transition: 'var(--lyric-color-transition, color 800ms linear)', fontSize: `clamp(${lyricFontSize * 0.6}px, 2.8vw, ${lyricFontSize}px)` }}>
                                     {word.text}
                                 </span>
                             ))}
                         </div>
                         {showTranslation && line.translation && (
-                            <div className="lyricTranslation mt-1 text-[clamp(11px,1.4vw,18px)] font-medium text-white/50 leading-snug" style={{ fontFamily: 'MiSans, sans-serif' }}>
+                            <div className="lyricTranslation mt-1 font-medium leading-snug" style={{ fontFamily: 'MiSans, sans-serif', color: 'var(--trans-color, rgba(255,255,255,0.2))', transition: 'var(--lyric-color-transition, color 800ms linear)', fontSize: `clamp(${lyricFontSize * 0.35}px, 1.4vw, ${lyricFontSize * 0.55}px)` }}>
                                 {line.translation}
                             </div>
                         )}
                     </div>
                 ))}
-                <div style={{ transform: `translate(${interludeDotsPosRef.current.x}px, ${interludeDotsPosRef.current.y}px)`, position: 'absolute', left: '6%', top: 0, zIndex: 5 }}>
+                <div ref={interludeContainerRef} style={{ transform: `translate(${interludeDotsPosRef.current.x}px, ${interludeDotsPosRef.current.y}px)`, position: 'absolute', left: '6%', top: 0, zIndex: 5, transition: `transform ${LYRIC_TRANSITION}` }}>
                     <InterludeDots time={playerService.getCurrentTime() * 1000 + INTRO_DELAY} interlude={interlude} />
                 </div>
             </div>

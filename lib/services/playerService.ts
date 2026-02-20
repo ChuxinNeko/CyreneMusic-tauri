@@ -1,6 +1,7 @@
 "use client"
 
 import { Howl } from 'howler'
+import { audioAnalyser } from './audioAnalyser'
 import { audioSourceService, AudioQuality } from "./audioSourceService"
 import { AudioSourceType } from "../models/audioSourceConfig"
 import { usePlayerStore } from "../store/usePlayerStore"
@@ -58,6 +59,8 @@ class PlayerService {
             usePlayerStore.getState().setIsLoading(false)
             this.startProgressTimer()
             this.broadcastState()
+            // 连接音频分析器以获取实时频率数据
+            audioAnalyser.connectToHowl(howl)
         })
 
         howl.on('pause', () => {
@@ -201,19 +204,33 @@ class PlayerService {
 
             if (this.howl) {
                 const oldHowl = this.howl
-                oldHowl.fade(oldHowl.volume(), 0, this.fadeDuration)
-                setTimeout(() => oldHowl.unload(), this.fadeDuration)
+                this.howl = null
+                oldHowl.stop()
+                oldHowl.unload()
             }
 
             this.howl = new Howl({
                 src: [url],
                 html5: true,
                 volume: usePlayerStore.getState().volume,
-                autoplay: true,
+                autoplay: false,
                 format: ['mp3', 'flac', 'm4a', 'wav']
             })
 
+            // 设置 crossOrigin 以允许 Web Audio API 读取跨域音频的频率数据
+            try {
+                const sounds = (this.howl as any)._sounds
+                if (sounds?.[0]?._node) {
+                    const audioEl = sounds[0]._node as HTMLAudioElement
+                    audioEl.crossOrigin = "anonymous"
+                    console.log('[PlayerService] Set crossOrigin on audio element')
+                }
+            } catch (e) {
+                console.warn('[PlayerService] Failed to set crossOrigin:', e)
+            }
+
             this.setupEvents(this.howl)
+            this.howl.play()
             usePlayerStore.getState().setIsPlaying(true)
             usePlayerStore.getState().setIsLoading(false)
         } catch (error) {

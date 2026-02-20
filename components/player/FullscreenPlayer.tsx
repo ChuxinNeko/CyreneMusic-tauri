@@ -6,18 +6,33 @@ import {
     Pause,
     SkipBack,
     SkipForward,
+    Volume,
     Volume2,
     ChevronDown,
     Languages,
     Minus,
     Square,
-    X
+    X,
+    MoreHorizontal,
+    Activity,
+    Type,
+    Droplets
 } from "lucide-react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { usePlayerStore } from "@/lib/store/usePlayerStore"
 import { playerService } from "@/lib/services/playerService"
+import { audioAnalyser } from "@/lib/services/audioAnalyser"
 import { LyricPlayer } from "./LyricPlayer"
+import { WebGLBackground } from "./WebGLBackground"
 import { Slider } from "@/components/ui/slider"
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuCheckboxItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 
 export function FullscreenPlayer() {
     const {
@@ -31,6 +46,12 @@ export function FullscreenPlayer() {
         setIsFullscreen,
         showTranslation,
         toggleTranslation,
+        audioVisualization,
+        toggleAudioVisualization,
+        lyricFontSize,
+        setLyricFontSize,
+        lyricBlurStrength,
+        setLyricBlurStrength,
     } = usePlayerStore()
 
     const [localProgress, setLocalProgress] = React.useState(0)
@@ -40,6 +61,33 @@ export function FullscreenPlayer() {
     const [isVisible, setIsVisible] = React.useState(isFullscreen)
     const [isAnimatingOut, setIsAnimatingOut] = React.useState(false)
     const [isMaximized, setIsMaximized] = React.useState(false)
+
+    // 音频频率数据通过 ref 直接注入 WebGL，避免触发 React 重绘
+    const bgRef = React.useRef<any>(null)
+    const rafRef = React.useRef<number>(0)
+
+    // 频率数据采集循环
+    React.useEffect(() => {
+        if (!isVisible || !isPlaying || !audioVisualization) {
+            bgRef.current?.bgRender?.setFrequencyData(0, 0, 0)
+            return
+        }
+
+        const updateFreq = () => {
+            const data = audioAnalyser.getFrequencyData()
+            // 直接操作渲染器内部状态，不触发 React 渲染周期
+            bgRef.current?.bgRender?.setFrequencyData(data.bass, data.mid, data.treble)
+            rafRef.current = requestAnimationFrame(updateFreq)
+        }
+        rafRef.current = requestAnimationFrame(updateFreq)
+
+        return () => {
+            if (rafRef.current) {
+                cancelAnimationFrame(rafRef.current)
+                rafRef.current = 0
+            }
+        }
+    }, [isVisible, isPlaying, audioVisualization])
 
     React.useEffect(() => {
         const updateMaximizedState = async () => {
@@ -131,17 +179,17 @@ export function FullscreenPlayer() {
     }
 
     return (
-        <div className={`fixed inset-0 z-[100] bg-black overflow-hidden flex flex-col ${isAnimatingOut ? 'animate-out fade-out slide-out-to-top-4 duration-500' : 'animate-in fade-in slide-in-from-bottom-4 duration-500'}`}>
+        <div className={`fixed inset-0 z-[100] bg-black overflow-hidden flex flex-col transition-all duration-500 ease-in-out ${isAnimatingOut ? 'opacity-0 translate-y-full' : 'opacity-100 translate-y-0'}`}>
             {/* Ambient Background */}
-            <div className="absolute inset-0 z-0">
-                {currentTrack?.picUrl && (
-                    <img
-                        src={currentTrack.picUrl}
-                        alt="Background"
-                        className="w-[124%] h-[124%] object-cover absolute -top-[12%] -left-[12%] blur-[100px] saturate-[1.6] brightness-[0.5] transition-opacity duration-1000"
-                    />
-                )}
-                <div className="absolute inset-0 bg-black/30" />
+            <div className="absolute inset-0 z-0 bg-black">
+                <WebGLBackground
+                    ref={bgRef}
+                    album={currentTrack?.picUrl}
+                    playing={isPlaying}
+                    renderScale={0.25} // 降低渲染分辨率以提升性能
+                    className="absolute inset-0 w-full h-full opacity-80"
+                />
+                <div className="absolute inset-0 bg-black/20" />
             </div>
 
             {/* Top Bar / Close Button */}
@@ -152,6 +200,52 @@ export function FullscreenPlayer() {
                 >
                     <ChevronDown size={28} />
                 </button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <button className="text-white/30 hover:text-white/80 transition-colors p-2 hover:bg-white/5 rounded-full z-10 ml-1">
+                            <MoreHorizontal size={22} />
+                        </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-48 z-[200] bg-black/80 backdrop-blur-xl border-white/10 text-white">
+                        <DropdownMenuLabel>播放器设置</DropdownMenuLabel>
+                        <DropdownMenuSeparator className="bg-white/10" />
+                        <DropdownMenuCheckboxItem
+                            checked={audioVisualization}
+                            onCheckedChange={toggleAudioVisualization}
+                            className="focus:bg-white/10 focus:text-white data-[state=checked]:bg-white/5"
+                        >
+                            <Activity className="mr-2 h-4 w-4" />
+                            音频律动
+                        </DropdownMenuCheckboxItem>
+                        <DropdownMenuSeparator className="bg-white/10" />
+                        <div className="px-2 py-1.5">
+                            <div className="flex items-center text-sm font-medium mb-2 opacity-80">
+                                <Type className="mr-2 h-4 w-4" /> 歌词字号
+                            </div>
+                            <Slider
+                                value={[lyricFontSize]}
+                                max={60}
+                                min={20}
+                                step={1}
+                                onValueChange={(v) => setLyricFontSize(v[0])}
+                                className="w-full"
+                            />
+                        </div>
+                        <div className="px-2 py-1.5 mb-1.5">
+                            <div className="flex items-center text-sm font-medium mb-2 opacity-80">
+                                <Droplets className="mr-2 h-4 w-4" /> 背景模糊
+                            </div>
+                            <Slider
+                                value={[lyricBlurStrength]}
+                                max={20}
+                                min={0}
+                                step={1}
+                                onValueChange={(v) => setLyricBlurStrength(v[0])}
+                                className="w-full"
+                            />
+                        </div>
+                    </DropdownMenuContent>
+                </DropdownMenu>
                 <div data-tauri-drag-region className="flex-1 h-full mx-4" />
                 <div className="flex items-center gap-2 z-10">
                     {hasTranslation && (
@@ -237,35 +331,38 @@ export function FullscreenPlayer() {
                                     className="w-full"
                                 />
                             </div>
-                            <div className="flex justify-between text-[0.75rem] text-white/50 font-semibold tabular-nums tracking-wider px-1">
+                            <div className="relative flex justify-between items-center text-[0.75rem] text-white/50 font-semibold tabular-nums tracking-wider px-1">
                                 <span>{formatTime(isDraggingProgress.current ? localProgress * duration : currentTime)}</span>
+                                <span className="absolute left-1/2 -translate-x-1/2 text-[0.6rem] text-white/80 bg-white/10 px-1.5 py-0.5 rounded-[4px] font-bold tracking-widest uppercase">
+                                    Lossless
+                                </span>
                                 <span>-{formatTime(Math.max(0, duration - (isDraggingProgress.current ? localProgress * duration : currentTime)))}</span>
                             </div>
                         </div>
 
                         {/* Playback Buttons */}
-                        <div className="flex items-center justify-center gap-8 lg:gap-12 mt-1 lg:mt-2">
+                        <div className="flex items-center justify-center gap-8 lg:gap-12 mt-2 lg:mt-4 mb-2 lg:mb-6">
                             <button onClick={handleSkipPrevious} className="text-white/90 hover:text-white transition-all active:scale-90 p-2">
-                                <SkipBack size={36} fill="currentColor" />
+                                <img src="/icon/icon_rewind.svg" alt="Previous" className="w-10 h-10 lg:w-12 lg:h-12 invert brightness-200" style={{ filter: 'invert(1) brightness(100)' }} />
                             </button>
                             <button
                                 onClick={handleTogglePlay}
                                 className="text-white hover:text-white/90 active:scale-95 transition-all p-2"
                             >
                                 {isPlaying ? (
-                                    <Pause size={56} fill="currentColor" />
+                                    <img src="/icon/icon_pause.svg" alt="Pause" className="w-12 h-12 lg:w-14 lg:h-14" style={{ filter: 'invert(1) brightness(100)' }} />
                                 ) : (
-                                    <Play size={56} fill="currentColor" />
+                                    <img src="/icon/icon_play.svg" alt="Play" className="w-12 h-12 lg:w-14 lg:h-14" style={{ filter: 'invert(1) brightness(100)' }} />
                                 )}
                             </button>
                             <button onClick={handleSkipNext} className="text-white/90 hover:text-white transition-all active:scale-90 p-2">
-                                <SkipForward size={36} fill="currentColor" />
+                                <img src="/icon/icon_forward.svg" alt="Next" className="w-10 h-10 lg:w-12 lg:h-12 invert brightness-200" style={{ filter: 'invert(1) brightness(100)' }} />
                             </button>
                         </div>
 
-                        {/* Volume Slider */}
-                        <div className="flex items-center justify-center gap-4 text-white/50 px-8 lg:px-12 group/volume mt-2 lg:mt-4">
-                            <Volume2 size={20} className="group-hover/volume:text-white/80 transition-colors" />
+                        {/* Volume Slider - Matching Progress Bar Width */}
+                        <div className="flex items-center justify-between gap-3 text-white/40 group/volume mt-1 lg:mt-2 w-full">
+                            <Volume size={16} className="shrink-0" />
                             <div className="flex-1 h-3 flex items-center">
                                 <Slider
                                     value={[localVolume]}
@@ -276,13 +373,8 @@ export function FullscreenPlayer() {
                                     className="w-full opacity-60 group-hover/volume:opacity-100 transition-opacity"
                                 />
                             </div>
+                            <Volume2 size={20} className="shrink-0" />
                         </div>
-                    </div>
-
-                    {/* Quality Badges */}
-                    <div className="flex justify-center gap-3 w-full shrink-0 opacity-30 mt-4 lg:mt-6">
-                        <span className="text-[0.6rem] border border-white/40 text-white px-1.5 py-0.5 rounded-[4px] font-bold tracking-widest uppercase">Lossless</span>
-                        <span className="text-[0.6rem] border border-white/40 text-white px-1.5 py-0.5 rounded-[4px] font-bold tracking-widest uppercase">Master</span>
                     </div>
 
                     {/* Flexible spacer below */}

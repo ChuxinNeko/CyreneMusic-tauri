@@ -2,12 +2,12 @@
 
 import { useTheme } from "next-themes"
 import * as React from "react"
-import { ChevronLeft, ChevronRight, Search, Minus, Square, X, Moon, Sun, User, LogOut, Settings } from "lucide-react"
+import { ChevronLeft, ChevronRight, Minus, Square, X, Moon, Sun, User, LogOut, Settings } from "lucide-react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useAuthStore } from "@/lib/store/useAuthStore"
 import { useRouter } from "next/navigation"
+import { SearchBox } from "./SearchBox"
 import {
     Avatar,
     AvatarFallback,
@@ -26,7 +26,6 @@ export function TitleBar() {
     const [isMaximized, setIsMaximized] = React.useState(false)
     const { user, isLoggedIn, logout } = useAuthStore()
     const router = useRouter()
-    const [searchKeyword, setSearchKeyword] = React.useState("")
 
     React.useEffect(() => {
         const updateMaximizedState = async () => {
@@ -67,26 +66,7 @@ export function TitleBar() {
 
             {/* Center Section: Search (Flex-1 and center its content) */}
             <div className="flex-1 flex justify-center items-center z-10" data-tauri-drag-region>
-                <div className="w-full max-w-sm">
-                    <form
-                        onSubmit={(e) => {
-                            e.preventDefault()
-                            if (searchKeyword.trim()) {
-                                router.push(`/search?q=${encodeURIComponent(searchKeyword.trim())}`)
-                            }
-                        }}
-                        className="relative"
-                    >
-                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            type="search"
-                            placeholder="搜索音乐、视频、歌词..."
-                            className="w-full bg-muted/50 pl-10 h-9 rounded-full border-none focus-visible:ring-1 transition-all focus-visible:bg-muted"
-                            value={searchKeyword}
-                            onChange={(e) => setSearchKeyword(e.target.value)}
-                        />
-                    </form>
-                </div>
+                <SearchBox />
             </div>
 
             {/* Right Section: Controls */}
