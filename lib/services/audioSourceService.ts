@@ -124,11 +124,29 @@ class AudioSourceService {
         const path = sourcePathMap[source];
         if (!path) return '';
 
-        let url = `${baseUrl}/${path}?id=${songId}&quality=${quality}`;
-        if (source === MusicSource.Netease) {
-            url += '&type=json';
+        const base = `${baseUrl}/${path}`;
+
+        switch (source) {
+            case MusicSource.Netease:
+                return `${base}?id=${songId}&quality=${quality}&type=json`;
+            case MusicSource.QQ:
+                // 后端期望 ids 或 url 参数
+                return `${base}?ids=${songId}&quality=${quality}`;
+            case MusicSource.Kugou: {
+                // 搜索返回的 id 格式为 "hash:albumId" 或 "emixsongid"
+                const idStr = String(songId);
+                if (idStr.includes(':')) {
+                    const [hash, albumId] = idStr.split(':');
+                    return `${base}?hash=${hash}&album_audio_id=${albumId || '0'}`;
+                }
+                return `${base}?emixsongid=${songId}`;
+            }
+            case MusicSource.Kuwo:
+                // 后端期望 mid 参数
+                return `${base}?mid=${songId}`;
+            default:
+                return `${base}?id=${songId}&quality=${quality}`;
         }
-        return url;
     }
 
     private buildLxMusicUrl(baseUrl: string, config: AudioSourceConfig, source: MusicSource, songId: string | number, quality: AudioQuality): string {

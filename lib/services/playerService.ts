@@ -3,6 +3,7 @@
 import { Howl } from 'howler'
 import { audioAnalyser } from './audioAnalyser'
 import { audioSourceService, AudioQuality } from "./audioSourceService"
+import { urlService } from "./urlService"
 import { AudioSourceType } from "../models/audioSourceConfig"
 import { usePlayerStore } from "../store/usePlayerStore"
 import { useAudioSourceStore } from "../store/useAudioSourceStore"
@@ -197,6 +198,69 @@ class PlayerService {
                     }
                 } else {
                     throw new Error(`Failed to fetch Netease real URL: ${result.msg || 'Unknown error'}`)
+                }
+            }
+
+            // QQ / 酷狗 / 酷我等 OmniParse GET 类音源，同样需要携带 API Key
+            const omniParseGetSources = ['qq', 'kugou', 'kuwo'] as const
+            if (activeConfigSource.type === AudioSourceType.OmniParse && (omniParseGetSources as readonly string[]).includes(track.source)) {
+                const response = await fetch(url, {
+                    headers: {
+                        'X-API-Key': activeConfigSource.apiKey || ''
+                    }
+                })
+
+                const result = await response.json()
+                console.log(`[PlayerService] /${track.source}/song Response:`, result)
+
+                if (result.status === 200) {
+                    let extractedUrl = ''
+
+                    if (track.source === 'qq') {
+                        // QQ 返回 { status, song, music_urls: { "128": { url }, "320": { url }, "flac": { url } } }
+                        const musicUrls = result.music_urls || {}
+                        // 按音质优先级：flac > 320 > 128
+                        extractedUrl = musicUrls.flac?.url || musicUrls['320']?.url || musicUrls['128']?.url || ''
+
+                        // 并行请求专门的歌词路由 /lyrics/qq?id=xxx
+                        const lyricUrl = `${urlService.baseUrl}/lyrics/qq?id=${track.id}`
+                        fetch(lyricUrl)
+                            .then(res => res.json())
+                            .then(lyricResult => {
+                                console.log('[PlayerService] /lyrics/qq Response:', lyricResult)
+                                const lyricData = lyricResult?.data || lyricResult
+                                const lyricText = lyricData?.lyric || ''
+                                const tlyricText = lyricData?.tlyric || ''
+                                // QRC 逐字歌词 → 存入 yrc 字段；QRC 翻译 → 存入 ytlrc 字段
+                                const qrcText = lyricData?.qrc || ''
+                                const qrcTransText = lyricData?.qrcTrans || ''
+                                if (lyricText || qrcText) {
+                                    const currentTrack = usePlayerStore.getState().currentTrack
+                                    if (currentTrack && currentTrack.id === track.id) {
+                                        usePlayerStore.getState().setCurrentTrack({
+                                            ...currentTrack,
+                                            lyric: lyricText,
+                                            tlyric: tlyricText,
+                                            yrc: qrcText,
+                                            ytlrc: qrcTransText,
+                                        })
+                                    }
+                                }
+                            })
+                            .catch(e => console.warn('[PlayerService] Failed to fetch QQ lyrics:', e))
+                    } else {
+                        // 酷狗/酷我返回 { status, song: { url, ... } }
+                        const songData = result.song || result
+                        extractedUrl = songData.url || ''
+                    }
+
+                    if (extractedUrl) {
+                        url = extractedUrl
+                    } else {
+                        throw new Error(`Failed to fetch ${track.source} real URL: no playback URL found`)
+                    }
+                } else {
+                    throw new Error(`Failed to fetch ${track.source} real URL: ${result.msg || 'Unknown error'}`)
                 }
             }
 

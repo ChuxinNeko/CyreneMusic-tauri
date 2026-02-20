@@ -1,11 +1,28 @@
+import { invoke } from '@tauri-apps/api/core';
+
 export function loadImage(imageUrl: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
         const img = document.createElement("img");
         img.onload = () => resolve(img);
-        img.onerror = reject;
-        img.src = imageUrl;
+        img.onerror = async () => {
+            // CORS 加载失败时，通过 Tauri Rust 侧下载图片为 data URL
+            // 这样图片数据成为同源，canvas getImageData 不会报 tainted 错误
+            console.warn(`[loadImage] CORS load failed, fetching via Tauri: ${imageUrl}`);
+            try {
+                const dataUrl: string = await invoke('fetch_image', { url: imageUrl });
+                const fallback = document.createElement("img");
+                fallback.onload = () => resolve(fallback);
+                fallback.onerror = reject;
+                fallback.loading = "eager";
+                fallback.src = dataUrl;
+            } catch (e) {
+                console.error('[loadImage] Tauri fetch_image failed:', e);
+                reject(e);
+            }
+        };
         img.crossOrigin = "anonymous";
         img.loading = "eager";
+        img.src = imageUrl;
     });
 }
 

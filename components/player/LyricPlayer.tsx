@@ -192,7 +192,7 @@ export function LyricPlayer() {
                     } catch (e) { return null }
                 }
 
-                // 2. Try YRC format (Verbatim)
+                // 2. Try YRC/QRC format (Verbatim)
                 const yrcMatch = lineStr.match(yrcLineRegex)
                 if (yrcMatch) {
                     const lineStart = parseInt(yrcMatch[1])
@@ -201,6 +201,7 @@ export function LyricPlayer() {
                     endTime = timeMs + lineDuration
 
                     let wordMatch
+                    // 先尝试网易云 YRC 格式: (startMs,durationMs,0)text
                     yrcWordRegex.lastIndex = 0
                     while ((wordMatch = yrcWordRegex.exec(lineStr)) !== null) {
                         const wStart = parseInt(wordMatch[1]) + INTRO_DELAY
@@ -211,6 +212,25 @@ export function LyricPlayer() {
                             endTime: wStart + wDur,
                             duration: wDur
                         })
+                    }
+
+                    // 若 YRC 未匹配，尝试 QQ QRC 格式: text(startMs,durationMs)
+                    if (words.length === 0) {
+                        const qrcWordRegex = /(.+?)\((\d+),(\d+)\)/g
+                        qrcWordRegex.lastIndex = 0
+                        // 跳过行头 [start,dur]
+                        const lineBody = lineStr.replace(yrcLineRegex, '')
+                        while ((wordMatch = qrcWordRegex.exec(lineBody)) !== null) {
+                            const wText = wordMatch[1]
+                            const wStart = parseInt(wordMatch[2]) + INTRO_DELAY
+                            const wDur = parseInt(wordMatch[3])
+                            words.push({
+                                text: wText,
+                                startTime: wStart,
+                                endTime: wStart + wDur,
+                                duration: wDur
+                            })
+                        }
                     }
 
                     if (words.length > 0) {

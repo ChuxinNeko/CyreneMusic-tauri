@@ -24,4 +24,6 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri-plugin-process = "2.3.1"
 tauri-plugin-media = "0.1.1"
+reqwest = { version = "0.12", features = ["rustls-tls"], default-features = false }
+base64 = "0.22"
 

@@ -1,4 +1,5 @@
 use tauri::Manager;
+use base64::Engine;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -6,12 +7,36 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+/// 通过 Rust 原生 HTTP 下载图片，绕过 WebView CORS 限制
+/// 返回 data URL (data:image/xxx;base64,...)
+#[tauri::command]
+async fn fetch_image(url: String) -> Result<String, String> {
+    let response = reqwest::get(&url)
+        .await
+        .map_err(|e| format!("Failed to fetch image: {}", e))?;
+
+    let content_type = response
+        .headers()
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("image/jpeg")
+        .to_string();
+
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read image bytes: {}", e))?;
+
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+    Ok(format!("data:{};base64,{}", content_type, b64))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![greet, fetch_image])
         .setup(|app| {
             #[cfg(desktop)]
             {
