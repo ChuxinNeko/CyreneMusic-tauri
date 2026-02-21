@@ -23,7 +23,8 @@ interface LyricLineHelper {
 }
 
 const ALIGN_POSITION = 0.5
-const WORD_FADE_WIDTH = 0.5
+// 增加淡入跑马灯的光晕平滑宽度
+const WORD_FADE_WIDTH = 1.0
 const LYRIC_TRANSITION = "1000ms cubic-bezier(0.22, 0.61, 0.36, 1)"
 
 // Helper component for Interlude dots
@@ -177,7 +178,16 @@ export function LyricPlayer() {
                 const fadeWidth = w.height * WORD_FADE_WIDTH
                 const totalAspect = 2 + (fadeWidth / Math.max(1, (w.width + w.padding * 2)))
                 const leftPos = (1 - (fadeWidth / Math.max(1, (w.width + w.padding * 2))) / totalAspect) / 2
-                const maskImage = `linear-gradient(to right, rgba(255,255,255,1.0) ${leftPos * 100}%, rgba(255,255,255,0.4) ${(leftPos + (fadeWidth / Math.max(1, (w.width + w.padding * 2))) / totalAspect) * 100}%)`
+
+                // 更平滑的三段式渐变掩码，交界处更柔和
+                const p1 = leftPos * 100;
+                const p2 = (leftPos + (fadeWidth / Math.max(1, (w.width + w.padding * 2))) / totalAspect) * 100;
+                const maskImage = `linear-gradient(to right, 
+                    rgba(255,255,255,1.0) 0%, 
+                    rgba(255,255,255,1.0) ${p1}%, 
+                    rgba(255,255,255,0.4) ${p2}%, 
+                    rgba(255,255,255,0.4) 100%)`
+
                 const totalAspectStr = `${totalAspect * 100}% 100%`
                 w.span.style.maskImage = maskImage
                 w.span.style.webkitMaskImage = maskImage
@@ -191,7 +201,13 @@ export function LyricPlayer() {
         const loopTime = realTime * 1000 + INTRO_DELAY
         let initIndex = 0
         for (let i = 0; i < parsedLyrics.length; i++) {
-            if (loopTime >= parsedLyrics[i].time) initIndex = i
+            if (loopTime >= parsedLyrics[i].time) {
+                if (loopTime >= parsedLyrics[i].endTime && i + 1 < parsedLyrics.length) {
+                    initIndex = i + 1;
+                } else {
+                    initIndex = i;
+                }
+            }
         }
         currentScrollIndexRef.current = initIndex
         updateLayoutTargets(initIndex, null, true)
@@ -281,14 +297,21 @@ export function LyricPlayer() {
                 targetOpacity = 1.0 - Math.abs(diff) * 0.2
             }
 
-            // Blur
+            // Blur & Glow
             const blurSigma = currentBlurStrength
             let targetBlur = blurSigma
-            if (diff === 0) targetBlur = 0.0
-            else if (Math.abs(diff) === 1) targetBlur = blurSigma * 0.25
+            let dropShadow = ''
+            if (diff === 0) {
+                targetBlur = 0.0
+                // 为当前行增加整体的 drop-shadow 迷雾发光，在根节点施加滤镜，完美贴合裁剪后的文字轮廓
+                dropShadow = ' drop-shadow(0 0 12px rgba(255,255,255,0.35))'
+            } else if (Math.abs(diff) === 1) {
+                targetBlur = blurSigma * 0.25
+            }
 
             const lyricColor = diff === 0 ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.4)'
-            const transColor = diff === 0 ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.2)'
+            // 将当前播放行的翻译歌词的不透明度设置为 0.4，与未填充的原词底色（0.4）一致
+            const transColor = diff === 0 ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.2)'
 
             if (immediate) {
                 l.el.style.transition = 'none'
@@ -299,7 +322,7 @@ export function LyricPlayer() {
 
             l.el.style.transform = `translateY(${targetY.toFixed(1)}px)`
             l.el.style.opacity = Math.max(0, targetOpacity).toFixed(3)
-            l.el.style.filter = `blur(${targetBlur}px)`
+            l.el.style.filter = `blur(${targetBlur}px)${dropShadow}`
             l.el.style.setProperty('--lyric-color', lyricColor)
             l.el.style.setProperty('--trans-color', transColor)
         })
@@ -373,7 +396,15 @@ export function LyricPlayer() {
 
         let activeIndex = 0
         for (let i = 0; i < parsedLyrics.length; i++) {
-            if (loopTime >= parsedLyrics[i].time) activeIndex = i
+            if (loopTime >= parsedLyrics[i].time) {
+                // 如果当前时间已经超过了这一句的结束时间，并且还有下一句存在，
+                // 则将高亮和中心视点提前交给下一句，实现“播完立刻移动”的效果。
+                if (loopTime >= parsedLyrics[i].endTime && i + 1 < parsedLyrics.length) {
+                    activeIndex = i + 1;
+                } else {
+                    activeIndex = i;
+                }
+            }
         }
 
         const currentInterlude = getActiveInterlude(loopTime)
