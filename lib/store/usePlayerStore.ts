@@ -41,6 +41,7 @@ interface PlayerState {
 
     // Actions
     setCurrentTrack: (track: Track | null) => void
+    updateTrackLyrics: (lyrics: Partial<Pick<Track, 'lyric' | 'yrc' | 'tlyric' | 'ytlrc'>>) => void
     setQueue: (tracks: Track[]) => void
     addToQueue: (track: Track) => void
     removeFromQueue: (trackId: string | number) => void
@@ -101,6 +102,12 @@ export const usePlayerStore = create<PlayerState>()(
                         set({ history: newHistory })
                     }
                 }
+            },
+
+            updateTrackLyrics: (lyrics) => {
+                const { currentTrack } = get()
+                if (!currentTrack) return
+                set({ currentTrack: { ...currentTrack, ...lyrics } })
             },
 
             setQueue: (tracks) => set({ queue: tracks }),

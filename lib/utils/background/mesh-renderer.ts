@@ -934,7 +934,81 @@ export class MeshGradientRenderer extends BaseRenderer {
 			"main-program-mg",
 		);
 
+		// 初始化默认蓝色渐变背景，避免封面未加载时全黑
+		this.initDefaultGradient();
+
 		this.requestTick();
+	}
+
+	/**
+	 * 生成默认蓝色渐变 ImageData（32x32）
+	 */
+	private createDefaultGradient(): ImageData {
+		const size = 32;
+		const imageData = new ImageData(size, size);
+		const data = imageData.data;
+		for (let y = 0; y < size; y++) {
+			for (let x = 0; x < size; x++) {
+				const idx = (y * size + x) * 4;
+				const nx = x / (size - 1); // 0~1
+				const ny = y / (size - 1); // 0~1
+				// 从深蓝 (15, 23, 72) 到靛蓝 (30, 60, 130) 到蓝紫 (55, 40, 110)
+				const r = Math.round(15 + nx * 40 + ny * 15);
+				const g = Math.round(23 + nx * 17 + ny * 20);
+				const b = Math.round(72 + nx * 38 + ny * 20);
+				data[idx] = r;
+				data[idx + 1] = g;
+				data[idx + 2] = b;
+				data[idx + 3] = 255;
+			}
+		}
+		return imageData;
+	}
+
+	/**
+	 * 用默认渐变色初始化一个 mesh state
+	 */
+	private initDefaultGradient() {
+		const imageData = this.createDefaultGradient();
+
+		const newMesh = new BHPMesh(
+			this.gl,
+			this.mainProgram.attrs.a_pos,
+			this.mainProgram.attrs.a_color,
+			this.mainProgram.attrs.a_uv,
+		);
+		newMesh.resetSubdivition(15);
+
+		const chosenPreset =
+			CONTROL_POINT_PRESETS[
+			Math.floor(Math.random() * CONTROL_POINT_PRESETS.length)
+			];
+
+		newMesh.resizeControlPoints(chosenPreset.width, chosenPreset.height);
+		const uPower = 2 / (chosenPreset.width - 1);
+		const vPower = 2 / (chosenPreset.height - 1);
+		for (const cp of chosenPreset.conf) {
+			const p = newMesh.getControlPoint(cp.cx, cp.cy);
+			if (p) {
+				p.location[0] = cp.x;
+				p.location[1] = cp.y;
+				p.uRot = (cp.ur * Math.PI) / 180;
+				p.vRot = (cp.vr * Math.PI) / 180;
+				p.uScale = uPower * cp.up;
+				p.vScale = vPower * cp.vp;
+			}
+		}
+
+		newMesh.updateMesh();
+
+		const albumTexture = new GLTexture(this.gl, imageData);
+		const defaultState: MeshState = {
+			mesh: newMesh,
+			texture: albumTexture,
+			alpha: 1,
+		};
+		this.meshStates.push(defaultState);
+		this.isNoCover = false;
 	}
 
 	protected override onResize(width: number, height: number): void {
@@ -970,7 +1044,8 @@ export class MeshGradientRenderer extends BaseRenderer {
 			albumSource === undefined ||
 			(typeof albumSource === "string" && albumSource.trim().length === 0)
 		) {
-			this.isNoCover = true;
+			this.initDefaultGradient();
+			this.requestTick();
 			return;
 		}
 		let res: HTMLImageElement | HTMLVideoElement | null = null;
@@ -995,7 +1070,8 @@ export class MeshGradientRenderer extends BaseRenderer {
 		}
 		if (!res) {
 			console.error("Failed to load album resource", albumSource);
-			this.isNoCover = true;
+			this.initDefaultGradient();
+			this.requestTick();
 			return;
 		}
 		this.isNoCover = false;

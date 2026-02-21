@@ -237,8 +237,7 @@ class PlayerService {
                                 if (lyricText || qrcText) {
                                     const currentTrack = usePlayerStore.getState().currentTrack
                                     if (currentTrack && currentTrack.id === track.id) {
-                                        usePlayerStore.getState().setCurrentTrack({
-                                            ...currentTrack,
+                                        usePlayerStore.getState().updateTrackLyrics({
                                             lyric: lyricText,
                                             tlyric: tlyricText,
                                             yrc: qrcText,
@@ -248,8 +247,37 @@ class PlayerService {
                                 }
                             })
                             .catch(e => console.warn('[PlayerService] Failed to fetch QQ lyrics:', e))
+                    } else if (track.source === 'kugou') {
+                        // 酷狗返回 { status, song: { url, ... } }
+                        const songData = result.song || result
+                        extractedUrl = songData.url || ''
+
+                        // 并行请求酷狗歌词 /lyrics/kugou?hash=xxx
+                        // track.id 格式为 "hash:albumId"，提取 hash 部分
+                        const kugouHash = String(track.id).split(':')[0]
+                        if (kugouHash) {
+                            const lyricUrl = `${urlService.baseUrl}/lyrics/kugou?hash=${kugouHash}`
+                            fetch(lyricUrl)
+                                .then(res => res.json())
+                                .then(lyricResult => {
+                                    console.log('[PlayerService] /lyrics/kugou Response:', lyricResult)
+                                    const lyricData = lyricResult?.data || lyricResult
+                                    const lyricText = lyricData?.lyric || ''
+                                    const tlyricText = lyricData?.tlyric || ''
+                                    if (lyricText) {
+                                        const currentTrack = usePlayerStore.getState().currentTrack
+                                        if (currentTrack && currentTrack.id === track.id) {
+                                            usePlayerStore.getState().updateTrackLyrics({
+                                                lyric: lyricText,
+                                                tlyric: tlyricText,
+                                            })
+                                        }
+                                    }
+                                })
+                                .catch(e => console.warn('[PlayerService] Failed to fetch Kugou lyrics:', e))
+                        }
                     } else {
-                        // 酷狗/酷我返回 { status, song: { url, ... } }
+                        // 酷我返回 { status, song: { url, ... } }
                         const songData = result.song || result
                         extractedUrl = songData.url || ''
                     }
