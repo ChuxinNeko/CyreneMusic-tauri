@@ -56,10 +56,10 @@ export function TitleBar() {
         <div data-tauri-drag-region className="h-14 flex items-center px-4 select-none bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 border-b">
             {/* Left Section: Navigation */}
             <div className="flex items-center gap-1 z-10 mr-4" data-tauri-drag-region>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.back()}>
                     <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.forward()}>
                     <ChevronRight className="h-4 w-4" />
                 </Button>
             </div>

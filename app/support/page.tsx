@@ -1,4 +1,3 @@
-
 export default function SupportPage() {
     return (
         <div className="flex items-center justify-center h-full">

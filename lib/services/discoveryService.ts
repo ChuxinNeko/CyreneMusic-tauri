@@ -26,6 +26,21 @@ export interface RecommendData {
     personalizedNewsongs: any[]
 }
 
+export interface DiscoveryTag {
+    id: number
+    name: string
+    category: number
+}
+
+export interface DiscoveryPlaylist {
+    id: number
+    name: string
+    coverImgUrl: string
+    creatorNickname: string
+    playCount: number
+    trackCount: number
+}
+
 export interface PlaylistDetail extends Toplist {
     playCount: number
     creator: string
@@ -100,17 +115,71 @@ class DiscoveryService {
         }
     }
 
+    public async getDiscoverTags(): Promise<DiscoveryTag[]> {
+        try {
+            const response = await fetch(`${urlService.baseUrl}/netease/playlist/highquality/tags`)
+            const result = await response.json()
+            if (result.status === 200) {
+                return result.tags || []
+            }
+            return []
+        } catch (e) {
+            console.error("[DiscoveryService] getDiscoverTags failed:", e)
+            return []
+        }
+    }
+
+    public async getDiscoverPlaylists(cat: string = "全部歌单"): Promise<DiscoveryPlaylist[]> {
+        try {
+            const encodedCat = encodeURIComponent(cat)
+            const response = await fetch(`${urlService.baseUrl}/netease/top/playlist?cat=${encodedCat}`)
+            const result = await response.json()
+            if (result.status === 200) {
+                const list = (result.playlists as any[] || [])
+                return list.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    coverImgUrl: item.coverImgUrl,
+                    creatorNickname: item.creator.nickname,
+                    playCount: item.playCount,
+                    trackCount: item.trackCount
+                }))
+            }
+            return []
+        } catch (e) {
+            console.error("[DiscoveryService] getDiscoverPlaylists failed:", e)
+            return []
+        }
+    }
+
     public convertToTrack(song: any): Track {
-        const album = (song.al || song.album || {})
-        const artists = (song.ar || song.artists || []) as any[]
+        const albumData = (song.al || song.album || {})
+        const artistsData = (song.ar || song.artists || [])
+
+        let artists = ""
+        if (Array.isArray(artistsData)) {
+            artists = artistsData.map((a: any) => (typeof a === "string" ? a : a.name)).join(" / ")
+        } else {
+            artists = String(artistsData)
+        }
+
+        let album = ""
+        let picUrl = song.picUrl || ""
+        if (typeof albumData === "string") {
+            album = albumData
+        } else {
+            album = albumData.name || ""
+            if (albumData.picUrl) picUrl = albumData.picUrl
+        }
+
         return {
             id: song.id,
             name: song.name,
-            artists: artists.map(a => a.name).join(' / '),
-            album: album.name || '',
-            picUrl: album.picUrl || '',
-            source: MusicSource.Netease,
-            duration: (song.dt || song.duration || 0) / 1000
+            artists: artists,
+            album: album,
+            picUrl: picUrl,
+            source: song.source || MusicSource.Netease,
+            duration: (song.dt || song.duration || 0) / (song.dt ? 1000 : 1)
         }
     }
 }

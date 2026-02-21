@@ -196,6 +196,7 @@ export function LyricPlayer() {
             })
             return helper
         }).filter(l => l !== null)
+
         // 根据当前播放进度定位到正确的歌词行，而非始终从第 0 行开始
         const realTime = playerService.getCurrentTime()
         const loopTime = realTime * 1000 + INTRO_DELAY
@@ -210,7 +211,10 @@ export function LyricPlayer() {
             }
         }
         currentScrollIndexRef.current = initIndex
-        updateLayoutTargets(initIndex, null, true)
+        // 初始化时也检测一次间奏
+        const initInterlude = getActiveInterlude(loopTime)
+        setInterlude(initInterlude)
+        updateLayoutTargets(initIndex, initInterlude, true)
     }, [parsedLyrics])
 
     // 翻译行显示/隐藏及设置变更时重新测量行高并更新布局
@@ -290,11 +294,9 @@ export function LyricPlayer() {
             const targetY = linesY[i] + offsetToCenter + sineOffset
 
             // Opacity
-            let targetOpacity = 0
-            if (Math.abs(diff) > 4) {
+            let targetOpacity = diff === 0 ? 1.0 : 0.4
+            if (Math.abs(diff) > 5) {
                 targetOpacity = 0.0
-            } else {
-                targetOpacity = 1.0 - Math.abs(diff) * 0.2
             }
 
             // Blur & Glow
@@ -316,7 +318,7 @@ export function LyricPlayer() {
             if (immediate) {
                 l.el.style.transition = 'none'
             } else {
-                l.el.style.transition = `transform ${LYRIC_TRANSITION} ${delayMs}ms, opacity 600ms ease-out ${delayMs + 100}ms, filter 600ms ease-out ${delayMs + 100}ms, background-color 300ms ease-in-out`
+                l.el.style.transition = `transform ${LYRIC_TRANSITION} ${delayMs}ms, opacity 600ms ease-out, filter 600ms ease-out ${delayMs + 100}ms, background-color 300ms ease-in-out`
                 l.el.style.setProperty('--lyric-color-transition', `color 600ms ease-out ${delayMs + 150}ms`)
             }
 
@@ -370,7 +372,7 @@ export function LyricPlayer() {
         for (let i = 0; i < parsedLyrics.length - 1; i++) {
             const end = parsedLyrics[i].endTime
             const nextStart = parsedLyrics[i + 1].startTime
-            if (nextStart - end > 4000 && time >= end && time <= nextStart) return { start: end, end: nextStart, lineIndex: i }
+            if (nextStart - end > 4000 && time >= end && time < nextStart) return { start: end, end: nextStart, lineIndex: i }
         }
         return null
     }, [parsedLyrics])
@@ -394,12 +396,16 @@ export function LyricPlayer() {
         const realTime = playerService.getCurrentTime()
         const loopTime = realTime * 1000 + INTRO_DELAY
 
+        const currentInterlude = getActiveInterlude(loopTime)
         let activeIndex = 0
         for (let i = 0; i < parsedLyrics.length; i++) {
             if (loopTime >= parsedLyrics[i].time) {
                 // 如果当前时间已经超过了这一句的结束时间，并且还有下一句存在，
                 // 则将高亮和中心视点提前交给下一句，实现“播完立刻移动”的效果。
-                if (loopTime >= parsedLyrics[i].endTime && i + 1 < parsedLyrics.length) {
+                // 特殊处理：如果接下来有长间奏，则在间奏期间禁止提前切换到下一句，
+                // 确保间奏结束瞬间能产生 activeIndex 的变化来触发现场刷新
+                const hasInterlude = currentInterlude !== null
+                if (loopTime >= parsedLyrics[i].endTime && i + 1 < parsedLyrics.length && !hasInterlude) {
                     activeIndex = i + 1;
                 } else {
                     activeIndex = i;
@@ -407,8 +413,8 @@ export function LyricPlayer() {
             }
         }
 
-        const currentInterlude = getActiveInterlude(loopTime)
-        if (currentScrollIndexRef.current !== activeIndex || currentInterlude?.start !== interlude?.start) {
+        const interludeChanged = currentInterlude?.start !== interlude?.start
+        if (currentScrollIndexRef.current !== activeIndex || interludeChanged) {
             currentScrollIndexRef.current = activeIndex
             setInterlude(currentInterlude)
             updateLayoutTargets(activeIndex, currentInterlude)

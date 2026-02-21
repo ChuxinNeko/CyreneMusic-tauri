@@ -408,6 +408,7 @@ export function FullscreenPlayer() {
                                     onValueChange={handleSeekChange}
                                     onValueCommit={handleSeekCommit}
                                     className="w-full"
+                                    variant="apple"
                                 />
                             </div>
                             <div className="relative flex justify-between items-center text-[0.75rem] text-white/50 font-semibold tabular-nums tracking-wider px-1">
@@ -450,6 +451,7 @@ export function FullscreenPlayer() {
                                     onValueChange={handleVolumeChange}
                                     onValueCommit={handleVolumeCommit}
                                     className="w-full opacity-60 group-hover/volume:opacity-100 transition-opacity"
+                                    variant="apple"
                                 />
                             </div>
                             <Volume2 size={20} className="shrink-0" />

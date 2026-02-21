@@ -36,6 +36,23 @@ export function PlayerBar() {
         setIsFullscreen
     } = usePlayerStore()
 
+    const [localProgress, setLocalProgress] = React.useState(0)
+    const [localVolume, setLocalVolume] = React.useState(0)
+    const isDraggingProgress = React.useRef(false)
+    const isDraggingVolume = React.useRef(false)
+
+    React.useEffect(() => {
+        if (!isDraggingProgress.current) {
+            setLocalProgress(progress || 0)
+        }
+    }, [progress])
+
+    React.useEffect(() => {
+        if (!isDraggingVolume.current) {
+            setLocalVolume(volume || 0)
+        }
+    }, [volume])
+
     const formatTime = (seconds: number) => {
         if (!seconds || isNaN(seconds)) return "00:00"
         const mins = Math.floor(seconds / 60)
@@ -46,13 +63,29 @@ export function PlayerBar() {
     const handleTogglePlay = () => playerService.togglePlay()
     const handleSkipNext = () => playerService.playNext()
     const handleSkipPrevious = () => playerService.playPrevious()
-    const handleSeek = (value: number[]) => {
-        const time = value[0] * duration
-        playerService.seek(time)
+    const handleSeekChange = (value: number[]) => {
+        isDraggingProgress.current = true
+        setLocalProgress(value[0])
+    }
+
+    const handleSeekCommit = (value: number[]) => {
+        playerService.seek(value[0] * duration)
+        setTimeout(() => {
+            isDraggingProgress.current = false
+        }, 200)
     }
 
     const handleVolumeChange = (value: number[]) => {
+        isDraggingVolume.current = true
+        setLocalVolume(value[0])
         playerService.setVolume(value[0])
+    }
+
+    const handleVolumeCommit = (value: number[]) => {
+        playerService.setVolume(value[0])
+        setTimeout(() => {
+            isDraggingVolume.current = false
+        }, 200)
     }
 
     const toggleRepeatMode = () => {
@@ -162,10 +195,11 @@ export function PlayerBar() {
                         {formatTime(currentTime)}
                     </span>
                     <Slider
-                        value={[progress || 0]}
+                        value={[localProgress]}
                         max={1}
                         step={0.001}
-                        onValueChange={handleSeek}
+                        onValueChange={handleSeekChange}
+                        onValueCommit={handleSeekCommit}
                         className="flex-1"
                         disabled={!currentTrack}
                     />
@@ -187,10 +221,11 @@ export function PlayerBar() {
                         {volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                     </Button>
                     <Slider
-                        value={[volume]}
+                        value={[localVolume]}
                         max={1}
                         step={0.01}
                         onValueChange={handleVolumeChange}
+                        onValueCommit={handleVolumeCommit}
                         className="w-full"
                     />
                 </div>

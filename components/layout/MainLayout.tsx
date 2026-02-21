@@ -1,5 +1,5 @@
 "use client"
-import React from "react"
+import React, { useEffect } from "react"
 
 import { usePathname } from "next/navigation"
 import { Sidebar } from "./Sidebar"
@@ -12,6 +12,16 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     const isTray = pathname === "/tray"
     const isDesktopLyric = pathname === "/desktop-lyric"
+
+    useEffect(() => {
+        const handleContextMenu = (e: MouseEvent) => {
+            e.preventDefault()
+        }
+        document.addEventListener("contextmenu", handleContextMenu)
+        return () => {
+            document.removeEventListener("contextmenu", handleContextMenu)
+        }
+    }, [])
 
     if (isTray || isDesktopLyric) {
         return <div className="h-screen w-full bg-background/0 overflow-hidden">{children}</div>
