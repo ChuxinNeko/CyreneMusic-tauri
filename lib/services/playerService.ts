@@ -39,6 +39,25 @@ class PlayerService {
                 case 'prev':
                     this.playPrevious()
                     break
+                case 'request-sync':
+                    if (typeof window !== 'undefined') {
+                        const state = usePlayerStore.getState()
+                        emit('player:state-change', {
+                            currentTrack: state.currentTrack,
+                            isPlaying: state.isPlaying
+                        })
+                        emit('player:time-sync', {
+                            time: this.getCurrentTime(),
+                            timestamp: Date.now(),
+                            isPlaying: state.isPlaying
+                        })
+                        emit('player:settings-sync', {
+                            desktopLyricFontSize: state.desktopLyricFontSize,
+                            desktopLyricColor: state.desktopLyricColor,
+                            desktopLyricStrokeColor: state.desktopLyricStrokeColor
+                        })
+                    }
+                    break
             }
         })
     }
@@ -68,6 +87,15 @@ class PlayerService {
             usePlayerStore.getState().setIsPlaying(false)
             this.stopProgressTimer()
             this.broadcastState()
+
+            // 暂停时立刻同步一次时间，防止悬浮歌词继续插值
+            if (typeof window !== 'undefined') {
+                emit('player:time-sync', {
+                    time: this.howl ? this.howl.seek() as number : usePlayerStore.getState().currentTime,
+                    timestamp: Date.now(),
+                    isPlaying: false
+                })
+            }
         })
 
         howl.on('load', () => {
@@ -105,6 +133,15 @@ class PlayerService {
                 if (duration) {
                     usePlayerStore.getState().setCurrentTime(currentTime)
                     usePlayerStore.getState().setProgress(currentTime / duration)
+                }
+
+                // 发送高精度时间同步，供悬浮歌词窗口进行顺滑插值
+                if (typeof window !== 'undefined') {
+                    emit('player:time-sync', {
+                        time: currentTime,
+                        timestamp: Date.now(),
+                        isPlaying: true
+                    })
                 }
             }
         }, 1000)
@@ -360,6 +397,14 @@ class PlayerService {
         if (this.howl) {
             this.howl.seek(time)
             usePlayerStore.getState().setCurrentTime(time)
+
+            if (typeof window !== 'undefined') {
+                emit('player:time-sync', {
+                    time: time,
+                    timestamp: Date.now(),
+                    isPlaying: this.howl.playing()
+                })
+            }
         }
     }
 

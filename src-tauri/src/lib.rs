@@ -31,12 +31,49 @@ async fn fetch_image(url: String) -> Result<String, String> {
     Ok(format!("data:{};base64,{}", content_type, b64))
 }
 
+#[tauri::command]
+async fn open_desktop_lyric(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("desktop-lyric") {
+        let _ = window.show();
+        let _ = window.set_focus();
+        return Ok(());
+    }
+
+    tauri::WebviewWindowBuilder::new(
+        &app,
+        "desktop-lyric",
+        tauri::WebviewUrl::App("desktop-lyric".into()),
+    )
+    .title("Desktop Lyric")
+    .resizable(false)
+    .focused(false)
+    .decorations(false)
+    .always_on_top(true)
+    .transparent(true)
+    .shadow(false)
+    .skip_taskbar(true)
+    .inner_size(800.0, 100.0) // 宽一点以容纳长句，高度矮一点
+    // 可以设置一个默认位置，比如屏幕的中下部，或者在前端挂载后自己 resize/set_position
+    .build()
+    .map_err(|e| format!("Failed to create window: {}", e))?;
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn close_desktop_lyric(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("desktop-lyric") {
+        let _ = window.close();
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![greet, fetch_image])
+        .invoke_handler(tauri::generate_handler![greet, fetch_image, open_desktop_lyric, close_desktop_lyric])
         .setup(|app| {
             #[cfg(desktop)]
             {

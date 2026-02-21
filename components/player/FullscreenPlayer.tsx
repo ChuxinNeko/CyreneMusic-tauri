@@ -16,9 +16,13 @@ import {
     MoreHorizontal,
     Activity,
     Type,
-    Droplets
+    Droplets,
+    Monitor,
+    Baseline,
+    Palette
 } from "lucide-react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
+import { emit } from "@tauri-apps/api/event"
 import { usePlayerStore } from "@/lib/store/usePlayerStore"
 import { playerService } from "@/lib/services/playerService"
 import { audioAnalyser } from "@/lib/services/audioAnalyser"
@@ -32,7 +36,9 @@ import {
     DropdownMenuCheckboxItem,
     DropdownMenuLabel,
     DropdownMenuSeparator,
+    DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
+import { invoke } from "@tauri-apps/api/core"
 
 export function FullscreenPlayer() {
     const {
@@ -52,6 +58,12 @@ export function FullscreenPlayer() {
         setLyricFontSize,
         lyricBlurStrength,
         setLyricBlurStrength,
+        desktopLyricFontSize,
+        desktopLyricColor,
+        desktopLyricStrokeColor,
+        setDesktopLyricFontSize,
+        setDesktopLyricColor,
+        setDesktopLyricStrokeColor,
     } = usePlayerStore()
 
     const [localProgress, setLocalProgress] = React.useState(0)
@@ -111,6 +123,23 @@ export function FullscreenPlayer() {
     const closeWindow = async () => {
         const appWindow = getCurrentWindow()
         await appWindow.close()
+    }
+
+    const syncDesktopSettings = (overrides: Partial<any> = {}) => {
+        emit('player:settings-sync', {
+            desktopLyricFontSize: overrides.desktopLyricFontSize || desktopLyricFontSize,
+            desktopLyricColor: overrides.desktopLyricColor || desktopLyricColor,
+            desktopLyricStrokeColor: overrides.desktopLyricStrokeColor || desktopLyricStrokeColor,
+            ...overrides
+        })
+    }
+
+    const openDesktopLyric = async () => {
+        try {
+            await invoke('open_desktop_lyric')
+        } catch (error) {
+            console.error('Failed to open desktop lyric:', error)
+        }
     }
 
     React.useEffect(() => {
@@ -217,6 +246,13 @@ export function FullscreenPlayer() {
                             <Activity className="mr-2 h-4 w-4" />
                             音频律动
                         </DropdownMenuCheckboxItem>
+                        <DropdownMenuItem
+                            onClick={openDesktopLyric}
+                            className="focus:bg-white/10 focus:text-white"
+                        >
+                            <Monitor className="mr-2 h-4 w-4" />
+                            桌面歌词
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator className="bg-white/10" />
                         <div className="px-2 py-1.5">
                             <div className="flex items-center text-sm font-medium mb-2 opacity-80">
@@ -243,6 +279,49 @@ export function FullscreenPlayer() {
                                 onValueChange={(v) => setLyricBlurStrength(v[0])}
                                 className="w-full"
                             />
+                        </div>
+                        <DropdownMenuSeparator className="bg-white/10" />
+                        <div className="px-2 py-1.5">
+                            <div className="flex items-center text-sm font-medium mb-2 opacity-80">
+                                <Monitor className="mr-2 h-4 w-4" /> 桌面歌词字号
+                            </div>
+                            <Slider
+                                value={[desktopLyricFontSize]}
+                                max={80}
+                                min={20}
+                                step={1}
+                                onValueChange={(v) => {
+                                    setDesktopLyricFontSize(v[0])
+                                    syncDesktopSettings({ desktopLyricFontSize: v[0] })
+                                }}
+                                className="w-full"
+                            />
+                        </div>
+                        <div className="px-2 py-1.5 flex flex-col gap-2">
+                            <label className="flex items-center justify-between text-sm opacity-80 cursor-pointer">
+                                <div className="flex items-center"><Baseline className="mr-2 h-4 w-4" /> 桌面歌词颜色</div>
+                                <input
+                                    type="color"
+                                    value={desktopLyricColor}
+                                    className="w-6 h-6 p-0 border-0 rounded cursor-pointer bg-transparent"
+                                    onChange={(e) => {
+                                        setDesktopLyricColor(e.target.value)
+                                        syncDesktopSettings({ desktopLyricColor: e.target.value })
+                                    }}
+                                />
+                            </label>
+                            <label className="flex items-center justify-between text-sm opacity-80 cursor-pointer">
+                                <div className="flex items-center"><Palette className="mr-2 h-4 w-4" /> 桌面歌词描边</div>
+                                <input
+                                    type="color"
+                                    value={desktopLyricStrokeColor}
+                                    className="w-6 h-6 p-0 border-0 rounded cursor-pointer bg-transparent"
+                                    onChange={(e) => {
+                                        setDesktopLyricStrokeColor(e.target.value)
+                                        syncDesktopSettings({ desktopLyricStrokeColor: e.target.value })
+                                    }}
+                                />
+                            </label>
                         </div>
                     </DropdownMenuContent>
                 </DropdownMenu>

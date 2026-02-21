@@ -1,4 +1,5 @@
 "use client"
+import React from "react"
 
 import { usePathname } from "next/navigation"
 import { Sidebar } from "./Sidebar"
@@ -10,9 +11,10 @@ import { FullscreenPlayer } from "../player/FullscreenPlayer"
 export function MainLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     const isTray = pathname === "/tray"
+    const isDesktopLyric = pathname === "/desktop-lyric"
 
-    if (isTray) {
-        return <div className="h-screen w-full bg-background text-foreground overflow-hidden">{children}</div>
+    if (isTray || isDesktopLyric) {
+        return <div className="h-screen w-full bg-background/0 overflow-hidden">{children}</div>
     }
 
     return (

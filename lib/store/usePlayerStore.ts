@@ -39,6 +39,11 @@ interface PlayerState {
     lyricFontSize: number
     lyricBlurStrength: number
 
+    // Desktop Lyric Appearance
+    desktopLyricFontSize: number
+    desktopLyricColor: string
+    desktopLyricStrokeColor: string
+
     // Actions
     setCurrentTrack: (track: Track | null) => void
     updateTrackLyrics: (lyrics: Partial<Pick<Track, 'lyric' | 'yrc' | 'tlyric' | 'ytlrc'>>) => void
@@ -59,6 +64,10 @@ interface PlayerState {
     toggleAudioVisualization: () => void
     setLyricFontSize: (size: number) => void
     setLyricBlurStrength: (strength: number) => void
+
+    setDesktopLyricFontSize: (size: number) => void
+    setDesktopLyricColor: (color: string) => void
+    setDesktopLyricStrokeColor: (color: string) => void
 
     playNext: () => void
     playPrevious: () => void
@@ -82,6 +91,9 @@ export const usePlayerStore = create<PlayerState>()(
             audioVisualization: true,
             lyricFontSize: 34,
             lyricBlurStrength: 6,
+            desktopLyricFontSize: 40,
+            desktopLyricColor: '#ffffff',
+            desktopLyricStrokeColor: '#bababa',
 
             setCurrentTrack: (track) => {
                 const { currentTrack, history } = get()
@@ -139,6 +151,9 @@ export const usePlayerStore = create<PlayerState>()(
             toggleAudioVisualization: () => set((state) => ({ audioVisualization: !state.audioVisualization })),
             setLyricFontSize: (size) => set({ lyricFontSize: size }),
             setLyricBlurStrength: (strength) => set({ lyricBlurStrength: strength }),
+            setDesktopLyricFontSize: (desktopLyricFontSize) => set({ desktopLyricFontSize }),
+            setDesktopLyricColor: (desktopLyricColor) => set({ desktopLyricColor }),
+            setDesktopLyricStrokeColor: (desktopLyricStrokeColor) => set({ desktopLyricStrokeColor }),
 
             playNext: () => {
                 const { queue, currentTrack, repeatMode } = get()
@@ -179,7 +194,10 @@ export const usePlayerStore = create<PlayerState>()(
                 history: state.history,
                 audioVisualization: state.audioVisualization,
                 lyricFontSize: state.lyricFontSize,
-                lyricBlurStrength: state.lyricBlurStrength
+                lyricBlurStrength: state.lyricBlurStrength,
+                desktopLyricFontSize: state.desktopLyricFontSize,
+                desktopLyricColor: state.desktopLyricColor,
+                desktopLyricStrokeColor: state.desktopLyricStrokeColor
             }),
         }
     )

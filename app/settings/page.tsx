@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { ChevronRight, Server, ChevronLeft, User, Music } from "lucide-react"
+import React, { useState, useEffect } from "react"
+import { ChevronRight, Server, ChevronLeft, User, Music, KeyRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,8 +14,9 @@ import { AuthDialog } from "@/components/auth/AuthDialog"
 import { UserCard } from "@/components/auth/UserCard"
 import { useActiveSource } from "@/lib/store/useAudioSourceStore"
 import { AudioSourceManager } from "@/components/settings/AudioSourceManager"
+import { AccountBindingManager } from "@/components/settings/AccountBindingManager"
 
-type SettingsView = "main" | "backend-source" | "audio-source"
+type SettingsView = "main" | "backend-source" | "audio-source" | "account-binding"
 
 export default function SettingsPage() {
     const [view, setView] = useState<SettingsView>("main")
@@ -78,6 +79,19 @@ export default function SettingsPage() {
                     </span>
                     <ChevronRight className="h-6 w-6 text-muted-foreground" />
                     <span className="text-foreground">音源设置</span>
+                </div>
+            )
+        } else if (view === "account-binding") {
+            return (
+                <div className="flex items-center gap-1">
+                    <span
+                        className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => setView("main")}
+                    >
+                        设置
+                    </span>
+                    <ChevronRight className="h-6 w-6 text-muted-foreground" />
+                    <span className="text-foreground">第三方账号绑定</span>
                 </div>
             )
         }
@@ -152,6 +166,24 @@ export default function SettingsPage() {
                                     </div>
                                     <ChevronRight className="h-5 w-5 text-muted-foreground/50 group-hover:text-foreground transition-colors" />
                                 </div>
+
+                                <div
+                                    className="group flex items-center justify-between p-4 bg-card border rounded-xl hover:bg-accent/50 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
+                                    onClick={() => setView("account-binding")}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-2.5 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                                            <KeyRound className="h-5 w-5 text-primary" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <h3 className="font-medium leading-none">第三方账号绑定</h3>
+                                            <p className="text-xs text-muted-foreground">
+                                                同步网易云、酷狗音乐等平台数据
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <ChevronRight className="h-5 w-5 text-muted-foreground/50 group-hover:text-foreground transition-colors" />
+                                </div>
                             </div>
                         </section>
                     </div>
@@ -160,6 +192,12 @@ export default function SettingsPage() {
                 {view === "audio-source" && (
                     <div className="max-w-2xl mx-auto pb-10">
                         <AudioSourceManager />
+                    </div>
+                )}
+
+                {view === "account-binding" && (
+                    <div className="max-w-2xl mx-auto pb-10">
+                        <AccountBindingManager />
                     </div>
                 )}
 

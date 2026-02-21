@@ -25,6 +25,8 @@ export interface Track {
     tlyric?: string;
     /** 逐字歌词翻译 (LRC 格式) */
     ytlrc?: string;
+    /** 歌曲时长 (秒) */
+    duration?: number;
 }
 
 /**

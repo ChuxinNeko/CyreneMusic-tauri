@@ -4,7 +4,8 @@
   "description": "Capability for the main window",
   "windows": [
     "main",
-    "tray"
+    "tray",
+    "desktop-lyric"
   ],
   "permissions": [
     "core:default",
