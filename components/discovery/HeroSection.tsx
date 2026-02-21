@@ -88,21 +88,21 @@ export function HeroSection({
             {/* Personal FM Card */}
             <Card className="lg:col-span-2 h-[240px] relative overflow-hidden border-none shadow-xl bg-accent/10 transition-all duration-500 hover:bg-accent/20">
                 {/* Inner Content */}
-                <div className="relative h-full p-6 flex flex-col justify-between z-10">
+                <div className="relative h-full px-8 pt-5 pb-8 flex flex-col gap-4 z-10">
                     <div className="flex items-center gap-2 text-primary">
                         <Radio className="h-5 w-5 animate-pulse" />
                         <span className="text-sm font-bold tracking-widest uppercase">私人 FM</span>
                     </div>
 
                     {fmSongs.length > 0 ? (
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 flex-1">
                             <div
-                                className="h-24 w-24 rounded-2xl overflow-hidden shadow-2xl relative group/fm cursor-pointer"
+                                className="h-20 w-20 rounded-2xl overflow-hidden shadow-2xl relative group/fm cursor-pointer flex-shrink-0"
                                 onClick={onPlayFm}
                             >
                                 <AsyncImage src={fmSongs[0].picUrl || fmSongs[0].al?.picUrl || fmSongs[0].album?.picUrl} className="h-full w-full" imageClassName="transition-transform duration-700 group-hover/fm:scale-110" />
                                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/fm:opacity-100 transition-opacity">
-                                    <Play className="h-8 w-8 text-white fill-white" />
+                                    <Play className="h-7 w-7 text-white fill-white" />
                                 </div>
                             </div>
                             <div className="flex-1 min-w-0 space-y-1">
@@ -113,12 +113,12 @@ export function HeroSection({
                             </div>
                         </div>
                     ) : (
-                        <div className="flex items-center justify-center h-24">
-                            <p className="text-xs text-muted-foreground">FM 内容由于加载中...</p>
+                        <div className="flex items-center justify-center flex-1">
+                            <p className="text-xs text-muted-foreground">FM 内容加载中...</p>
                         </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3 mt-auto">
                         <Button
                             variant="outline"
                             className="rounded-xl border-primary/20 hover:bg-primary/10 hover:text-primary transition-colors h-10 gap-2 font-bold"
