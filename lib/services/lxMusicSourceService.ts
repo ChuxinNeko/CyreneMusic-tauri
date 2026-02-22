@@ -7,6 +7,7 @@ export interface LxMusicConfig {
     apiKey: string;
     author: string;
     description: string;
+    homepage: string;
     scriptContent: string;
     urlPathTemplate: string;
     isActive?: boolean;
@@ -57,6 +58,11 @@ class LxMusicSourceService {
                 /@description\s+(.+)/
             ]) || '';
 
+            const homepage = headerMetadata.homepage || this.extractRegex(scriptContent, [
+                /homepage\s*:\s*['"]([^'"]+)['"]/,
+                /@homepage\s+(.+)/
+            ]) || '';
+
             const apiUrl = this.extractApiUrl(scriptContent);
 
             const apiKey = this.extractRegex(scriptContent, [
@@ -81,6 +87,7 @@ class LxMusicSourceService {
                 version,
                 author,
                 description,
+                homepage,
                 apiUrl,
                 apiKey,
                 scriptContent,
@@ -197,7 +204,8 @@ class LxMusicSourceService {
             name: /@name\s+(.+)/,
             author: /@author\s+(.+)/,
             version: /@version\s+(.+)/,
-            description: /@description\s+(.+)/
+            description: /@description\s+(.+)/,
+            homepage: /@homepage\s+(.+)/
         };
 
         for (const [key, pattern] of Object.entries(patterns)) {

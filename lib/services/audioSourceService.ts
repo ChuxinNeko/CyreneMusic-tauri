@@ -63,13 +63,15 @@ class AudioSourceService {
         [AudioSourceType.LxMusic]: [], // 动态从脚本获取
     };
 
-    public getLxQuality(quality: AudioQuality): string {
+    public getLxQuality(quality: AudioQuality | string): string {
         switch (quality) {
             case AudioQuality.Standard: return '128k';
             case AudioQuality.ExHigh: return '320k';
             case AudioQuality.Lossless: return 'flac';
             case AudioQuality.HiRes: return 'flac24bit';
-            default: return '320k';
+            default:
+                // 如果已经是 lx 格式的字符串（如 '128k'），直接返回
+                return quality;
         }
     }
 
@@ -137,13 +139,13 @@ class AudioSourceService {
                 const idStr = String(songId);
                 if (idStr.includes(':')) {
                     const [hash, albumId] = idStr.split(':');
-                    return `${base}?hash=${hash}&album_audio_id=${albumId || '0'}`;
+                    return `${base}?hash=${hash}&album_audio_id=${albumId || '0'}&quality=${quality}`;
                 }
-                return `${base}?emixsongid=${songId}`;
+                return `${base}?emixsongid=${songId}&quality=${quality}`;
             }
             case MusicSource.Kuwo:
                 // 后端期望 mid 参数
-                return `${base}?mid=${songId}`;
+                return `${base}?mid=${songId}&quality=${quality}`;
             default:
                 return `${base}?id=${songId}&quality=${quality}`;
         }

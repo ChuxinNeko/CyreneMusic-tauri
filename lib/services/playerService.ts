@@ -215,7 +215,7 @@ class PlayerService {
                 throw new Error("No active audio source configured")
             }
 
-            const quality = AudioQuality.ExHigh
+            const quality = useAudioSourceStore.getState().quality as AudioQuality
             let url = audioSourceService.buildPlaybackUrl(
                 activeConfigSource,
                 track.source as any,
@@ -231,7 +231,11 @@ class PlayerService {
                 console.log("[PlayerService] Using LxMusic Runtime for URL fetching");
 
                 // 确保运行时已加载当前脚本
-                await lxMusicRuntimeService.loadScript(activeConfigSource.scriptContent);
+                await lxMusicRuntimeService.loadScript({
+                    name: activeConfigSource.name,
+                    version: activeConfigSource.version,
+                    script: activeConfigSource.scriptContent
+                });
 
                 const lxSourceMap: Record<string, string> = {
                     'netease': 'wy',
@@ -242,21 +246,11 @@ class PlayerService {
                 const lxSource = lxSourceMap[track.source] || track.source;
 
                 try {
-                    const realUrl = await lxMusicRuntimeService.getMusicUrl(lxSource, {
-                        ...track,
-                        songmid: track.id,
-                        hash: track.id.toString().split(':')[0] // 酷狗需要 hash
-                    }, audioSourceService.getLxQuality(quality));
+                    const realUrl = await lxMusicRuntimeService.getMusicUrl(lxSource, track.id, audioSourceService.getLxQuality(quality));
 
                     if (realUrl) {
-                        try {
-                            const encodedUrl = btoa(realUrl);
-                            url = `music-proxy://localhost?url=${encodeURIComponent(encodedUrl)}`;
-                            console.log(`[PlayerService] Using proxy URL: ${url}`);
-                        } catch (e) {
-                            console.error("[PlayerService] Failed to encode proxy URL:", e);
-                            url = realUrl;
-                        }
+                        url = realUrl;
+                        console.log(`[PlayerService] Using real URL from LxMusic: ${url}`);
                     } else {
                         throw new Error("LxMusic Runtime returned empty URL");
                     }

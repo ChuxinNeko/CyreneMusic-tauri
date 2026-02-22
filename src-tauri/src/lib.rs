@@ -118,12 +118,21 @@ async fn lx_http_request(options: HttpRequestOptions) -> Result<serde_json::Valu
 
     let status = response.status().as_u16();
     
+    // 获取响应头
+    let mut headers = HashMap::new();
+    for (name, value) in response.headers().iter() {
+        if let Ok(val_str) = value.to_str() {
+            headers.insert(name.to_string(), val_str.to_string());
+        }
+    }
+
     // 尝试解析 JSON，如果失败则返回文本
     let body_text = response.text().await.map_err(|e| format!("Failed to read body: {}", e))?;
     let body_json: serde_json::Value = serde_json::from_str(&body_text).unwrap_or(serde_json::Value::String(body_text));
 
     Ok(serde_json::json!({
         "statusCode": status,
+        "headers": headers,
         "body": body_json
     }))
 }

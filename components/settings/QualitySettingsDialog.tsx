@@ -12,7 +12,9 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { AudioQuality } from "@/lib/services/audioSourceService"
-import { useAudioSourceStore } from "@/lib/store/useAudioSourceStore"
+import { useAudioSourceStore, useActiveSource } from "@/lib/store/useAudioSourceStore"
+import { lxMusicRuntimeService } from "@/lib/services/lxMusicRuntimeService"
+import { AudioSourceType } from "@/lib/models/audioSourceConfig"
 
 interface QualitySettingsDialogProps {
     open: boolean
@@ -21,29 +23,50 @@ interface QualitySettingsDialogProps {
 
 export function QualitySettingsDialog({ open, onOpenChange }: QualitySettingsDialogProps) {
     const { quality, setQuality } = useAudioSourceStore()
+    const activeSource = useActiveSource()
 
-    const qualities = [
+    const qualityLabels: Record<string, { label: string, desc: string }> = {
+        [AudioQuality.Standard]: { label: "标准音质", desc: "128kbps，节省流量" },
+        [AudioQuality.ExHigh]: { label: "极高音质", desc: "320kbps，音质细腻" },
+        [AudioQuality.Lossless]: { label: "无损音质", desc: "FLAC，CD级音质" },
+        [AudioQuality.HiRes]: { label: "Hi-Res 音质", desc: "24bit/96kHz及以上" },
+        '128k': { label: "标准音质", desc: "128kbps，有效节省流量" },
+        '320k': { label: "极高音质", desc: "320kbps，音质更加细腻" },
+        'flac': { label: "无损音质", desc: "FLAC，无损 CD 级音质" },
+        'flac24bit': { label: "Hi-Res 音质", desc: "24bit/96kHz 及以上极致体验" },
+    }
+
+    let qualities: { value: string; label: string; desc: string }[] = [
         {
             value: AudioQuality.Standard,
-            label: "标准音质",
-            desc: "128kbps，节省流量，适合网络环境一般时使用",
+            ...qualityLabels[AudioQuality.Standard]
         },
         {
             value: AudioQuality.ExHigh,
-            label: "极高音质",
-            desc: "320kbps，音质细腻，适合追求听感的听众",
+            ...qualityLabels[AudioQuality.ExHigh]
         },
         {
             value: AudioQuality.Lossless,
-            label: "无损音质",
-            desc: "FLAC，CD级音质，完美还原音乐细节",
+            ...qualityLabels[AudioQuality.Lossless]
         },
         {
             value: AudioQuality.HiRes,
-            label: "Hi-Res 音质",
-            desc: "24bit/96kHz及以上，极致听觉体验",
+            ...qualityLabels[AudioQuality.HiRes]
         },
     ]
+
+    // 如果当前是洛雪音源，则动态获取支持的音质
+    const isLxMusic = activeSource?.type === AudioSourceType.LxMusic
+    if (isLxMusic) {
+        const supported = lxMusicRuntimeService.currentScript?.supportedQualities
+        if (supported && supported.length > 0) {
+            qualities = supported.map(q => ({
+                value: q,
+                label: qualityLabels[q]?.label || q.toUpperCase(),
+                desc: qualityLabels[q]?.desc || "洛雪音源提供的音质"
+            }))
+        }
+    }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

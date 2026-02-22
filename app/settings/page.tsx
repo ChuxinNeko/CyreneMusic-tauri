@@ -280,10 +280,11 @@ function SettingsPageContent() {
                                         <div className="space-y-1">
                                             <h3 className="font-medium leading-none">音质选择</h3>
                                             <p className="text-xs text-muted-foreground">
-                                                当前推荐: {
-                                                    quality === 'standard' ? '标准' :
-                                                        quality === 'exhigh' ? '极高' :
-                                                            quality === 'lossless' ? '无损' : 'Hi-Res'
+                                                当前选择：{
+                                                    quality === 'standard' || quality === '128k' ? '标准' :
+                                                        quality === 'exhigh' || quality === '320k' ? '极高' :
+                                                            quality === 'lossless' || quality === 'flac' ? '无损' :
+                                                                quality === 'hires' || quality === 'flac24bit' ? 'Hi-Res' : quality.toUpperCase()
                                                 }
                                             </p>
                                         </div>
