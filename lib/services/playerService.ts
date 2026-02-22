@@ -8,6 +8,7 @@ import { AudioSourceType } from "../models/audioSourceConfig"
 import { usePlayerStore } from "../store/usePlayerStore"
 import { useAudioSourceStore } from "../store/useAudioSourceStore"
 import { Track } from "../models/track"
+import { historyService } from "./historyService"
 
 import { listen, emit } from '@tauri-apps/api/event'
 
@@ -143,6 +144,12 @@ class PlayerService {
                         isPlaying: true
                     })
                 }
+
+                // 累积听歌时长
+                const currentTrack = usePlayerStore.getState().currentTrack
+                if (currentTrack) {
+                    historyService.recordTime(currentTrack.id, currentTrack.source, 1)
+                }
             }
         }, 1000)
     }
@@ -182,10 +189,23 @@ class PlayerService {
         }
     }
 
+    public async playWithQueue(track: Track, newQueue: Track[]) {
+        try {
+            const store = usePlayerStore.getState()
+            store.setQueue(newQueue)
+            await this.playTrack(track)
+        } catch (error) {
+            console.error("[PlayerService] playWithQueue error:", error)
+        }
+    }
+
     public async playTrack(track: Track) {
         try {
             usePlayerStore.getState().setIsLoading(true)
             usePlayerStore.getState().setCurrentTrack(track)
+
+            // 记录播放次数
+            historyService.recordPlay(track)
 
             this.updateSMTCMetadata(track)
 

@@ -23,7 +23,8 @@ export function LeaderboardHero({
     const collageCovers = randomTracks.slice(0, 6).map(t => t.picUrl).filter(Boolean)
 
     const handlePlayTrack = (track: any) => {
-        playerService.playTrack(discoveryService.convertToTrack(track))
+        const trackObj = discoveryService.convertToTrack(track)
+        playerService.playWithQueue(trackObj, [trackObj])
     }
 
     return (

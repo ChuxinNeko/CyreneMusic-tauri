@@ -1,20 +1,24 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Play, ChevronLeft, Clock3, Loader2 } from "lucide-react"
+import { Play, ChevronLeft, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AsyncImage } from "@/components/common/AsyncImage"
 import { discoveryService, PlaylistDetail } from "@/lib/services/discoveryService"
+import { playlistService } from "@/lib/services/playlistService"
+import { Playlist, PlaylistTrack } from "@/lib/models/playlist"
 import { playerService } from "@/lib/services/playerService"
 import { usePlayerStore } from "@/lib/store/usePlayerStore"
+import { Track } from "@/lib/models/track"
 
 interface PlaylistDetailViewProps {
     id: string | number
     onBack: () => void
     token?: string
+    type?: 'discovery' | 'personal'
 }
 
-export function PlaylistDetailView({ id, onBack, token }: PlaylistDetailViewProps) {
+export function PlaylistDetailView({ id, onBack, token, type = 'discovery' }: PlaylistDetailViewProps) {
     const [playlist, setPlaylist] = useState<PlaylistDetail | null>(null)
     const [loading, setLoading] = useState(true)
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
@@ -23,12 +27,42 @@ export function PlaylistDetailView({ id, onBack, token }: PlaylistDetailViewProp
     useEffect(() => {
         const fetchDetail = async () => {
             setLoading(true)
-            const data = await discoveryService.getPlaylistDetail(id, 200, token)
-            setPlaylist(data)
+            if (type === 'personal') {
+                const tracks = await playlistService.getPlaylistTracks(id)
+                const allPlaylists = await playlistService.getPlaylists()
+                const info = allPlaylists.find((p: Playlist) => String(p.id) === String(id))
+
+                if (info) {
+                    setPlaylist({
+                        id: info.id,
+                        name: info.name,
+                        coverImgUrl: info.coverUrl || '',
+                        description: '',
+                        creator: '',
+                        trackCount: info.trackCount,
+                        playCount: 0,
+                        tracks: tracks.map((t: PlaylistTrack) => ({
+                            id: t.trackId,
+                            name: t.name,
+                            artists: t.artists,
+                            album: t.album,
+                            picUrl: t.picUrl,
+                            source: t.source,
+                            duration: 0
+                        })),
+                        createTime: 0,
+                        updateTime: 0,
+                        tags: []
+                    })
+                }
+            } else {
+                const data = await discoveryService.getPlaylistDetail(id, 200, token)
+                setPlaylist(data)
+            }
             setLoading(false)
         }
         fetchDetail()
-    }, [id, token])
+    }, [id, token, type])
 
     if (loading) {
         return (
@@ -51,17 +85,24 @@ export function PlaylistDetailView({ id, onBack, token }: PlaylistDetailViewProp
 
     const handlePlayAll = () => {
         if (playlist.tracks.length > 0) {
-            const tracks: any[] = playlist.tracks.map(t => ({
+            const tracks: Track[] = playlist.tracks.map(t => discoveryService.convertToTrack({
                 ...t,
-                source: 'netease'
+                source: (t as any).source || 'netease'
             }))
-            usePlayerStore.getState().setQueue(tracks)
-            playerService.playTrack(tracks[0])
+            playerService.playWithQueue(tracks[0], tracks)
         }
     }
 
     const handlePlayTrack = (track: any) => {
-        playerService.playTrack({ ...track, source: 'netease' })
+        const tracks: Track[] = playlist.tracks.map(t => discoveryService.convertToTrack({
+            ...t,
+            source: (t as any).source || 'netease'
+        }))
+        const trackObj = discoveryService.convertToTrack({
+            ...track,
+            source: track.source || 'netease'
+        })
+        playerService.playWithQueue(trackObj, tracks)
     }
 
     const formatDuration = (ms: number) => {
@@ -172,9 +213,6 @@ export function PlaylistDetailView({ id, onBack, token }: PlaylistDetailViewProp
                     <span className="flex-[2.5] px-4">标题</span>
                     <span className="flex-[1.5] px-4 hidden lg:block">专辑</span>
                     <span className="flex-1 px-4 hidden md:block">歌手</span>
-                    <span className="w-20 text-right pr-4">
-                        <Clock3 className="h-3.5 w-3.5 ml-auto opacity-70" />
-                    </span>
                 </div>
 
                 <div className="space-y-[1px]">
@@ -224,9 +262,6 @@ export function PlaylistDetailView({ id, onBack, token }: PlaylistDetailViewProp
                                     {track.artists}
                                 </div>
 
-                                <div className="w-20 text-right pr-4 text-xs font-bold text-muted-foreground/40 tabular-nums">
-                                    {formatDuration(track.duration || 0)}
-                                </div>
                             </div>
                         )
                     })}
@@ -248,14 +283,14 @@ export function DailySongsDetailView({ songs, onBack }: { songs: any[], onBack: 
     const handlePlayAll = () => {
         if (songs.length > 0) {
             const tracks = songs.map(s => discoveryService.convertToTrack(s))
-            usePlayerStore.getState().setQueue(tracks)
-            playerService.playTrack(tracks[0])
+            playerService.playWithQueue(tracks[0], tracks)
         }
     }
 
     const handlePlayTrack = (song: any) => {
+        const tracks = songs.map(s => discoveryService.convertToTrack(s))
         const track = discoveryService.convertToTrack(song)
-        playerService.playTrack(track)
+        playerService.playWithQueue(track, tracks)
     }
 
     const formatDuration = (s: number) => {
@@ -316,9 +351,6 @@ export function DailySongsDetailView({ songs, onBack }: { songs: any[], onBack: 
                     <span className="flex-[2.5] px-4">标题</span>
                     <span className="flex-[1.5] px-4 hidden lg:block">专辑</span>
                     <span className="flex-1 px-4 hidden md:block">歌手</span>
-                    <span className="w-20 text-right pr-4">
-                        <Clock3 className="h-3.5 w-3.5 ml-auto opacity-70" />
-                    </span>
                 </div>
 
                 <div className="space-y-[1px]">
@@ -369,9 +401,6 @@ export function DailySongsDetailView({ songs, onBack }: { songs: any[], onBack: 
                                     {track.artists}
                                 </div>
 
-                                <div className="w-20 text-right pr-4 text-xs font-bold text-muted-foreground/40 tabular-nums">
-                                    {formatDuration(track.duration || 0)}
-                                </div>
                             </div>
                         )
                     })}

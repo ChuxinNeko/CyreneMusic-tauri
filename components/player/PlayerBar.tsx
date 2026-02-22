@@ -8,11 +8,11 @@ import {
     SkipForward,
     Volume2,
     VolumeX,
-    ListMusic,
     Maximize2,
     Repeat,
     Repeat1,
-    Shuffle
+    Shuffle,
+    ListMusic
 } from "lucide-react"
 import { usePlayerStore, RepeatMode } from "@/lib/store/usePlayerStore"
 import { playerService } from "@/lib/services/playerService"
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { PlaylistPanel } from "./PlaylistPanel"
 
 export function PlayerBar() {
     const {
@@ -104,7 +105,7 @@ export function PlayerBar() {
     }
 
     return (
-        <div className="h-20 border-t bg-background/60 backdrop-blur-xl px-4 flex items-center justify-between z-50">
+        <div className="h-20 border-t bg-transparent px-4 flex items-center justify-between z-50">
             {/* Left: Track Info */}
             <div className="flex items-center gap-3 w-1/4 min-w-[200px]">
                 <div
@@ -181,13 +182,7 @@ export function PlayerBar() {
                     >
                         <SkipForward className="h-5 w-5 fill-current" />
                     </Button>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                    >
-                        <ListMusic className="h-4 w-4" />
-                    </Button>
+                    <PlaylistPanel />
                 </div>
 
                 <div className="w-full flex items-center gap-3">

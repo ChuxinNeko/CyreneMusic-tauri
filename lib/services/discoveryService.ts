@@ -8,7 +8,7 @@ export interface Toplist {
     coverImgUrl: string
     description: string
     tracks: Array<{
-        id: number
+        id: string | number
         name: string
         artists: string
         album: string

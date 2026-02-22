@@ -12,10 +12,12 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Cyrene Music Next",
         "width": 1280,
         "height": 820,
-        "decorations": false
+        "decorations": false,
+        "transparent": true
       }
     ],
     "security": {

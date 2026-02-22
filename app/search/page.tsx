@@ -69,8 +69,7 @@ export default function SearchPage() {
                             key={key}
                             className="grid grid-cols-[48px_1fr_1fr_1fr_48px] gap-4 px-4 py-2.5 items-center rounded-lg hover:bg-accent/50 group transition-all cursor-pointer"
                             onClick={() => {
-                                playerService.playTrack(track);
-                                usePlayerStore.getState().setQueue(tracks);
+                                playerService.playWithQueue(track, [track]);
                             }}
                         >
                             <div className="flex justify-center items-center relative">

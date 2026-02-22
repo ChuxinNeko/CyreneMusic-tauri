@@ -68,15 +68,28 @@ async fn close_desktop_lyric(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn update_vibrancy(window: tauri::Window, is_dark: bool) -> Result<(), String> {
+    #[cfg(desktop)]
+    {
+        let _ = window_vibrancy::apply_mica(&window, Some(is_dark));
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![greet, fetch_image, open_desktop_lyric, close_desktop_lyric])
+        .invoke_handler(tauri::generate_handler![greet, fetch_image, open_desktop_lyric, close_desktop_lyric, update_vibrancy])
         .setup(|app| {
             #[cfg(desktop)]
             {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window_vibrancy::apply_mica(&window, None);
+                }
+
                 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 
                 let _ = TrayIconBuilder::new()

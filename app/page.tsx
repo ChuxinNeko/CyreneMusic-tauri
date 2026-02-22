@@ -128,17 +128,14 @@ function HomeContent() {
   const handlePlayDaily = useCallback(() => {
     if (!recommendData?.dailySongs?.length) return
     const tracks = recommendData.dailySongs.map(discoveryService.convertToTrack)
-    playerService.playTrack(tracks[0])
-    // The player service currently doesn't have a direct setQueue exposed in the same way 
-    // as our internal state, but it handles it through usePlayerStore.getState().setQueue
-    // Let's assume playTrack handles the basic play, we'll refine queue later if needed.
+    playerService.playWithQueue(tracks[0], tracks)
     toast.success("开始播放每日推荐")
   }, [recommendData])
 
   const handlePlayFm = useCallback(() => {
     if (!recommendData?.fm?.length) return
     const tracks = recommendData.fm.map(discoveryService.convertToTrack)
-    playerService.playTrack(tracks[0])
+    playerService.playWithQueue(tracks[0], tracks)
     toast.success("开始播放私人 FM")
   }, [recommendData])
 
@@ -151,8 +148,7 @@ function HomeContent() {
     const tracks = randomTracks.map(discoveryService.convertToTrack)
     // Shuffle again for better experience
     const shuffled = [...tracks].sort(() => 0.5 - Math.random())
-    playerService.playTrack(shuffled[0])
-    // We should probably set the queue here, but current playerService hides it
+    playerService.playWithQueue(shuffled[0], shuffled)
     toast.success("开始随机播放榜单精选")
   }, [randomTracks])
 
@@ -307,7 +303,14 @@ function RecommendView({ data, onPlaylistClick }: { data: RecommendData, onPlayl
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {data.personalizedNewsongs.map((item: any) => (
               <div key={item.id} className="group flex items-center gap-4 p-3 rounded-xl hover:bg-accent/50 transition-all cursor-pointer border border-transparent hover:border-border">
-                <div className="relative h-14 w-14 rounded-lg overflow-hidden shadow-sm">
+                <div
+                  className="relative h-14 w-14 rounded-lg overflow-hidden shadow-sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    const track = discoveryService.convertToTrack(item)
+                    playerService.playWithQueue(track, [track])
+                  }}
+                >
                   <AsyncImage src={item.picUrl} alt={item.name} className="h-full w-full" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <Play className="h-6 w-6 text-white fill-white" />
@@ -371,7 +374,11 @@ function ToplistSection({ toplist, onPlaylistClick }: { toplist: Toplist, onPlay
               key={track.id}
               track={track}
               rank={index + 1}
-              onClick={() => playerService.playTrack(discoveryService.convertToTrack(track))}
+              onClick={() => {
+                const tracks = toplist.tracks.map(t => discoveryService.convertToTrack(t))
+                const currentTrack = discoveryService.convertToTrack(track)
+                playerService.playWithQueue(currentTrack, tracks)
+              }}
             />
           ))}
         </div>

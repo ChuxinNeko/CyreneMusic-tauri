@@ -45,7 +45,7 @@ export function DiscoverGrid({ category, onPlaylistClick }: DiscoverGridProps) {
     }
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {playlists.map((playlist) => (
                 <DiscoveryCard
                     key={playlist.id}

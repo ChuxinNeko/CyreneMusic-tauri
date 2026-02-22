@@ -4,6 +4,7 @@ import { useTheme } from "next-themes"
 import * as React from "react"
 import { ChevronLeft, ChevronRight, Minus, Square, X, Moon, Sun, User, LogOut, Settings } from "lucide-react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
+import { invoke } from "@tauri-apps/api/core"
 import { Button } from "@/components/ui/button"
 import { useAuthStore } from "@/lib/store/useAuthStore"
 import { useRouter } from "next/navigation"
@@ -36,6 +37,18 @@ export function TitleBar() {
         updateMaximizedState();
     }, [])
 
+    React.useEffect(() => {
+        const syncVibrancy = async () => {
+            try {
+                const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+                await invoke("update_vibrancy", { isDark });
+            } catch (error) {
+                console.error("Failed to sync vibrancy:", error);
+            }
+        };
+        syncVibrancy();
+    }, [theme])
+
     const minimize = async () => {
         const appWindow = getCurrentWindow();
         await appWindow.minimize();
@@ -53,7 +66,7 @@ export function TitleBar() {
     }
 
     return (
-        <div data-tauri-drag-region className="h-14 flex items-center px-4 select-none bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 border-b">
+        <div data-tauri-drag-region className="h-14 flex items-center px-4 select-none bg-transparent sticky top-0 z-50 border-b">
             {/* Left Section: Navigation */}
             <div className="flex items-center gap-1 z-10 mr-4" data-tauri-drag-region>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.back()}>
