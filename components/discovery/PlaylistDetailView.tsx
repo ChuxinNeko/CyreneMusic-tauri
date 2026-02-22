@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Play, ChevronLeft, Loader2 } from "lucide-react"
+import { Play, ChevronLeft, Loader2, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { AsyncImage } from "@/components/common/AsyncImage"
 import { discoveryService, PlaylistDetail } from "@/lib/services/discoveryService"
@@ -10,18 +11,29 @@ import { Playlist, PlaylistTrack } from "@/lib/models/playlist"
 import { playerService } from "@/lib/services/playerService"
 import { usePlayerStore } from "@/lib/store/usePlayerStore"
 import { Track } from "@/lib/models/track"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
+} from "@/components/ui/dialog"
 
 interface PlaylistDetailViewProps {
     id: string | number
     onBack: () => void
     token?: string
     type?: 'discovery' | 'personal'
+    onRemoveLocally?: (id: string | number) => void
 }
 
-export function PlaylistDetailView({ id, onBack, token, type = 'discovery' }: PlaylistDetailViewProps) {
+export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRemoveLocally }: PlaylistDetailViewProps) {
     const [playlist, setPlaylist] = useState<PlaylistDetail | null>(null)
     const [loading, setLoading] = useState(true)
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+    const [deleting, setDeleting] = useState(false)
     const { currentTrack, isPlaying } = usePlayerStore()
 
     useEffect(() => {
@@ -118,6 +130,25 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery' }: Pl
         return count.toString()
     }
 
+    const handleDelete = async () => {
+        setDeleting(true)
+        try {
+            const success = await playlistService.deletePlaylist(id)
+            if (success) {
+                toast.success("歌单已成功删除")
+                onRemoveLocally?.(id)
+                onBack()
+            } else {
+                toast.error("删除歌单失败")
+            }
+        } catch (error) {
+            toast.error("删除过程中发生错误")
+        } finally {
+            setDeleting(false)
+            setShowDeleteConfirm(false)
+        }
+    }
+
     return (
         <div className="space-y-4 animate-in fade-in duration-500 pb-20 max-w-6xl mx-auto px-4 sm:px-0">
             {/* Action Bar / Back Button */}
@@ -195,7 +226,7 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery' }: Pl
                         </div>
                     </div>
 
-                    <div className="pt-3">
+                    <div className="pt-3 flex items-center gap-3">
                         <Button
                             onClick={handlePlayAll}
                             className="h-11 px-7 rounded-full gap-2.5 bg-foreground text-background hover:bg-foreground/90 transition-all font-bold shadow-lg shadow-foreground/10"
@@ -203,6 +234,18 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery' }: Pl
                             <Play className="h-4 w-4 fill-current" />
                             播放全部
                         </Button>
+
+                        {type === 'personal' && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setShowDeleteConfirm(true)}
+                                className="h-11 w-11 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                                title="删除歌单"
+                            >
+                                <Trash2 className="h-5 w-5" />
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -273,6 +316,27 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery' }: Pl
                 @keyframes music-bar-2 { 0%, 100% { height: 14px; } 50% { height: 6px; } }
                 @keyframes music-bar-3 { 0%, 100% { height: 8px; } 50% { height: 16px; } }
             `}</style>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>删除歌单</DialogTitle>
+                        <DialogDescription>
+                            确定要删除歌单「{playlist.name}」吗？此操作无法撤销。
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)} disabled={deleting}>
+                            取消
+                        </Button>
+                        <Button variant="destructive" onClick={handleDelete} disabled={deleting} className="gap-2">
+                            {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
+                            确认删除
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

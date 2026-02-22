@@ -1,5 +1,6 @@
 
 export interface LxMusicConfig {
+    id: string; // 唯一标识，通常基于脚本名称的 hash
     name: string;
     version: string;
     apiUrl: string;
@@ -8,6 +9,7 @@ export interface LxMusicConfig {
     description: string;
     scriptContent: string;
     urlPathTemplate: string;
+    isActive?: boolean;
 }
 
 class LxMusicSourceService {
@@ -71,7 +73,10 @@ class LxMusicSourceService {
                 /\/url\/\{?[a-zA-Z]+\}?\/\{?[a-zA-Z]+\}?\/\{?[a-zA-Z]+\}?/
             ]) || '/url/{source}/{songId}/{quality}';
 
+            const id = `lx_${name}_${version}`.replace(/\s+/g, '_');
+
             return {
+                id,
                 name,
                 version,
                 author,

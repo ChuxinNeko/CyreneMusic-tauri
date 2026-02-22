@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { ChevronRight, Server, ChevronLeft, User, Music, KeyRound, Info, FileText } from "lucide-react"
+import { ChevronRight, Server, ChevronLeft, User, Music, KeyRound, Info, FileText, Settings2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,6 +15,8 @@ import { UserCard } from "@/components/auth/UserCard"
 import { useActiveSource } from "@/lib/store/useAudioSourceStore"
 import { AudioSourceManager } from "@/components/settings/AudioSourceManager"
 import { AccountBindingManager } from "@/components/settings/AccountBindingManager"
+import { QualitySettingsDialog } from "@/components/settings/QualitySettingsDialog"
+import { useAudioSourceStore } from "@/lib/store/useAudioSourceStore"
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense } from "react"
@@ -43,7 +45,9 @@ function SettingsPageContent() {
     const [customUrl, setCustomUrl] = useState("")
     const { user, isLoggedIn, logout } = useAuthStore()
     const [authDialogOpen, setAuthDialogOpen] = useState(false)
+    const [qualityDialogOpen, setQualityDialogOpen] = useState(false)
     const activeSource = useActiveSource()
+    const { quality } = useAudioSourceStore()
 
     useEffect(() => {
         // Initial load
@@ -248,6 +252,39 @@ function SettingsPageContent() {
                                             <h3 className="font-medium leading-none">关于</h3>
                                             <p className="text-xs text-muted-foreground">
                                                 关于 CyreneMusicNext
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <ChevronRight className="h-5 w-5 text-muted-foreground/50 group-hover:text-foreground transition-colors" />
+                                </div>
+                            </div>
+                        </section>
+
+                        <section className="space-y-4">
+                            <div className="space-y-1">
+                                <h2 className="text-lg font-semibold tracking-tight">播放</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    自定义音乐播放体验
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3">
+                                <div
+                                    className="group flex items-center justify-between p-4 bg-card border rounded-xl hover:bg-accent/50 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
+                                    onClick={() => setQualityDialogOpen(true)}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-2.5 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                                            <Settings2 className="h-5 w-5 text-primary" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <h3 className="font-medium leading-none">音质选择</h3>
+                                            <p className="text-xs text-muted-foreground">
+                                                当前推荐: {
+                                                    quality === 'standard' ? '标准' :
+                                                        quality === 'exhigh' ? '极高' :
+                                                            quality === 'lossless' ? '无损' : 'Hi-Res'
+                                                }
                                             </p>
                                         </div>
                                     </div>
@@ -529,6 +566,7 @@ function SettingsPageContent() {
             </div>
 
             <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
+            <QualitySettingsDialog open={qualityDialogOpen} onOpenChange={setQualityDialogOpen} />
         </div>
     )
 }

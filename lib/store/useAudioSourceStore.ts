@@ -5,6 +5,7 @@ import { AudioSourceConfig, AudioSourceType } from '../models/audioSourceConfig'
 interface AudioSourceState {
     sources: AudioSourceConfig[]
     activeSourceId: string
+    quality: string
     isInitialized: boolean
 
     // Actions
@@ -12,6 +13,7 @@ interface AudioSourceState {
     updateSource: (source: AudioSourceConfig) => void
     removeSource: (id: string) => void
     setActiveSource: (id: string) => void
+    setQuality: (quality: string) => void
     setInitialized: (initialized: boolean) => void
     getActiveSource: () => AudioSourceConfig | null
 }
@@ -21,6 +23,7 @@ export const useAudioSourceStore = create<AudioSourceState>()(
         (set, get) => ({
             sources: [],
             activeSourceId: '',
+            quality: 'exhigh',
             isInitialized: false,
 
             addSource: (source) => set((state) => {
@@ -44,6 +47,8 @@ export const useAudioSourceStore = create<AudioSourceState>()(
             }),
 
             setActiveSource: (id) => set({ activeSourceId: id }),
+
+            setQuality: (quality) => set({ quality }),
 
             setInitialized: (initialized) => set({ isInitialized: initialized }),
 

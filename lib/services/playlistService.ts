@@ -86,24 +86,20 @@ class PlaylistService {
         }
     }
 
-    public async syncPlaylist(playlistId: string | number): Promise<PlaylistSyncResult> {
+    public async addTracksToPlaylist(
+        playlistId: string | number,
+        tracks: { trackId: string | number; name: string; artists: string; album: string; picUrl: string; source: string }[]
+    ): Promise<boolean> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/playlists/${playlistId}/sync`, {
+            const response = await fetch(`${urlService.baseUrl}/playlists/${playlistId}/tracks/batch`, {
                 method: "POST",
-                headers: this.getHeaders()
+                headers: this.getHeaders(),
+                body: JSON.stringify({ tracks })
             });
-            if (response.ok) {
-                const result = await response.json();
-                return {
-                    insertedCount: result.insertedCount || 0,
-                    newTracks: result.newTracks || [],
-                    message: result.message || ""
-                };
-            }
-            return { insertedCount: 0, newTracks: [], message: "请求失败" };
+            return response.ok;
         } catch (error) {
-            console.error("[PlaylistService] syncPlaylist failed:", error);
-            return { insertedCount: 0, newTracks: [], message: "发生错误" };
+            console.error("[PlaylistService] addTracksToPlaylist failed:", error);
+            return false;
         }
     }
 }

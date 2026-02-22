@@ -9,6 +9,7 @@ import { usePlayerStore } from "../store/usePlayerStore"
 import { useAudioSourceStore } from "../store/useAudioSourceStore"
 import { Track } from "../models/track"
 import { historyService } from "./historyService"
+import { lxMusicRuntimeService } from "./lxMusicRuntimeService"
 
 import { listen, emit } from '@tauri-apps/api/event'
 
@@ -224,6 +225,45 @@ class PlayerService {
 
             if (!url) {
                 throw new Error(`Failed to build playback URL for source: ${track.source}`)
+            }
+
+            if (activeConfigSource.type === AudioSourceType.LxMusic) {
+                console.log("[PlayerService] Using LxMusic Runtime for URL fetching");
+
+                // 确保运行时已加载当前脚本
+                await lxMusicRuntimeService.loadScript(activeConfigSource.scriptContent);
+
+                const lxSourceMap: Record<string, string> = {
+                    'netease': 'wy',
+                    'qq': 'tx',
+                    'kugou': 'kg',
+                    'kuwo': 'kw'
+                };
+                const lxSource = lxSourceMap[track.source] || track.source;
+
+                try {
+                    const realUrl = await lxMusicRuntimeService.getMusicUrl(lxSource, {
+                        ...track,
+                        songmid: track.id,
+                        hash: track.id.toString().split(':')[0] // 酷狗需要 hash
+                    }, audioSourceService.getLxQuality(quality));
+
+                    if (realUrl) {
+                        try {
+                            const encodedUrl = btoa(realUrl);
+                            url = `music-proxy://localhost?url=${encodeURIComponent(encodedUrl)}`;
+                            console.log(`[PlayerService] Using proxy URL: ${url}`);
+                        } catch (e) {
+                            console.error("[PlayerService] Failed to encode proxy URL:", e);
+                            url = realUrl;
+                        }
+                    } else {
+                        throw new Error("LxMusic Runtime returned empty URL");
+                    }
+                } catch (e: any) {
+                    console.error("[PlayerService] LxMusic Runtime failed:", e);
+                    throw new Error(`洛雪音源插件获取 URL 失败: ${e.message}`);
+                }
             }
 
             if (activeConfigSource.type === AudioSourceType.OmniParse && track.source === 'netease') {

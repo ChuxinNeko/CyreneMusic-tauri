@@ -1,5 +1,7 @@
 use tauri::Manager;
 use base64::Engine;
+use std::collections::HashMap;
+use serde::Deserialize;
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -77,12 +79,61 @@ fn update_vibrancy(window: tauri::Window, is_dark: bool) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Deserialize)]
+struct HttpRequestOptions {
+    method: String,
+    url: String,
+    headers: HashMap<String, String>,
+    body: Option<serde_json::Value>,
+}
+
+#[tauri::command]
+async fn lx_http_request(options: HttpRequestOptions) -> Result<serde_json::Value, String> {
+    let client = reqwest::Client::new();
+    let method = match options.method.to_uppercase().as_str() {
+        "GET" => reqwest::Method::GET,
+        "POST" => reqwest::Method::POST,
+        "PUT" => reqwest::Method::PUT,
+        "DELETE" => reqwest::Method::DELETE,
+        _ => reqwest::Method::GET,
+    };
+
+    let mut request = client.request(method, &options.url);
+
+    for (key, value) in options.headers {
+        request = request.header(key, value);
+    }
+
+    if let Some(body) = options.body {
+        if body.is_object() || body.is_array() {
+            request = request.json(&body);
+        } else if let Some(s) = body.as_str() {
+            request = request.body(s.to_string());
+        }
+    }
+
+    let response = request.send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    let status = response.status().as_u16();
+    
+    // 尝试解析 JSON，如果失败则返回文本
+    let body_text = response.text().await.map_err(|e| format!("Failed to read body: {}", e))?;
+    let body_json: serde_json::Value = serde_json::from_str(&body_text).unwrap_or(serde_json::Value::String(body_text));
+
+    Ok(serde_json::json!({
+        "statusCode": status,
+        "body": body_json
+    }))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![greet, fetch_image, open_desktop_lyric, close_desktop_lyric, update_vibrancy])
+        .invoke_handler(tauri::generate_handler![greet, fetch_image, open_desktop_lyric, close_desktop_lyric, update_vibrancy, lx_http_request])
         .setup(|app| {
             #[cfg(desktop)]
             {
