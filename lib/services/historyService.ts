@@ -13,6 +13,7 @@ export interface HistoryEntry {
     playCount: number;           // 播放次数
     listeningTime: number;       // 累计播放时长 (秒)
     lastPlayedAt: number;        // 最后播放时间戳
+    firstPlayedAt?: number;      // 第一次播放时间戳
 }
 
 /**
@@ -91,6 +92,9 @@ class HistoryService {
                 if (data) {
                     data.playCount += 1;
                     data.lastPlayedAt = now;
+                    if (!data.firstPlayedAt) {
+                        data.firstPlayedAt = now;
+                    }
                     // 更新可能变化的元数据
                     data.name = track.name;
                     data.artists = track.artists;
@@ -107,7 +111,8 @@ class HistoryService {
                         picUrl: track.picUrl || "",
                         playCount: 1,
                         listeningTime: 0,
-                        lastPlayedAt: now
+                        lastPlayedAt: now,
+                        firstPlayedAt: now
                     };
                     store.add(newEntry);
                 }
@@ -138,6 +143,26 @@ class HistoryService {
             };
             tx.oncomplete = () => resolve();
             tx.onerror = () => reject(tx.error);
+        });
+    }
+
+    /**
+     * 获取单个歌曲的历史统计
+     */
+    public async getTrackStats(trackId: string | number, source: string): Promise<HistoryEntry | null> {
+        const db = await this.getDB();
+        const tx = db.transaction(this.storeName, "readonly");
+        const store = tx.objectStore(this.storeName);
+        const sid = String(trackId).trim();
+
+        return new Promise((resolve) => {
+            const request = store.get([sid, source]);
+            request.onsuccess = () => {
+                resolve(request.result as HistoryEntry || null);
+            };
+            request.onerror = () => {
+                resolve(null);
+            };
         });
     }
 

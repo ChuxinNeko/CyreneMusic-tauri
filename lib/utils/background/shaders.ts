@@ -23,7 +23,7 @@ void main() {
 `;
 
 export const meshFragShader = `
-precision highp float;
+precision mediump float;
 
 varying vec3 v_color;
 varying vec2 v_uv;
@@ -41,68 +41,49 @@ const float HALF_INV_255 = 0.5 / 255.0;
 const float GRADIENT_NOISE_A = 52.9829189;
 const vec2 GRADIENT_NOISE_B = vec2(0.06711056, 0.00583715);
 
-/* Gradient noise from Jorge Jimenez's presentation: */
-/* http://www.iryoku.com/next-generation-post-processing-in-call-of-duty-advanced-warfare */
 float gradientNoise(in vec2 uv) {
     return fract(GRADIENT_NOISE_A * fract(dot(uv, GRADIENT_NOISE_B)));
 }
 
-// 优化的旋转函数，避免重复计算sin/cos
-vec2 rot(vec2 v, float angle) {
-    float s = sin(angle);
-    float c = cos(angle);
-    return vec2(c * v.x - s * v.y, s * v.x + c * v.y);
-}
-
-// 流体扰动计算（Domain Warping），基于多个正弦波叠加创造类似流体的有机扭曲场
+// 优化的流体扰动，减少迭代次数提升性能
 vec2 fluidDistortion(vec2 uv, float t, float intensity) {
     vec2 p = uv;
-    for (float i = 1.0; i < 4.0; i++) {
-        vec2 newP = p;
-        newP.x += intensity / i * sin(i * 4.0 * p.y + t * 1.5 + 0.3);
-        newP.y += intensity / i * cos(i * 4.0 * p.x + t * 1.2 + 0.3);
-        p = newP;
+    for (float i = 1.0; i < 3.0; i++) {
+        p.x += intensity / i * sin(i * 3.0 * p.y + t * 1.2 + 0.3);
+        p.y += intensity / i * cos(i * 3.0 * p.x + t * 1.0 + 0.3);
     }
     return p;
 }
 
 void main() {
-    // 低频脉冲（鼓点/bass）: 驱动呼吸式缩放
-    float bassPulse = u_bass * 0.15;
-    // 中频流动: 增强流体扭曲幅度
-    float midFlow = 0.15 + u_mid * 0.12;
-    // 高频活力: 增加旋转角速度
-    float trebleEnergy = u_treble * 0.3;
-    
-    float volumeEffect = u_volume * 2.0;
-    float timeVolume = u_time * 1.2 + u_volume;
+    float bassPulse = u_bass * 0.12;
+    float midFlow = 0.15 + u_mid * 0.1;
+    float volumeEffect = u_volume * 1.5;
+    float timeVolume = u_time * 1.0 + u_volume;
     
     float dither = INV_255 * gradientNoise(gl_FragCoord.xy) - HALF_INV_255;
     
-    // 1. 应用流体扰动，中频控制扰动强度
+    // 1. 流体扰动
     vec2 distortedUV = fluidDistortion(v_uv, timeVolume, midFlow);
     
-    // 2. 将坐标原点移到中心并应用缩放（移除高频旋转）
-    vec2 centeredUV = distortedUV - vec2(0.5);
-    // 低频驱动呼吸式柔和缩放脉冲
-    float scale = max(0.001, 0.8 - volumeEffect - bassPulse * 0.5);
-    vec2 finalUV = centeredUV * scale + vec2(0.5);
+    // 2. 呼吸式缩放
+    vec2 centeredUV = distortedUV - 0.5;
+    float scale = max(0.1, 0.85 - volumeEffect - bassPulse * 0.4);
+    vec2 finalUV = centeredUV * scale + 0.5;
     
     vec4 result = texture2D(u_texture, finalUV);
     
-    // 低频增加微弱亮度脉冲，避免闪屏
-    float brightnessPulse = 1.0 + u_bass * 0.05;
+    float brightnessPulse = 1.0 + u_bass * 0.04;
+    float alphaFactor = u_alpha * max(0.6, 1.0 - u_volume * 0.4);
     
-    float alphaVolumeFactor = u_alpha * max(0.5, 1.0 - u_volume * 0.5);
-    result.rgb *= v_color * alphaVolumeFactor * brightnessPulse;
-    result.a *= alphaVolumeFactor;
+    result.rgb *= v_color * alphaFactor * brightnessPulse;
+    result.a *= alphaFactor;
+    result.rgb += dither;
     
-    result.rgb += vec3(dither);
-    
+    // Vignette 渐变优化
     float dist = distance(v_uv, vec2(0.5));
-    float vignette = smoothstep(0.8, 0.3, dist);
-    float mask = 0.6 + vignette * 0.4;
-    result.rgb *= mask;
+    float vignette = smoothstep(0.8, 0.4, dist);
+    result.rgb *= (0.7 + vignette * 0.3);
     
     gl_FragColor = result;
 }

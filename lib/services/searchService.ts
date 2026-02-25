@@ -121,6 +121,7 @@ class SearchService {
             kuwoLoading: supportedPlatforms.includes('kuwo'),
             appleLoading: supportedPlatforms.includes('apple'),
             spotifyLoading: supportedPlatforms.includes('spotify'),
+            artistLoading: true, // 总是搜索歌手
         };
         this.notifyListeners();
 
@@ -132,6 +133,7 @@ class SearchService {
         if (supportedPlatforms.includes('kuwo')) promises.push(this.searchKuwo(trimmed));
         if (supportedPlatforms.includes('apple')) promises.push(this.searchApple(trimmed));
         if (supportedPlatforms.includes('spotify')) promises.push(this.searchSpotify(trimmed));
+        promises.push(this.searchArtists(trimmed)); // 并行搜索歌手
 
         await Promise.allSettled(promises);
     }
@@ -279,6 +281,36 @@ class SearchService {
             }
         } catch (e: any) {
             this._searchResult = { ...this._searchResult, spotifyLoading: false, spotifyError: e.message };
+        }
+        this.notifyListeners();
+    }
+
+    private async searchArtists(keyword: string) {
+        try {
+            const resp = await fetch(`${urlService.baseUrl}/artist/search`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ keywords: keyword, limit: '20' })
+            });
+
+            if (!resp.ok) {
+                throw new Error(`HTTP ${resp.status}`);
+            }
+
+            const data = await resp.json();
+            if (data.status === 200) {
+                const results = (data.result || []).map((item: any) => ({
+                    id: item.id,
+                    name: item.name || '',
+                    picUrl: item.picUrl || '',
+                    alias: item.alias || []
+                }));
+                this._searchResult = { ...this._searchResult, artistResults: results, artistLoading: false };
+            } else {
+                throw new Error(data.message || 'Server error');
+            }
+        } catch (e: any) {
+            this._searchResult = { ...this._searchResult, artistLoading: false, artistError: e.message };
         }
         this.notifyListeners();
     }

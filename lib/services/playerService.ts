@@ -18,6 +18,7 @@ class PlayerService {
     private howl: Howl | null = null
     private progressInterval: any = null
     private fadeDuration = 500 // 500ms cross-fade
+    private fallbackQualityUrl: string | null = null // 播放失败时的备选 (通常为 320k) URL
 
     private constructor() {
         if (typeof window !== "undefined") {
@@ -113,6 +114,19 @@ class PlayerService {
 
         howl.on('loaderror', (id, err) => {
             console.error("[PlayerService] Howl load error:", id, err)
+
+            // 简化降级策略：如果请求失败，统一降级调用 320k 音质
+            if (this.fallbackQualityUrl) {
+                const nextUrl = this.fallbackQualityUrl
+                console.warn(`[PlayerService] 请求失败 (可能 403)，正在尝试调用备选 320k 音质...`)
+                console.log(`[PlayerService] 尝试加载 320k URL: ${nextUrl}`)
+                this.fallbackQualityUrl = null // 确保只重试一次，防止无限重试
+                usePlayerStore.getState().setIsLoading(true)
+                this.initHowl(nextUrl)
+                return
+            }
+
+            console.error("[PlayerService] 备选 URL 也尝试失败或不存在。")
             usePlayerStore.getState().setIsLoading(false)
             usePlayerStore.getState().setIsPlaying(false)
         })
@@ -204,6 +218,7 @@ class PlayerService {
         try {
             usePlayerStore.getState().setIsLoading(true)
             usePlayerStore.getState().setCurrentTrack(track)
+            this.fallbackQualityUrl = null // 重置备选 URL
 
             // 记录播放次数
             historyService.recordPlay(track)
@@ -251,6 +266,70 @@ class PlayerService {
                     if (realUrl) {
                         url = realUrl;
                         console.log(`[PlayerService] Using real URL from LxMusic: ${url}`);
+
+                        // 并行请求网易云歌词接口 /lyrics/netease?id=xxx
+                        if (track.source === 'netease') {
+                            const lyricUrl = `${urlService.baseUrl}/lyrics/netease?id=${track.id}`;
+                            fetch(lyricUrl)
+                                .then(res => res.json())
+                                .then(lyricResult => {
+                                    console.log('[PlayerService] /lyrics/netease Response:', lyricResult);
+                                    const lyricData = lyricResult?.data || lyricResult;
+                                    if (lyricData?.lyric || lyricData?.yrc) {
+                                        const currentTrack = usePlayerStore.getState().currentTrack;
+                                        if (currentTrack && currentTrack.id === track.id) {
+                                            usePlayerStore.getState().updateTrackLyrics({
+                                                lyric: lyricData.lyric || '',
+                                                tlyric: lyricData.tlyric || '',
+                                                yrc: lyricData.yrc || '',
+                                                ytlrc: lyricData.ytlrc || '',
+                                            });
+                                        }
+                                    }
+                                })
+                                .catch(e => console.warn('[PlayerService] Failed to fetch Netease lyrics:', e));
+                        } else if (track.source === 'qq') {
+                            const lyricUrl = `${urlService.baseUrl}/lyrics/qq?id=${track.id}`;
+                            fetch(lyricUrl)
+                                .then(res => res.json())
+                                .then(lyricResult => {
+                                    console.log('[PlayerService] /lyrics/qq Response:', lyricResult);
+                                    const lyricData = lyricResult?.data || lyricResult;
+                                    if (lyricData?.lyric || lyricData?.qrc) {
+                                        const currentTrack = usePlayerStore.getState().currentTrack;
+                                        if (currentTrack && currentTrack.id === track.id) {
+                                            usePlayerStore.getState().updateTrackLyrics({
+                                                lyric: lyricData.lyric || '',
+                                                tlyric: lyricData.tlyric || '',
+                                                yrc: lyricData.qrc || '',
+                                                ytlrc: lyricData.qrcTrans || '',
+                                            });
+                                        }
+                                    }
+                                })
+                                .catch(e => console.warn('[PlayerService] Failed to fetch QQ lyrics:', e));
+                        } else if (track.source === 'kugou') {
+                            const hash = String(track.id).split(':')[0];
+                            if (hash) {
+                                const lyricUrl = `${urlService.baseUrl}/lyrics/kugou?hash=${hash}`;
+                                fetch(lyricUrl)
+                                    .then(res => res.json())
+                                    .then(lyricResult => {
+                                        console.log('[PlayerService] /lyrics/kugou Response:', lyricResult);
+                                        const lyricData = lyricResult?.data || lyricResult;
+                                        if (lyricData?.lyric) {
+                                            const currentTrack = usePlayerStore.getState().currentTrack;
+                                            if (currentTrack && currentTrack.id === track.id) {
+                                                usePlayerStore.getState().updateTrackLyrics({
+                                                    lyric: lyricData.lyric || '',
+                                                    tlyric: lyricData.tlyric || '',
+                                                });
+                                            }
+                                        }
+                                    })
+                                    .catch(e => console.warn('[PlayerService] Failed to fetch Kugou lyrics:', e));
+                            }
+                        }
                     } else {
                         throw new Error("LxMusic Runtime returned empty URL");
                     }
@@ -264,10 +343,25 @@ class PlayerService {
                 const baseUrl = activeConfigSource.url.replace(/\/$/, '')
                 const apiUrl = `${baseUrl}/song`
 
+                const neteaseQualityMap: Record<string, string> = {
+                    '128k': 'standard',
+                    '320k': 'exhigh',
+                    'flac': 'lossless',
+                    'flac24bit': 'hires',
+                    'standard': 'standard',
+                    'exhigh': 'exhigh',
+                    'lossless': 'lossless',
+                    'hires': 'hires',
+                    'jyeffect': 'jyeffect',
+                    'sky': 'sky',
+                    'jymaster': 'jymaster'
+                };
+                const mappedQuality = neteaseQualityMap[quality] || quality;
+
                 const formData = new URLSearchParams()
                 formData.append('ids', track.id.toString())
                 formData.append('url', '')
-                formData.append('level', quality)
+                formData.append('level', mappedQuality)
                 formData.append('type', 'json')
 
                 const response = await fetch(apiUrl, {
@@ -310,8 +404,16 @@ class PlayerService {
                     if (track.source === 'qq') {
                         // QQ 返回 { status, song, music_urls: { "128": { url }, "320": { url }, "flac": { url } } }
                         const musicUrls = result.music_urls || {}
-                        // 按音质优先级：flac > 320 > 128
                         extractedUrl = musicUrls.flac?.url || musicUrls['320']?.url || musicUrls['128']?.url || ''
+
+                        // 准备 320k 备选 URL (如果当前选中的已经不是 320k/128k 的话)
+                        const backupUrl = musicUrls['320']?.url || musicUrls['128']?.url || ''
+                        if (backupUrl && backupUrl !== extractedUrl) {
+                            this.fallbackQualityUrl = backupUrl
+                        }
+
+                        console.log(`[PlayerService] QQ 选定 URL: ${extractedUrl}`)
+                        console.log(`[PlayerService] QQ 备选 320k 状态: ${this.fallbackQualityUrl ? '已就绪' : '无备选'}`)
 
                         // 并行请求专门的歌词路由 /lyrics/qq?id=xxx
                         const lyricUrl = `${urlService.baseUrl}/lyrics/qq?id=${track.id}`
@@ -384,42 +486,47 @@ class PlayerService {
             }
 
             console.log(`[PlayerService] Playing via Howler: ${track.name}`)
-
-            if (this.howl) {
-                const oldHowl = this.howl
-                this.howl = null
-                oldHowl.stop()
-                oldHowl.unload()
-            }
-
-            this.howl = new Howl({
-                src: [url],
-                html5: true,
-                volume: usePlayerStore.getState().volume,
-                autoplay: false,
-                format: ['mp3', 'flac', 'm4a', 'wav']
-            })
-
-            // 设置 crossOrigin 以允许 Web Audio API 读取跨域音频的频率数据
-            try {
-                const sounds = (this.howl as any)._sounds
-                if (sounds?.[0]?._node) {
-                    const audioEl = sounds[0]._node as HTMLAudioElement
-                    audioEl.crossOrigin = "anonymous"
-                    console.log('[PlayerService] Set crossOrigin on audio element')
-                }
-            } catch (e) {
-                console.warn('[PlayerService] Failed to set crossOrigin:', e)
-            }
-
-            this.setupEvents(this.howl)
-            this.howl.play()
-            usePlayerStore.getState().setIsPlaying(true)
-            usePlayerStore.getState().setIsLoading(false)
+            // 验证：模拟首个 URL 失败以触发降级
+            // url = "http://invalid-url-for-test.mp3" 
+            this.initHowl(url)
         } catch (error) {
             console.error("[PlayerService] Play error:", error)
             usePlayerStore.getState().setIsLoading(false)
         }
+    }
+
+    private initHowl(url: string) {
+        if (this.howl) {
+            const oldHowl = this.howl
+            this.howl = null
+            oldHowl.stop()
+            oldHowl.unload()
+        }
+
+        this.howl = new Howl({
+            src: [url],
+            html5: true,
+            volume: usePlayerStore.getState().volume,
+            autoplay: false,
+            format: ['mp3', 'flac', 'm4a', 'wav']
+        })
+
+        // 设置 crossOrigin 以允许 Web Audio API 读取跨域音频的频率数据
+        try {
+            const sounds = (this.howl as any)._sounds
+            if (sounds?.[0]?._node) {
+                const audioEl = sounds[0]._node as HTMLAudioElement
+                audioEl.crossOrigin = "anonymous"
+                console.log('[PlayerService] Set crossOrigin on audio element')
+            }
+        } catch (e) {
+            console.warn('[PlayerService] Failed to set crossOrigin:', e)
+        }
+
+        this.setupEvents(this.howl)
+        this.howl.play()
+        usePlayerStore.getState().setIsPlaying(true)
+        usePlayerStore.getState().setIsLoading(false)
     }
 
     public playNext() {

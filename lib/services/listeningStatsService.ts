@@ -150,6 +150,41 @@ class ListeningStatsService {
         }
     }
 
+    /**
+     * 获取用户对特定歌曲的回忆坐标
+     * @param trackId 歌曲ID
+     * @param source 音乐平台来源
+     */
+    public async fetchSongMemory(trackId: string | number, source: string) {
+        const { isLoggedIn, token } = useAuthStore.getState();
+        if (!isLoggedIn || !token) {
+            return null;
+        }
+
+        try {
+            const url = `${urlService.baseUrl}/stats/song-memory?trackId=${encodeURIComponent(trackId)}&source=${encodeURIComponent(source)}`;
+            const response = await fetch(url, {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.code === 200) {
+                    return result.data;
+                }
+                return null;
+            } else {
+                console.error(`❌ [ListeningStatsService] 获取歌曲回忆失败: ${response.status}`);
+                return null;
+            }
+        } catch (error) {
+            console.error("❌ [ListeningStatsService] 获取歌曲回忆异常:", error);
+            return null;
+        }
+    }
+
     public cleanup() {
         if (this.syncInterval) {
             clearInterval(this.syncInterval);

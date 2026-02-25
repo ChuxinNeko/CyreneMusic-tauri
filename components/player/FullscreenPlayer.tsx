@@ -19,7 +19,8 @@ import {
     Droplets,
     Monitor,
     Baseline,
-    Palette
+    Palette,
+    SlidersHorizontal
 } from "lucide-react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { emit } from "@tauri-apps/api/event"
@@ -27,7 +28,9 @@ import { usePlayerStore } from "@/lib/store/usePlayerStore"
 import { playerService } from "@/lib/services/playerService"
 import { audioAnalyser } from "@/lib/services/audioAnalyser"
 import { LyricPlayer } from "./LyricPlayer"
+import { SongInfoPanel } from "./song-info/SongInfoPanel"
 import { WebGLBackground } from "./WebGLBackground"
+import { EqualizerPanel } from "./EqualizerPanel"
 import { Slider } from "@/components/ui/slider"
 import {
     DropdownMenu,
@@ -64,6 +67,8 @@ export function FullscreenPlayer() {
         setDesktopLyricFontSize,
         setDesktopLyricColor,
         setDesktopLyricStrokeColor,
+        isLyricsFolded,
+        setIsLyricsFolded,
     } = usePlayerStore()
 
     const [localProgress, setLocalProgress] = React.useState(0)
@@ -73,6 +78,7 @@ export function FullscreenPlayer() {
     const [isVisible, setIsVisible] = React.useState(isFullscreen)
     const [isAnimatingOut, setIsAnimatingOut] = React.useState(false)
     const [isMaximized, setIsMaximized] = React.useState(false)
+    const [rightPanelMode, setRightPanelMode] = React.useState<'lyrics' | 'info' | 'eq'>('lyrics')
 
     // 音频频率数据通过 ref 直接注入 WebGL，避免触发 React 重绘
     const bgRef = React.useRef<any>(null)
@@ -327,6 +333,34 @@ export function FullscreenPlayer() {
                 </DropdownMenu>
                 <div data-tauri-drag-region className="flex-1 h-full mx-4" />
                 <div className="flex items-center gap-2 z-10">
+                    <div className="flex bg-white/5 rounded-full p-1 mr-2 border border-white/10">
+                        <button
+                            onClick={() => setRightPanelMode('lyrics')}
+                            className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${rightPanelMode === 'lyrics' ? 'bg-white/20 text-white shadow-sm' : 'text-white/50 hover:text-white/80'}`}
+                        >
+                            歌词
+                        </button>
+                        <button
+                            onClick={() => setRightPanelMode('info')}
+                            className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${rightPanelMode === 'info' ? 'bg-white/20 text-white shadow-sm' : 'text-white/50 hover:text-white/80'}`}
+                        >
+                            歌曲信息
+                        </button>
+                    </div>
+                    <button
+                        onClick={() => setRightPanelMode(rightPanelMode === 'eq' ? 'lyrics' : 'eq')}
+                        className={`p-2 rounded-full transition-colors mr-1 ${rightPanelMode === 'eq' ? 'text-white bg-white/15 hover:bg-white/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+                        title="均衡器设置"
+                    >
+                        <SlidersHorizontal size={20} />
+                    </button>
+                    <button
+                        onClick={() => setIsLyricsFolded(!isLyricsFolded)}
+                        className={`p-2 rounded-full transition-all duration-300 ${isLyricsFolded ? 'text-white bg-white/15' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+                        title={isLyricsFolded ? '展开歌词' : '折叠歌词'}
+                    >
+                        <img src="/icon/icon_lyrics.svg" alt="Lyrics" className="w-5 h-5" style={{ filter: isLyricsFolded ? 'invert(1) brightness(100)' : 'invert(1) brightness(100) opacity(0.3)' }} />
+                    </button>
                     {hasTranslation && (
                         <button
                             onClick={toggleTranslation}
@@ -359,11 +393,11 @@ export function FullscreenPlayer() {
                 </div>
             </div>
 
-            {/* Main Content Layout (45/55) */}
-            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[45%_55%] flex-1 min-h-0 w-full max-w-[1700px] mx-auto overflow-hidden pb-6 lg:pb-8">
+            {/* Main Content Layout (45/55 or Centered) */}
+            <div className={`relative z-10 grid flex-1 min-h-0 w-full max-w-[1700px] mx-auto overflow-hidden pb-6 lg:pb-8 transition-all duration-700 ease-in-out ${isLyricsFolded ? 'grid-cols-1 max-w-[800px]' : 'grid-cols-1 lg:grid-cols-[45%_55%]'}`}>
 
                 {/* Left Panel: Info & Controls */}
-                <div className="flex flex-col items-center justify-center px-[4vw] lg:px-[6vw] h-full min-h-0 overflow-hidden">
+                <div className={`flex flex-col items-center justify-center h-full min-h-0 overflow-hidden transition-all duration-700 ease-in-out ${isLyricsFolded ? 'px-4' : 'px-[4vw] lg:px-[6vw]'}`}>
 
                     {/* Flexible spacer above */}
                     <div className="flex-[0.5] min-h-[1vh]" />
@@ -384,7 +418,7 @@ export function FullscreenPlayer() {
                     <div className="h-[3vh] min-h-[16px] shrink-0" />
 
                     {/* Track Info */}
-                    <div className="w-full max-w-[400px] shrink-0 flex flex-col items-center text-center space-y-1 lg:space-y-2">
+                    <div className="w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink-0 flex flex-col items-center text-center space-y-1 lg:space-y-2">
                         <h1 className="text-[clamp(1.5rem,4vh,2.6rem)] font-bold text-white leading-tight tracking-[-0.5px] truncate w-full">
                             {currentTrack?.name || "未在播放"}
                         </h1>
@@ -397,7 +431,7 @@ export function FullscreenPlayer() {
                     <div className="h-[3vh] min-h-[16px] shrink-0" />
 
                     {/* Controls & Progress */}
-                    <div className="w-full max-w-[400px] shrink-0 space-y-4 lg:space-y-6">
+                    <div className="w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink-0 space-y-4 lg:space-y-6">
                         {/* Progress Bar */}
                         <div className="space-y-2 lg:space-y-3 group/progress">
                             <div className="h-3 flex items-center">
@@ -462,9 +496,21 @@ export function FullscreenPlayer() {
                     <div className="flex-1 min-h-[1vh]" />
                 </div>
 
-                {/* Right Panel: High-Fidelity Lyric Player */}
-                <div className="relative h-full overflow-hidden">
-                    <LyricPlayer />
+                {/* Right Panel: High-Fidelity Lyric Player or Song Info Panel */}
+                <div className={`relative h-full overflow-hidden transition-all duration-700 ease-in-out ${isLyricsFolded ? 'opacity-0 translate-x-full pointer-events-none w-0' : 'opacity-100 translate-x-0 w-full'}`}>
+                    {rightPanelMode === 'lyrics' ? (
+                        <div className="absolute inset-0 w-full h-full animate-in fade-in zoom-in-95 duration-500">
+                            <LyricPlayer />
+                        </div>
+                    ) : rightPanelMode === 'info' ? (
+                        <div className="absolute inset-0 w-full h-full animate-in fade-in zoom-in-95 duration-500">
+                            <SongInfoPanel />
+                        </div>
+                    ) : (
+                        <div className="absolute inset-0 w-full h-full animate-in fade-in zoom-in-95 duration-500 flex items-center justify-center">
+                            <EqualizerPanel />
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

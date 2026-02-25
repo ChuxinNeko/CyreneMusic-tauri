@@ -29,6 +29,8 @@ export function HeroSection({
     // Get up to 6 covers for the collage
     const collageCovers = dailySongs.slice(0, 6).map(s => s.picUrl || s.al?.picUrl || s.album?.picUrl).filter(Boolean)
 
+    const fmCover = fmSongs.length > 0 ? (fmSongs[0].picUrl || fmSongs[0].al?.picUrl || fmSongs[0].album?.picUrl) : null
+
     return (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-10">
             {/* Daily Recommend Card */}
@@ -87,6 +89,16 @@ export function HeroSection({
 
             {/* Personal FM Card */}
             <Card className="lg:col-span-2 h-[240px] relative overflow-hidden border-none shadow-xl bg-accent/10 transition-all duration-500 hover:bg-accent/20">
+                {/* Background Layer */}
+                {fmCover && (
+                    <>
+                        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+                            <AsyncImage src={fmCover} className="w-full h-full" imageClassName="object-cover scale-150 blur-xl opacity-50 dark:opacity-30" />
+                        </div>
+                        <div className="absolute inset-0 z-0 pointer-events-none bg-background/60 backdrop-blur-xl" />
+                    </>
+                )}
+
                 {/* Inner Content */}
                 <div className="relative h-full px-8 pt-5 pb-8 flex flex-col gap-4 z-10">
                     <div className="flex items-center gap-2 text-primary">

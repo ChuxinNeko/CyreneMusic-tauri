@@ -826,8 +826,10 @@ export class MeshGradientRenderer extends BaseRenderer {
 		const deltaFactor = delta / 500;
 
 		if (latestMeshState) {
-			latestMeshState.mesh.bind();
-			if (this.manualControl) latestMeshState.mesh.updateMesh();
+			const isTransitioning = latestMeshState.alpha < 1 || this.meshStates.length > 1;
+			if (this.manualControl || isTransitioning) {
+				latestMeshState.mesh.updateMesh();
+			}
 
 			if (this.isNoCover) {
 				let hasActiveStates = false;
@@ -866,7 +868,7 @@ export class MeshGradientRenderer extends BaseRenderer {
 		gl.clear(gl.COLOR_BUFFER_BIT);
 		this.checkIfResize();
 
-		const lerpFactor = Math.min(1.0, delta / 100.0);
+		const lerpFactor = Math.min(0.5, delta / 150.0);
 		this.smoothedVolume += (this.volume - this.smoothedVolume) * lerpFactor;
 		this.smoothedBass += (this.bass - this.smoothedBass) * lerpFactor;
 		this.smoothedMid += (this.mid - this.smoothedMid) * lerpFactor;

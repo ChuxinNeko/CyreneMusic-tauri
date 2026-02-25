@@ -1,6 +1,7 @@
 "use client"
 
 import { Howler } from 'howler'
+import { audioEqService } from './audioEqService'
 
 export interface FrequencyData {
     bass: number    // 低频能量 0-1 (20-300Hz)
@@ -99,10 +100,25 @@ class AudioAnalyser {
             // 这会让音频流经过 Web Audio API，analyser 才能读取频率数据
             try {
                 this.sourceNode = ctx.createMediaElementSource(audioElement)
-                // audio element → analyser → destination (speakers)
-                this.sourceNode.connect(this.analyser)
+
+                // 初始化 EQ 链 (如果尚未初始化)
+                audioEqService.initEqChain()
+
+                const eqInput = audioEqService.inputNode
+                const eqOutput = audioEqService.outputNode
+
+                if (eqInput && eqOutput) {
+                    // 链路：audio element -> EQ Input -> [Filters...] -> EQ Output -> analyser -> destination (speakers)
+                    this.sourceNode.connect(eqInput)
+                    eqOutput.connect(this.analyser)
+                    console.log('[AudioAnalyser] ✅ Connected via createMediaElementSource with EQ Chain')
+                } else {
+                    // Fallback 如果 EQ 初始化失败
+                    this.sourceNode.connect(this.analyser)
+                    console.log('[AudioAnalyser] ✅ Connected via createMediaElementSource (No EQ)')
+                }
+
                 this.connectedElement = audioElement
-                console.log('[AudioAnalyser] ✅ Connected via createMediaElementSource')
             } catch (e: any) {
                 if (e.message?.includes('already been previously assigned')) {
                     // 该 audio 元素已被连接过（如切歌时旧的 Howl）
@@ -114,8 +130,20 @@ class AudioAnalyser {
                     if (masterGain) {
                         try {
                             masterGain.disconnect()
-                            masterGain.connect(this.analyser)
-                            console.log('[AudioAnalyser] Connected via masterGain fallback')
+
+                            // 初始化 EQ 链
+                            audioEqService.initEqChain()
+                            const eqInput = audioEqService.inputNode
+                            const eqOutput = audioEqService.outputNode
+
+                            if (eqInput && eqOutput) {
+                                masterGain.connect(eqInput)
+                                eqOutput.connect(this.analyser)
+                                console.log('[AudioAnalyser] Connected via masterGain fallback with EQ')
+                            } else {
+                                masterGain.connect(this.analyser)
+                                console.log('[AudioAnalyser] Connected via masterGain fallback (No EQ)')
+                            }
                         } catch (e2) {
                             console.error('[AudioAnalyser] masterGain fallback failed:', e2)
                         }

@@ -46,13 +46,13 @@ export function LeaderboardHero({
             <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent pointer-events-none" />
 
             {/* Content Overlay */}
-            <div className="relative h-full p-10 flex flex-col items-start justify-between z-10 w-full sm:w-[65%]">
-                <div className="space-y-6">
+            <div className="relative h-full px-10 py-8 flex flex-col justify-center gap-8 z-10 w-full sm:w-[65%]">
+                <div className="space-y-4">
                     <div className="flex items-center gap-2 px-4 py-1.5 bg-primary text-primary-foreground rounded-full text-xs font-black shadow-[0_0_20px_rgba(var(--primary),0.4)] w-fit animate-bounce-slow">
                         <Trophy className="h-4 w-4" />
                         今日榜单精选
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                         <h3 className="text-4xl font-black tracking-tighter lg:text-5xl bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
                             发现热门旋律
                         </h3>
@@ -65,10 +65,10 @@ export function LeaderboardHero({
                 <div className="flex items-center gap-4">
                     <Button
                         size="lg"
-                        className="rounded-full px-8 h-14 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-primary/40 transition-all group/play flex gap-3 font-bold text-base"
+                        className="rounded-full px-8 h-12 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg hover:shadow-primary/40 transition-all group/play flex gap-3 font-bold text-base"
                         onClick={onPlayAll}
                     >
-                        <Shuffle className="h-5 w-5 fill-current" />
+                        <Shuffle className="h-4 w-4 fill-current" />
                         随机播放榜单
                     </Button>
 
@@ -76,7 +76,7 @@ export function LeaderboardHero({
                         {randomTracks.slice(0, 3).map((track, i) => (
                             <div
                                 key={track.id}
-                                className="h-12 w-12 rounded-full border-2 border-background overflow-hidden cursor-pointer shadow-lg hover:z-10 hover:scale-110 transition-all"
+                                className="h-10 w-10 rounded-full border-2 border-background overflow-hidden cursor-pointer shadow-lg hover:z-10 hover:scale-110 transition-all"
                                 title={track.name}
                                 onClick={() => handlePlayTrack(track)}
                             >
@@ -84,7 +84,7 @@ export function LeaderboardHero({
                             </div>
                         ))}
                         {randomTracks.length > 3 && (
-                            <div className="h-12 w-12 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[10px] font-bold shadow-lg">
+                            <div className="h-10 w-10 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[10px] font-bold shadow-lg">
                                 +{randomTracks.length - 3}
                             </div>
                         )}

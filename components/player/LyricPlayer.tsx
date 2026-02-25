@@ -230,16 +230,16 @@ export function LyricPlayer() {
         })
     }, [showTranslation, lyricFontSize, lyricBlurStrength])
 
+    // 增加视口裁剪逻辑，减少 DOM 渲染压力
     const updateLayoutTargets = (targetIndex: number, activeInterlude: { lineIndex: number } | null, immediate = false) => {
         if (!containerRef.current || linesHelperRef.current.length === 0) return
 
         const playerHeight = containerRef.current.clientHeight
-        const DOT_HEIGHT = 40
         const INTERLUDE_TOTAL_HEIGHT = 80
+        const VIEWPORT_BUFFER = 8 // 视口附近保留多少行
 
         let virtualY = 0
         let activeCenterY = 0
-
         const linesY = new Array(linesHelperRef.current.length).fill(0)
         let interludeY: number | null = null
 
@@ -251,7 +251,6 @@ export function LyricPlayer() {
         for (let i = 0; i < linesHelperRef.current.length; i++) {
             linesY[i] = virtualY
             virtualY += linesHelperRef.current[i].height
-
             if (activeInterlude && activeInterlude.lineIndex === i) {
                 interludeY = virtualY
                 virtualY += INTERLUDE_TOTAL_HEIGHT
@@ -260,73 +259,46 @@ export function LyricPlayer() {
 
         if (activeInterlude && interludeY !== null) {
             activeCenterY = interludeY + INTERLUDE_TOTAL_HEIGHT / 2
-        } else {
-            if (linesHelperRef.current[targetIndex]) {
-                activeCenterY = linesY[targetIndex] + linesHelperRef.current[targetIndex].height / 2
-            }
+        } else if (linesHelperRef.current[targetIndex]) {
+            activeCenterY = linesY[targetIndex] + linesHelperRef.current[targetIndex].height / 2
         }
 
         const offsetToCenter = playerHeight * ALIGN_POSITION - activeCenterY
 
-        if (activeInterlude && interludeY !== null) {
-            const dotsY = interludeY + offsetToCenter + (INTERLUDE_TOTAL_HEIGHT - DOT_HEIGHT) / 2
-            interludeDotsPosRef.current = { x: 0, y: dotsY }
-            if (interludeContainerRef.current) interludeContainerRef.current.style.transform = `translate(0px, ${dotsY}px)`
+        if (activeInterlude && interludeY !== null && interludeContainerRef.current) {
+            const dotsY = interludeY + offsetToCenter + (INTERLUDE_TOTAL_HEIGHT - 40) / 2
+            interludeContainerRef.current.style.transform = `translateY(${dotsY}px)`
         }
 
         const currentBlurStrength = usePlayerStore.getState().lyricBlurStrength
 
         linesHelperRef.current.forEach((l, i) => {
-            let diff = 0
-            if (activeInterlude) {
-                if (i <= activeInterlude.lineIndex) {
-                    diff = i - activeInterlude.lineIndex - 1
-                } else {
-                    diff = i - activeInterlude.lineIndex
-                }
-            } else {
-                diff = i - targetIndex
+            const diff = activeInterlude ? (i <= activeInterlude.lineIndex ? i - activeInterlude.lineIndex - 1 : i - activeInterlude.lineIndex) : i - targetIndex
+            const absDiff = Math.abs(diff)
+
+            // 视口裁剪：远离中心的行直接隐藏，极大提升渲染速度
+            if (absDiff > VIEWPORT_BUFFER) {
+                if (l.el.style.display !== 'none') l.el.style.display = 'none';
+                return;
             }
+            if (l.el.style.display === 'none') l.el.style.display = 'block';
 
-            const delayMs = immediate ? 0 : Math.abs(diff) * 60
-
-            const sineOffset = Math.sin(diff * 0.8) * 12.0
-            const targetY = linesY[i] + offsetToCenter + sineOffset
-
-            // Opacity
-            let targetOpacity = diff === 0 ? 1.0 : 0.4
-            if (Math.abs(diff) > 5) {
-                targetOpacity = 0.0
-            }
-
-            // Blur & Glow
-            const blurSigma = currentBlurStrength
-            let targetBlur = blurSigma
-            let dropShadow = ''
-            if (diff === 0) {
-                targetBlur = 0.0
-                // 为当前行增加整体的 drop-shadow 迷雾发光，在根节点施加滤镜，完美贴合裁剪后的文字轮廓
-                dropShadow = ' drop-shadow(0 0 12px rgba(255,255,255,0.35))'
-            } else if (Math.abs(diff) === 1) {
-                targetBlur = blurSigma * 0.25
-            }
-
-            const lyricColor = diff === 0 ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.4)'
-            // 将当前播放行的翻译歌词的不透明度设置为 0.4，与未填充的原词底色（0.4）一致
-            const transColor = diff === 0 ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.2)'
+            const targetOpacity = diff === 0 ? 1.0 : (absDiff > 5 ? 0.0 : 0.4)
+            const targetBlur = diff === 0 ? 0.0 : (absDiff === 1 ? currentBlurStrength * 0.25 : currentBlurStrength)
+            const targetY = linesY[i] + offsetToCenter + Math.sin(diff * 0.8) * 12.0
 
             if (immediate) {
                 l.el.style.transition = 'none'
             } else {
-                l.el.style.transition = `transform ${LYRIC_TRANSITION} ${delayMs}ms, opacity 600ms ease-out, filter 600ms ease-out ${delayMs + 100}ms, background-color 300ms ease-in-out`
-                l.el.style.setProperty('--lyric-color-transition', `color 600ms ease-out ${delayMs + 150}ms`)
+                const delayMs = absDiff * 60
+                l.el.style.transition = `transform ${LYRIC_TRANSITION} ${delayMs}ms, opacity 600ms ease-out, filter 600ms ease-out ${delayMs + 100}ms`
             }
 
             l.el.style.transform = `translateY(${targetY.toFixed(1)}px)`
-            l.el.style.opacity = Math.max(0, targetOpacity).toFixed(3)
-            l.el.style.filter = `blur(${targetBlur}px)${dropShadow}`
-            l.el.style.setProperty('--lyric-color', lyricColor)
-            l.el.style.setProperty('--trans-color', transColor)
+            l.el.style.opacity = targetOpacity.toFixed(3)
+            l.el.style.filter = `blur(${targetBlur}px)${diff === 0 ? ' drop-shadow(0 0 12px rgba(255,255,255,0.35))' : ''}`
+            l.el.style.setProperty('--lyric-color', diff === 0 ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.4)')
+            l.el.style.setProperty('--trans-color', diff === 0 ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.2)')
         })
     }
 
@@ -341,10 +313,6 @@ export function LyricPlayer() {
             if (lineHelper.data.isVerbatim) {
                 const fadeWidth = w.height * WORD_FADE_WIDTH
                 const wTotal = w.width + w.padding * 2 + fadeWidth
-
-                // 由于 YRC 数据每个字自带 duration，可能因为停顿而和下个字之间存在空白 gap
-                // 但为了在视觉上掩盖不平滑，我们需要在原唱 duration 的基础上加一点点尾随平滑时间，
-                // 并且某些字的 duration 可能极度短暂，给 duration 增加 minimum 300ms 且带长尾阻尼保底
                 const animDuration = Math.max(duration + 100, 300)
 
                 w.maskAnim = w.span.animate([{ maskPosition: `${-wTotal}px 0` }, { maskPosition: `0px 0` }], {
@@ -352,7 +320,7 @@ export function LyricPlayer() {
                 })
 
                 w.floatAnim = w.span.animate([{ transform: 'translateY(0px)' }, { transform: 'translateY(-2px)' }], {
-                    delay: Math.max(0, delay), duration: 1000, fill: 'both', easing: 'cubic-bezier(0.215, 0.61, 0.355, 1)' // easeOutCubic
+                    delay: Math.max(0, delay), duration: 1000, fill: 'both', easing: 'cubic-bezier(0.215, 0.61, 0.355, 1)'
                 })
             }
 
@@ -360,7 +328,6 @@ export function LyricPlayer() {
                 if (w.maskAnim) w.maskAnim.pause()
                 if (w.floatAnim) w.floatAnim.pause()
             }
-
             w.animating = true
         })
     }
@@ -387,23 +354,16 @@ export function LyricPlayer() {
         }))
     }
 
-    // Animation Loop — 使用 playerService.getCurrentTime() 实时读取播放位置
-    const loop = (timestamp: number) => {
-        if (!lastFrameTimeRef.current) lastFrameTimeRef.current = timestamp
-        const dt = (timestamp - lastFrameTimeRef.current) / 1000
-        lastFrameTimeRef.current = timestamp
+    const lastLayoutUpdateTimeRef = useRef(0)
 
+    const loop = (timestamp: number) => {
         const realTime = playerService.getCurrentTime()
         const loopTime = realTime * 1000 + INTRO_DELAY
-
         const currentInterlude = getActiveInterlude(loopTime)
+
         let activeIndex = 0
         for (let i = 0; i < parsedLyrics.length; i++) {
             if (loopTime >= parsedLyrics[i].time) {
-                // 如果当前时间已经超过了这一句的结束时间，并且还有下一句存在，
-                // 则将高亮和中心视点提前交给下一句，实现“播完立刻移动”的效果。
-                // 特殊处理：如果接下来有长间奏，则在间奏期间禁止提前切换到下一句，
-                // 确保间奏结束瞬间能产生 activeIndex 的变化来触发现场刷新
                 const hasInterlude = currentInterlude !== null
                 if (loopTime >= parsedLyrics[i].endTime && i + 1 < parsedLyrics.length && !hasInterlude) {
                     activeIndex = i + 1;
@@ -413,16 +373,18 @@ export function LyricPlayer() {
             }
         }
 
+        // 渲染分频：降低布局更新频率，每 100ms 更新一次位置和样式
         const interludeChanged = currentInterlude?.start !== interlude?.start
-        if (currentScrollIndexRef.current !== activeIndex || interludeChanged) {
+        if (currentScrollIndexRef.current !== activeIndex || interludeChanged || timestamp - lastLayoutUpdateTimeRef.current > 100) {
             currentScrollIndexRef.current = activeIndex
             setInterlude(currentInterlude)
             updateLayoutTargets(activeIndex, currentInterlude)
+            lastLayoutUpdateTimeRef.current = timestamp
         }
 
+        // 逐字动画仍然保持高频检查
         if (linesHelperRef.current[activeIndex]) updateWordAnimations(linesHelperRef.current[activeIndex], loopTime)
 
-        // DOM updates for positions are now handled by CSS transitions in updateLayoutTargets
         requestRef.current = requestAnimationFrame(loop)
     }
 

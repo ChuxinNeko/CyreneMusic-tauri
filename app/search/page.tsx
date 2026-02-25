@@ -11,9 +11,12 @@ import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Loader2, Music2, Search, Play, MoreHorizontal } from "lucide-react"
+import { Loader2, Music2, Search, Play, MoreHorizontal, User } from "lucide-react"
+import { NeteaseArtistBrief } from "@/lib/models/search"
+import { useRouter } from "next/navigation"
 
 export default function SearchPage() {
+    const router = useRouter()
     const searchParams = useSearchParams()
     const query = searchParams.get("q") || ""
     const [searchState, setSearchState] = React.useState(searchService.searchResult)
@@ -112,6 +115,49 @@ export default function SearchPage() {
         )
     }
 
+    const renderArtistList = (artists: NeteaseArtistBrief[]) => {
+        if (artists.length === 0 && !isLoading) {
+            return (
+                <div className="flex flex-col items-center justify-center h-[50vh] text-muted-foreground">
+                    <User className="h-12 w-12 mb-4 opacity-20" />
+                    <p>未找到相关歌手</p>
+                </div>
+            )
+        }
+
+        return (
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 pb-10">
+                {artists.map((artist) => (
+                    <div
+                        key={`artist-${artist.id}`}
+                        className="flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-accent/50 cursor-pointer transition-all border border-transparent hover:border-border"
+                        onClick={() => {
+                            router.push(`/artist?id=${artist.id}`)
+                        }}
+                    >
+                        <div className="relative w-full aspect-square rounded-full overflow-hidden bg-muted shadow-sm">
+                            {artist.picUrl ? (
+                                <img src={artist.picUrl} alt={artist.name} className="h-full w-full object-cover" />
+                            ) : (
+                                <div className="h-full w-full flex items-center justify-center">
+                                    <User className="h-10 w-10 text-muted-foreground/30" />
+                                </div>
+                            )}
+                        </div>
+                        <div className="text-center w-full">
+                            <h4 className="font-semibold text-sm truncate w-full" title={artist.name}>{artist.name}</h4>
+                            {artist.alias && artist.alias.length > 0 && (
+                                <p className="text-xs text-muted-foreground truncate w-full" title={artist.alias.join(', ')}>
+                                    {artist.alias.join(', ')}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )
+    }
+
     return (
         <div className="h-full flex flex-col pt-6">
             <div className="px-4 lg:px-8 flex items-center justify-between mb-6">
@@ -147,6 +193,9 @@ export default function SearchPage() {
                         <TabsTrigger value="spotify" className="flex-1 max-w-[120px]">
                             Spotify <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.spotifyResults.length}</Badge>
                         </TabsTrigger>
+                        <TabsTrigger value="artist" className="flex-1 max-w-[120px]">
+                            歌手 <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.artistResults.length}</Badge>
+                        </TabsTrigger>
                     </TabsList>
                 </div>
 
@@ -167,6 +216,9 @@ export default function SearchPage() {
                             </TabsContent>
                             <TabsContent value="spotify" className="m-0 focus-visible:ring-0">
                                 {renderTrackList(searchState.spotifyResults)}
+                            </TabsContent>
+                            <TabsContent value="artist" className="m-0 focus-visible:ring-0">
+                                {renderArtistList(searchState.artistResults)}
                             </TabsContent>
                         </div>
                     </ScrollArea>

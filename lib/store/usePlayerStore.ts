@@ -43,6 +43,7 @@ interface PlayerState {
     desktopLyricFontSize: number
     desktopLyricColor: string
     desktopLyricStrokeColor: string
+    isLyricsFolded: boolean
 
     // Actions
     setCurrentTrack: (track: Track | null) => void
@@ -68,6 +69,7 @@ interface PlayerState {
     setDesktopLyricFontSize: (size: number) => void
     setDesktopLyricColor: (color: string) => void
     setDesktopLyricStrokeColor: (color: string) => void
+    setIsLyricsFolded: (folded: boolean) => void
 
     playNext: () => void
     playPrevious: () => void
@@ -94,6 +96,7 @@ export const usePlayerStore = create<PlayerState>()(
             desktopLyricFontSize: 40,
             desktopLyricColor: '#ffffff',
             desktopLyricStrokeColor: '#bababa',
+            isLyricsFolded: false,
 
             setCurrentTrack: (track) => {
                 const { currentTrack, history } = get()
@@ -154,6 +157,7 @@ export const usePlayerStore = create<PlayerState>()(
             setDesktopLyricFontSize: (desktopLyricFontSize) => set({ desktopLyricFontSize }),
             setDesktopLyricColor: (desktopLyricColor) => set({ desktopLyricColor }),
             setDesktopLyricStrokeColor: (desktopLyricStrokeColor) => set({ desktopLyricStrokeColor }),
+            setIsLyricsFolded: (isLyricsFolded) => set({ isLyricsFolded }),
 
             playNext: () => {
                 const { queue, currentTrack, repeatMode } = get()
@@ -197,7 +201,8 @@ export const usePlayerStore = create<PlayerState>()(
                 lyricBlurStrength: state.lyricBlurStrength,
                 desktopLyricFontSize: state.desktopLyricFontSize,
                 desktopLyricColor: state.desktopLyricColor,
-                desktopLyricStrokeColor: state.desktopLyricStrokeColor
+                desktopLyricStrokeColor: state.desktopLyricStrokeColor,
+                isLyricsFolded: state.isLyricsFolded
             }),
         }
     )
