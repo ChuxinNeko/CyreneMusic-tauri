@@ -216,6 +216,13 @@ class PlayerService {
 
     public async playTrack(track: Track) {
         try {
+            if (this.howl) {
+                this.howl.stop()
+                this.howl.unload()
+                this.howl = null
+            }
+            this.stopProgressTimer()
+
             usePlayerStore.getState().setIsLoading(true)
             usePlayerStore.getState().setCurrentTrack(track)
             this.fallbackQualityUrl = null // 重置备选 URL
@@ -224,6 +231,25 @@ class PlayerService {
             historyService.recordPlay(track)
 
             this.updateSMTCMetadata(track)
+
+            // 异步获取副歌时间
+            if (track.source === 'netease') {
+                const chorusUrl = `${urlService.baseUrl}/song/chorus?id=${track.id}`;
+                fetch(chorusUrl)
+                    .then(res => res.json())
+                    .then(res => {
+                        const chorusData = res?.chorus || res?.data;
+                        if (chorusData && Array.isArray(chorusData)) {
+                            const currentTrack = usePlayerStore.getState().currentTrack;
+                            if (currentTrack && currentTrack.id === track.id) {
+                                usePlayerStore.getState().updateTrackLyrics({
+                                    chorus: chorusData
+                                });
+                            }
+                        }
+                    })
+                    .catch(e => console.warn('[PlayerService] Failed to fetch Netease chorus:', e));
+            }
 
             const activeConfigSource = useAudioSourceStore.getState().getActiveSource()
             if (!activeConfigSource) {

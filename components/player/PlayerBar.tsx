@@ -197,6 +197,10 @@ export function PlayerBar() {
                         onValueCommit={handleSeekCommit}
                         className="flex-1"
                         disabled={!currentTrack}
+                        highlightRanges={duration > 0 ? currentTrack?.chorus?.map(c => ({
+                            start: (c.startTime / 1000) / duration,
+                            end: (c.endTime / 1000) / duration
+                        })) : undefined}
                     />
                     <span className="text-[10px] text-muted-foreground font-mono w-10">
                         {formatTime(duration)}

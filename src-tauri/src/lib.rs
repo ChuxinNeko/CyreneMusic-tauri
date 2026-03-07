@@ -2,6 +2,12 @@ use tauri::Manager;
 use base64::Engine;
 use std::collections::HashMap;
 use serde::Deserialize;
+use sysinfo::System;
+use std::sync::Mutex;
+
+lazy_static::lazy_static! {
+    static ref SYS: Mutex<System> = Mutex::new(System::new_all());
+}
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -137,12 +143,58 @@ async fn lx_http_request(options: HttpRequestOptions) -> Result<serde_json::Valu
     }))
 }
 
+#[derive(serde::Serialize)]
+struct SystemInfo {
+    name: String,
+    os_version: String,
+    kernel_version: String,
+    total_memory: u64,
+}
+
+#[tauri::command]
+fn get_system_info() -> SystemInfo {
+    let mut sys = SYS.lock().unwrap();
+    sys.refresh_memory();
+    
+    SystemInfo {
+        name: System::name().unwrap_or_else(|| "Unknown".to_owned()),
+        os_version: System::os_version().unwrap_or_else(|| "Unknown".to_owned()),
+        kernel_version: System::kernel_version().unwrap_or_else(|| "Unknown".to_owned()),
+        total_memory: sys.total_memory(), // IN BYTES
+    }
+}
+
+#[derive(serde::Serialize)]
+struct ProcessInfo {
+    memory: u64,
+    cpu_usage: f32,
+}
+
+#[tauri::command]
+fn get_process_info() -> ProcessInfo {
+    let mut sys = SYS.lock().unwrap();
+    sys.refresh_processes();
+    let pid = sysinfo::get_current_pid().unwrap();
+    
+    if let Some(process) = sys.process(pid) {
+        ProcessInfo {
+            memory: process.memory(), // IN BYTES
+            cpu_usage: process.cpu_usage(),
+        }
+    } else {
+        ProcessInfo {
+            memory: 0,
+            cpu_usage: 0.0,
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![greet, fetch_image, open_desktop_lyric, close_desktop_lyric, update_vibrancy, lx_http_request])
+        .invoke_handler(tauri::generate_handler![greet, fetch_image, open_desktop_lyric, close_desktop_lyric, update_vibrancy, lx_http_request, get_system_info, get_process_info])
         .setup(|app| {
             #[cfg(desktop)]
             {

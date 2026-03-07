@@ -8,9 +8,10 @@ import { cn } from "@/lib/utils"
 const Slider = React.forwardRef<
     React.ElementRef<typeof SliderPrimitive.Root>,
     React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root> & {
-        variant?: "default" | "apple"
+        variant?: "default" | "apple";
+        highlightRanges?: { start: number; end: number }[];
     }
->(({ className, variant = "default", ...props }, ref) => (
+>(({ className, variant = "default", highlightRanges, ...props }, ref) => (
     <SliderPrimitive.Root
         ref={ref}
         className={cn(
@@ -33,6 +34,27 @@ const Slider = React.forwardRef<
                     : "h-full",
                 variant === "apple" ? "bg-white/80" : "bg-primary group-hover:bg-primary/90"
             )} />
+            {highlightRanges?.map((range, i) => {
+                const startPercent = Math.max(0, Math.min(100, range.start * 100));
+                const widthPercent = Math.max(0, Math.min(100 - startPercent, (range.end - range.start) * 100));
+                return (
+                    <div
+                        key={i}
+                        className={cn(
+                            "absolute rounded-full pointer-events-none",
+                            props.orientation === "vertical"
+                                ? "w-full bg-white/40 bottom-0"
+                                : "h-full bg-primary/40",
+                            variant === "apple" && props.orientation !== "vertical" ? "bg-white/40" : ""
+                        )}
+                        style={
+                            props.orientation === "vertical"
+                                ? { bottom: `${startPercent}%`, height: `${widthPercent}%` }
+                                : { left: `${startPercent}%`, width: `${widthPercent}%` }
+                        }
+                    />
+                );
+            })}
         </SliderPrimitive.Track>
         <SliderPrimitive.Thumb className={cn(
             "block rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",

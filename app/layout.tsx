@@ -17,8 +17,10 @@ export const metadata: Metadata = {
   description: "A professional music player supported by Tauri",
 };
 
+import React from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { LogProvider } from "@/components/providers/LogProvider";
 
 export default function RootLayout({
   children,
@@ -36,9 +38,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <MainLayout>
-            {children}
-          </MainLayout>
+          <LogProvider>
+            <MainLayout>
+              {children}
+            </MainLayout>
+          </LogProvider>
         </ThemeProvider>
       </body>
     </html>

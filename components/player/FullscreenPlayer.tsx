@@ -27,6 +27,7 @@ import { emit } from "@tauri-apps/api/event"
 import { usePlayerStore } from "@/lib/store/usePlayerStore"
 import { playerService } from "@/lib/services/playerService"
 import { audioAnalyser } from "@/lib/services/audioAnalyser"
+import { urlService } from "@/lib/services/urlService"
 import { LyricPlayer } from "./LyricPlayer"
 import { SongInfoPanel } from "./song-info/SongInfoPanel"
 import { WebGLBackground } from "./WebGLBackground"
@@ -79,6 +80,14 @@ export function FullscreenPlayer() {
     const [isAnimatingOut, setIsAnimatingOut] = React.useState(false)
     const [isMaximized, setIsMaximized] = React.useState(false)
     const [rightPanelMode, setRightPanelMode] = React.useState<'lyrics' | 'info' | 'eq'>('lyrics')
+    const [dynamicCoverUrl, setDynamicCoverUrl] = React.useState<string | null>(null)
+    const [isVideoLoaded, setIsVideoLoaded] = React.useState(false)
+
+    // 双视频无缝循环淡入淡出
+    const video0Ref = React.useRef<HTMLVideoElement>(null)
+    const video1Ref = React.useRef<HTMLVideoElement>(null)
+    const [activeVideo, setActiveVideo] = React.useState<0 | 1>(0)
+    const crossfadeDuration = 1.5; // 1.5 seconds crossfade
 
     // 音频频率数据通过 ref 直接注入 WebGL，避免触发 React 重绘
     const bgRef = React.useRef<any>(null)
@@ -147,6 +156,25 @@ export function FullscreenPlayer() {
             console.error('Failed to open desktop lyric:', error)
         }
     }
+
+    React.useEffect(() => {
+        setDynamicCoverUrl(null)
+        setIsVideoLoaded(false)
+        setActiveVideo(0)
+        if (currentTrack?.source === 'netease' && currentTrack.id) {
+            fetch(`${urlService.baseUrl}/song/dynamic/cover?id=${currentTrack.id}`)
+                .then(res => res.json())
+                .then(result => {
+                    const data = result.data || result
+                    if (data?.videoPlayUrl) {
+                        setDynamicCoverUrl(data.videoPlayUrl)
+                    } else if (data?.dynamicCover?.coverUrl) {
+                        setDynamicCoverUrl(data.dynamicCover.coverUrl)
+                    }
+                })
+                .catch(err => console.error("Failed to fetch Netease dynamic cover:", err))
+        }
+    }, [currentTrack])
 
     React.useEffect(() => {
         if (!isDraggingProgress.current) {
@@ -406,10 +434,60 @@ export function FullscreenPlayer() {
                     <div className="relative aspect-square w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink">
                         <div className="absolute inset-0 bg-black/40 blur-3xl scale-95 translate-y-8 opacity-60 hover:opacity-80 transition-opacity duration-500" />
                         <div className="relative w-full h-full rounded-[20px] overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.4)] transition-transform duration-500 hover:scale-[1.02] bg-white/5 border border-white/10">
+                            {/* 静态图：当动态封面存在时充当占位，或者作为 fallback */}
                             {currentTrack?.picUrl ? (
-                                <img src={currentTrack.picUrl} alt={currentTrack.name} className="w-full h-full object-cover" />
+                                <img
+                                    src={currentTrack.picUrl}
+                                    alt={currentTrack.name}
+                                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${dynamicCoverUrl && isVideoLoaded ? 'opacity-0' : 'opacity-100'
+                                        }`}
+                                />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center text-white/10 text-4xl font-bold">CYRENE</div>
+                                <div className="absolute inset-0 w-full h-full flex items-center justify-center text-white/10 text-4xl font-bold">CYRENE</div>
+                            )}
+
+                            {/* 动态封面：使用双视频交替播放实现无缝淡入淡出 */}
+                            {dynamicCoverUrl && (
+                                <>
+                                    <video
+                                        ref={video0Ref}
+                                        src={dynamicCoverUrl}
+                                        autoPlay={activeVideo === 0}
+                                        muted
+                                        playsInline
+                                        onLoadedData={() => {
+                                            if (activeVideo === 0) setIsVideoLoaded(true);
+                                        }}
+                                        onTimeUpdate={() => {
+                                            if (activeVideo !== 0 || !video0Ref.current || !video1Ref.current) return;
+                                            const v0 = video0Ref.current;
+                                            if (v0.duration - v0.currentTime <= crossfadeDuration) {
+                                                video1Ref.current.currentTime = 0;
+                                                video1Ref.current.play();
+                                                setActiveVideo(1);
+                                            }
+                                        }}
+                                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded && activeVideo === 0 ? 'opacity-100' : 'opacity-0'
+                                            }`}
+                                    />
+                                    <video
+                                        ref={video1Ref}
+                                        src={dynamicCoverUrl}
+                                        muted
+                                        playsInline
+                                        onTimeUpdate={() => {
+                                            if (activeVideo !== 1 || !video1Ref.current || !video0Ref.current) return;
+                                            const v1 = video1Ref.current;
+                                            if (v1.duration - v1.currentTime <= crossfadeDuration) {
+                                                video0Ref.current.currentTime = 0;
+                                                video0Ref.current.play();
+                                                setActiveVideo(0);
+                                            }
+                                        }}
+                                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded && activeVideo === 1 ? 'opacity-100' : 'opacity-0'
+                                            }`}
+                                    />
+                                </>
                             )}
                         </div>
                     </div>
@@ -443,6 +521,10 @@ export function FullscreenPlayer() {
                                     onValueCommit={handleSeekCommit}
                                     className="w-full"
                                     variant="apple"
+                                    highlightRanges={duration > 0 ? currentTrack?.chorus?.map(c => ({
+                                        start: (c.startTime / 1000) / duration,
+                                        end: (c.endTime / 1000) / duration
+                                    })) : undefined}
                                 />
                             </div>
                             <div className="relative flex justify-between items-center text-[0.75rem] text-white/50 font-semibold tabular-nums tracking-wider px-1">

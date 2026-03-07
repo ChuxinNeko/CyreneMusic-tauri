@@ -47,7 +47,7 @@ interface PlayerState {
 
     // Actions
     setCurrentTrack: (track: Track | null) => void
-    updateTrackLyrics: (lyrics: Partial<Pick<Track, 'lyric' | 'yrc' | 'tlyric' | 'ytlrc'>>) => void
+    updateTrackLyrics: (lyrics: Partial<Pick<Track, 'lyric' | 'yrc' | 'tlyric' | 'ytlrc' | 'chorus'>>) => void
     setQueue: (tracks: Track[]) => void
     addToQueue: (track: Track) => void
     removeFromQueue: (trackId: string | number) => void
