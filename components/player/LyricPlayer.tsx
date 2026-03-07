@@ -28,107 +28,122 @@ const WORD_FADE_WIDTH = 1.0
 const LYRIC_TRANSITION = "1000ms cubic-bezier(0.22, 0.61, 0.36, 1)"
 
 // Helper component for Interlude dots
-function InterludeDots({ time, interlude }: { time: number, interlude: { start: number, end: number } | null }) {
+function InterludeDots({ interludeRef }: { interludeRef: React.RefObject<{ start: number, end: number, lineIndex: number } | null> }) {
     const dot0Ref = useRef<HTMLSpanElement>(null)
     const dot1Ref = useRef<HTMLSpanElement>(null)
     const dot2Ref = useRef<HTMLSpanElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
+    const rafRef = useRef<number>(0)
 
     const targetBreatheDuration = 1500
 
     useEffect(() => {
-        if (!containerRef.current || !dot0Ref.current || !dot1Ref.current || !dot2Ref.current) return
-
-        if (!interlude) {
-            containerRef.current.style.transform = "scale(0)"
-            containerRef.current.style.opacity = "0"
-            return
+        const clamp = (min: number, cur: number, max: number) => Math.max(min, Math.min(cur, max))
+        const easeOutExpo = (x: number) => x === 1 ? 1 : 1 - 2 ** (-10 * x)
+        const easeInOutBack = (x: number) => {
+            const c1 = 1.70158
+            const c2 = c1 * 1.525
+            return x < 0.5
+                ? ((2 * x) ** 2 * ((c2 + 1) * 2 * x - c2)) / 2
+                : ((2 * x - 2) ** 2 * ((c2 + 1) * (x * 2 - 2) + c2) + 2) / 2
         }
 
-        const start = interlude.start
-        const end = interlude.end
-        const interludeDuration = end - start
-        const currentDuration = time - start
+        const tick = () => {
+            if (!containerRef.current || !dot0Ref.current || !dot1Ref.current || !dot2Ref.current) {
+                rafRef.current = requestAnimationFrame(tick)
+                return
+            }
 
-        if (interludeDuration <= 0) {
-            containerRef.current.style.transform = "scale(0)"
-            containerRef.current.style.opacity = "0"
-            return
+            const interlude = interludeRef.current
+            if (!interlude) {
+                containerRef.current.style.transform = "scale(0)"
+                containerRef.current.style.opacity = "0"
+                rafRef.current = requestAnimationFrame(tick)
+                return
+            }
+
+            const time = playerService.getCurrentTime() * 1000 + INTRO_DELAY
+            const start = interlude.start
+            const end = interlude.end
+            const interludeDuration = end - start
+            const currentDuration = time - start
+
+            if (interludeDuration <= 0) {
+                containerRef.current.style.transform = "scale(0)"
+                containerRef.current.style.opacity = "0"
+                rafRef.current = requestAnimationFrame(tick)
+                return
+            }
+
+            if (currentDuration <= interludeDuration && currentDuration >= 0) {
+                const breatheDuration = interludeDuration / Math.ceil(interludeDuration / targetBreatheDuration)
+                let scale = Math.sin(1.5 * Math.PI - (currentDuration / breatheDuration) * 2) / 20 + 1
+                let globalOpacity = 1
+
+                if (currentDuration < 2000) scale *= easeOutExpo(clamp(0, currentDuration / 2000, 1))
+
+                if (currentDuration < 500) globalOpacity = 0
+                else if (currentDuration < 1000) globalOpacity *= (currentDuration - 500) / 500
+
+                if (interludeDuration - currentDuration < 750) {
+                    scale *= 1 - easeInOutBack(clamp(0, (750 - (interludeDuration - currentDuration)) / 750 / 2, 1))
+                }
+                if (interludeDuration - currentDuration < 375) {
+                    globalOpacity *= clamp(0, (interludeDuration - currentDuration) / 375, 1)
+                }
+
+                scale = Math.max(0, scale) * 0.75
+                containerRef.current.style.transform = `scale(${scale})`
+                containerRef.current.style.opacity = "1"
+                containerRef.current.style.transformOrigin = "left center"
+
+                const dotsDuration = Math.max(0, interludeDuration - 750)
+                const getRawDotOpacity = (t: number) => {
+                    if (dotsDuration <= 0) return 0.25
+                    const val = (t * 3 / dotsDuration) * 0.75
+                    return clamp(0.25, val, 1.0)
+                }
+
+                const d0 = getRawDotOpacity(currentDuration)
+                const d1 = getRawDotOpacity(currentDuration - dotsDuration / 3)
+                const d2 = getRawDotOpacity(currentDuration - (dotsDuration / 3) * 2)
+
+                const finalize = (dotOp: number) => clamp(0, globalOpacity * dotOp, 1).toString()
+
+                dot0Ref.current.style.opacity = finalize(d0)
+                dot1Ref.current.style.opacity = finalize(d1)
+                dot2Ref.current.style.opacity = finalize(d2)
+            } else {
+                containerRef.current.style.transform = "scale(0)"
+                containerRef.current.style.opacity = "0"
+            }
+
+            rafRef.current = requestAnimationFrame(tick)
         }
 
-        if (currentDuration <= interludeDuration && currentDuration >= 0) {
-            const clamp = (min: number, cur: number, max: number) => Math.max(min, Math.min(cur, max))
-            const easeOutExpo = (x: number) => x === 1 ? 1 : 1 - 2 ** (-10 * x)
-            const easeInOutBack = (x: number) => {
-                const c1 = 1.70158
-                const c2 = c1 * 1.525
-                return x < 0.5
-                    ? ((2 * x) ** 2 * ((c2 + 1) * 2 * x - c2)) / 2
-                    : ((2 * x - 2) ** 2 * ((c2 + 1) * (x * 2 - 2) + c2) + 2) / 2
-            }
-
-            const breatheDuration = interludeDuration / Math.ceil(interludeDuration / targetBreatheDuration)
-            let scale = Math.sin(1.5 * Math.PI - (currentDuration / breatheDuration) * 2) / 20 + 1
-            let globalOpacity = 1
-
-            // 2. Entry Scale
-            if (currentDuration < 2000) scale *= easeOutExpo(clamp(0, currentDuration / 2000, 1))
-
-            // 3. Global opacity fade-in
-            if (currentDuration < 500) globalOpacity = 0
-            else if (currentDuration < 1000) globalOpacity *= (currentDuration - 500) / 500
-
-            // 4. Exit Scale (bounce and fade)
-            if (interludeDuration - currentDuration < 750) {
-                scale *= 1 - easeInOutBack(clamp(0, (750 - (interludeDuration - currentDuration)) / 750 / 2, 1))
-            }
-            if (interludeDuration - currentDuration < 375) {
-                globalOpacity *= clamp(0, (interludeDuration - currentDuration) / 375, 1)
-            }
-
-            scale = Math.max(0, scale) * 0.75 // 桌面端微调
-            containerRef.current.style.transform = `scale(${scale})`
-            containerRef.current.style.opacity = "1"
-            containerRef.current.style.transformOrigin = "left center"
-
-            // 5. Dots Waterfall calculation
-            const dotsDuration = Math.max(0, interludeDuration - 750)
-            const getRawDotOpacity = (t: number) => {
-                if (dotsDuration <= 0) return 0.25
-                const val = (t * 3 / dotsDuration) * 0.75
-                return clamp(0.25, val, 1.0)
-            }
-
-            const d0 = getRawDotOpacity(currentDuration)
-            const d1 = getRawDotOpacity(currentDuration - dotsDuration / 3)
-            const d2 = getRawDotOpacity(currentDuration - (dotsDuration / 3) * 2)
-
-            const finalize = (dotOp: number) => clamp(0, globalOpacity * dotOp, 1).toString()
-
-            dot0Ref.current.style.opacity = finalize(d0)
-            dot1Ref.current.style.opacity = finalize(d1)
-            dot2Ref.current.style.opacity = finalize(d2)
-        } else {
-            containerRef.current.style.transform = "scale(0)"
-            containerRef.current.style.opacity = "0"
-        }
-    }, [time, interlude])
+        rafRef.current = requestAnimationFrame(tick)
+        return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
+    }, [])
 
     return (
         <div
             ref={containerRef}
-            className="interlude-dots absolute flex gap-4 transition-opacity duration-300"
+            className="interlude-dots absolute flex gap-4"
             style={{ transform: 'scale(0)', opacity: 0, transformOrigin: 'left center', height: '40px', alignItems: 'center' }}
         >
-            <span ref={dot0Ref} className="w-4 h-4 rounded-full bg-white transition-opacity duration-100" />
-            <span ref={dot1Ref} className="w-4 h-4 rounded-full bg-white transition-opacity duration-100" />
-            <span ref={dot2Ref} className="w-4 h-4 rounded-full bg-white transition-opacity duration-100" />
+            <span ref={dot0Ref} className="w-4 h-4 rounded-full bg-white" />
+            <span ref={dot1Ref} className="w-4 h-4 rounded-full bg-white" />
+            <span ref={dot2Ref} className="w-4 h-4 rounded-full bg-white" />
         </div>
     )
 }
 
-export function LyricPlayer() {
-    const { currentTrack, isPlaying, showTranslation, lyricFontSize, lyricBlurStrength } = usePlayerStore()
+export const LyricPlayer = React.memo(function LyricPlayer() {
+    const currentTrack = usePlayerStore(s => s.currentTrack)
+    const isPlaying = usePlayerStore(s => s.isPlaying)
+    const showTranslation = usePlayerStore(s => s.showTranslation)
+    const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
+    const lyricBlurStrength = usePlayerStore(s => s.lyricBlurStrength)
     const containerRef = useRef<HTMLDivElement>(null)
     const linesHelperRef = useRef<LyricLineHelper[]>([])
     const currentScrollIndexRef = useRef(-1)
@@ -137,8 +152,7 @@ export function LyricPlayer() {
     const interludeContainerRef = useRef<HTMLDivElement>(null)
 
     const [parsedLyrics, setParsedLyrics] = useState<LyricLineData[]>([])
-    const [interlude, setInterlude] = useState<{ start: number, end: number, lineIndex: number } | null>(null)
-    const interludeDotsPosRef = useRef({ x: 0, y: 0 })
+    const interludeRef = useRef<{ start: number, end: number, lineIndex: number } | null>(null)
 
     // Parse lyrics
     useEffect(() => {
@@ -213,7 +227,7 @@ export function LyricPlayer() {
         currentScrollIndexRef.current = initIndex
         // 初始化时也检测一次间奏
         const initInterlude = getActiveInterlude(loopTime)
-        setInterlude(initInterlude)
+        interludeRef.current = initInterlude
         updateLayoutTargets(initIndex, initInterlude, true)
     }, [parsedLyrics])
 
@@ -354,9 +368,7 @@ export function LyricPlayer() {
         }))
     }
 
-    const lastLayoutUpdateTimeRef = useRef(0)
-
-    const loop = (timestamp: number) => {
+    const loop = (_timestamp: number) => {
         const realTime = playerService.getCurrentTime()
         const loopTime = realTime * 1000 + INTRO_DELAY
         const currentInterlude = getActiveInterlude(loopTime)
@@ -373,25 +385,29 @@ export function LyricPlayer() {
             }
         }
 
-        // 渲染分频：降低布局更新频率，每 100ms 更新一次位置和样式
-        const interludeChanged = currentInterlude?.start !== interlude?.start
-        if (currentScrollIndexRef.current !== activeIndex || interludeChanged || timestamp - lastLayoutUpdateTimeRef.current > 100) {
+        // 仅在歌词行切换或间奏状态变化时更新布局，不再节流每100ms打断CSS transition
+        const interludeChanged = currentInterlude?.start !== interludeRef.current?.start
+        if (currentScrollIndexRef.current !== activeIndex || interludeChanged) {
             currentScrollIndexRef.current = activeIndex
-            setInterlude(currentInterlude)
+            interludeRef.current = currentInterlude
             updateLayoutTargets(activeIndex, currentInterlude)
-            lastLayoutUpdateTimeRef.current = timestamp
         }
 
         // 逐字动画仍然保持高频检查
         if (linesHelperRef.current[activeIndex]) updateWordAnimations(linesHelperRef.current[activeIndex], loopTime)
 
-        requestRef.current = requestAnimationFrame(loop)
+        // 通过 loopRef 调度下一帧，确保始终使用最新闭包
+        requestRef.current = requestAnimationFrame((ts) => loopRef.current(ts))
     }
 
+    // 用 ref 保存最新的 loop 引用，避免闭包陈旧问题
+    const loopRef = useRef(loop)
+    loopRef.current = loop
+
     useEffect(() => {
-        requestRef.current = requestAnimationFrame(loop)
+        requestRef.current = requestAnimationFrame((ts) => loopRef.current(ts))
         return () => { if (requestRef.current) cancelAnimationFrame(requestRef.current) }
-    }, [parsedLyrics])
+    }, [])
 
     useEffect(() => {
         linesHelperRef.current.forEach(l => {
@@ -437,10 +453,10 @@ export function LyricPlayer() {
                         )}
                     </div>
                 ))}
-                <div ref={interludeContainerRef} style={{ transform: `translate(${interludeDotsPosRef.current.x}px, ${interludeDotsPosRef.current.y}px)`, position: 'absolute', left: '6%', top: 0, zIndex: 5, transition: `transform ${LYRIC_TRANSITION}` }}>
-                    <InterludeDots time={playerService.getCurrentTime() * 1000 + INTRO_DELAY} interlude={interlude} />
+                <div ref={interludeContainerRef} style={{ position: 'absolute', left: '6%', top: 0, zIndex: 5, transition: `transform ${LYRIC_TRANSITION}` }}>
+                    <InterludeDots interludeRef={interludeRef} />
                 </div>
             </div>
         </div>
     )
-}
+})
