@@ -511,6 +511,12 @@ class PlayerService {
                 }
             }
 
+            // 对酷狗资源的 https URL 强制降级为 http，解决证书校验和部分 CDN 403 阻断
+            if (track.source === 'kugou' && url.startsWith('https://')) {
+                url = url.replace('https://', 'http://')
+                console.log(`[PlayerService] 酷狗音频自动降级为 HTTP 以规避 403 / 证书错误:`, url)
+            }
+
             console.log(`[PlayerService] Playing via Howler: ${track.name}`)
             // 验证：模拟首个 URL 失败以触发降级
             // url = "http://invalid-url-for-test.mp3" 

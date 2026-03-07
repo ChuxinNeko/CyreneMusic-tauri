@@ -26,6 +26,12 @@ export function parseLyrics(track: { id?: string | number; yrc?: string; lyric?:
         const yrcLineRegex = /^\[(\d+),(\d+)\]/;
         const yrcWordRegex = /\((\d+),(\d+),\d+\)([^(\[]+)/g;
 
+        let globalOffset = 0;
+        const offsetMatch = lyricSource.match(/\[offset:\s*(-?\d+)\]/);
+        if (offsetMatch) {
+            globalOffset = parseInt(offsetMatch[1]);
+        }
+
         const processed = rawLines.map((lineStr) => {
             let timeMs = 0;
             let words: WordData[] = [];
@@ -43,6 +49,15 @@ export function parseLyrics(track: { id?: string | number; yrc?: string; lyric?:
                     }));
                     return { time: timeMs, startTime: timeMs, endTime: timeMs + 1000, words, isVerbatim: false };
                 } catch (e) { return null; }
+            }
+
+            const lrcMatch = lineStr.match(lrcRegex);
+            if (lrcMatch) {
+                const mins = parseInt(lrcMatch[1]);
+                const secs = parseInt(lrcMatch[2]);
+                const ms = parseInt(lrcMatch[3].padEnd(3, '0').slice(0, 3));
+                timeMs = (mins * 60 + secs) * 1000 + ms + INTRO_DELAY + globalOffset;
+                return { time: timeMs, startTime: timeMs, endTime: timeMs + 2000, words: [{ text: lrcMatch[4].trim(), startTime: timeMs, endTime: timeMs + 2000, duration: 2000 }], isVerbatim: false };
             }
 
             const yrcMatch = lineStr.match(yrcLineRegex);
@@ -75,15 +90,6 @@ export function parseLyrics(track: { id?: string | number; yrc?: string; lyric?:
                 }
             }
 
-            const lrcMatch = lineStr.match(lrcRegex);
-            if (lrcMatch) {
-                const mins = parseInt(lrcMatch[1]);
-                const secs = parseInt(lrcMatch[2]);
-                const ms = parseInt(lrcMatch[3].padEnd(3, '0').slice(0, 3));
-                timeMs = (mins * 60 + secs) * 1000 + ms + INTRO_DELAY;
-                return { time: timeMs, startTime: timeMs, endTime: timeMs + 2000, words: [{ text: lrcMatch[4].trim(), startTime: timeMs, endTime: timeMs + 2000, duration: 2000 }], isVerbatim: false };
-            }
-
             return null;
         }).filter(l => l !== null) as LyricLineData[];
 
@@ -99,7 +105,7 @@ export function parseLyrics(track: { id?: string | number; yrc?: string; lyric?:
                 const m = tLine.match(tLrcRegex);
                 if (m) {
                     const ms = parseInt(m[3].padEnd(3, '0').slice(0, 3));
-                    const tMs = (parseInt(m[1]) * 60 + parseInt(m[2])) * 1000 + ms + INTRO_DELAY;
+                    const tMs = (parseInt(m[1]) * 60 + parseInt(m[2])) * 1000 + ms + INTRO_DELAY + globalOffset;
                     translationMap.push({ time: tMs, text: m[4].trim() });
                 }
             }
