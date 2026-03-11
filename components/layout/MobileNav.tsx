@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -18,14 +17,22 @@ interface NavItemProps {
 
 function NavItem({ icon: Icon, label, href, isActive, onClick }: NavItemProps) {
     const content = (
-        <div
-            className={cn(
-                "flex flex-col items-center justify-center gap-1 h-full w-full",
-                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
-            )}
-        >
-            <Icon className={cn("h-6 w-6", isActive && "fill-current")} />
-            <span className="text-[10px] font-medium">{label}</span>
+        <div className="flex flex-col items-center justify-center w-full h-full">
+            <div
+                className={cn(
+                    "flex flex-col items-center justify-center transition-all duration-200",
+                    isActive 
+                        ? "bg-primary/10 text-primary rounded-2xl px-5 py-1.5 shadow-sm gap-0.5" 
+                        : "text-muted-foreground hover:text-foreground p-1.5 gap-1"
+                )}
+            >
+                {/* Always use stroke instead of filling the icons entirely to maintain consistency. */}
+                <Icon className={cn("h-6 w-6", isActive && "stroke-current stroke-[2.5px]")} />
+                <span className={cn(
+                    "font-medium transition-all duration-200",
+                    isActive ? "text-[11px] font-bold" : "text-[10px]"
+                )}>{label}</span>
+            </div>
         </div>
     )
 
@@ -50,31 +57,33 @@ export function MobileNav() {
 
     return (
         <>
-            <div className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-lg border-t z-40 flex items-center justify-around px-2 pb-[env(safe-area-inset-bottom)]">
-                <NavItem
-                    icon={Home}
-                    label="首页"
-                    href="/"
-                    isActive={pathname === "/"}
-                />
-                <NavItem
-                    icon={Compass}
-                    label="发现"
-                    href="/discover"
-                    isActive={pathname === "/discover"}
-                />
-                <NavItem
-                    icon={User}
-                    label="我的"
-                    href="/profile"
-                    isActive={pathname === "/profile"}
-                />
-                <NavItem
-                    icon={MoreHorizontal}
-                    label="更多"
-                    onClick={() => setSheetOpen(true)}
-                    isActive={sheetOpen}
-                />
+            <div className="md:hidden w-full flex-shrink-0 bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 border-t z-40 pb-[env(safe-area-inset-bottom)]">
+                <div className="flex items-center justify-around px-2 h-[72px]">
+                    <NavItem
+                        icon={Home}
+                        label="首页"
+                        href="/"
+                        isActive={pathname === "/"}
+                    />
+                    <NavItem
+                        icon={Compass}
+                        label="发现"
+                        href="/discover"
+                        isActive={pathname === "/discover"}
+                    />
+                    <NavItem
+                        icon={User}
+                        label="我的"
+                        href="/profile"
+                        isActive={pathname === "/profile"}
+                    />
+                    <NavItem
+                        icon={MoreHorizontal}
+                        label="更多"
+                        onClick={() => setSheetOpen(true)}
+                        isActive={sheetOpen}
+                    />
+                </div>
             </div>
 
             <MoreMenuSheet open={sheetOpen} onOpenChange={setSheetOpen} />

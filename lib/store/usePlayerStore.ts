@@ -44,6 +44,7 @@ interface PlayerState {
     desktopLyricColor: string
     desktopLyricStrokeColor: string
     isLyricsFolded: boolean
+    isImmersiveMode: boolean
 
     // Actions
     setCurrentTrack: (track: Track | null) => void
@@ -70,6 +71,7 @@ interface PlayerState {
     setDesktopLyricColor: (color: string) => void
     setDesktopLyricStrokeColor: (color: string) => void
     setIsLyricsFolded: (folded: boolean) => void
+    setIsImmersiveMode: (isImmersiveMode: boolean) => void
 
     playNext: () => void
     playPrevious: () => void
@@ -97,6 +99,7 @@ export const usePlayerStore = create<PlayerState>()(
             desktopLyricColor: '#ffffff',
             desktopLyricStrokeColor: '#bababa',
             isLyricsFolded: false,
+            isImmersiveMode: false,
 
             setCurrentTrack: (track) => {
                 const { currentTrack, history } = get()
@@ -158,6 +161,7 @@ export const usePlayerStore = create<PlayerState>()(
             setDesktopLyricColor: (desktopLyricColor) => set({ desktopLyricColor }),
             setDesktopLyricStrokeColor: (desktopLyricStrokeColor) => set({ desktopLyricStrokeColor }),
             setIsLyricsFolded: (isLyricsFolded) => set({ isLyricsFolded }),
+            setIsImmersiveMode: (isImmersiveMode) => set({ isImmersiveMode }),
 
             playNext: () => {
                 const { queue, currentTrack, repeatMode } = get()
@@ -202,7 +206,8 @@ export const usePlayerStore = create<PlayerState>()(
                 desktopLyricFontSize: state.desktopLyricFontSize,
                 desktopLyricColor: state.desktopLyricColor,
                 desktopLyricStrokeColor: state.desktopLyricStrokeColor,
-                isLyricsFolded: state.isLyricsFolded
+                isLyricsFolded: state.isLyricsFolded,
+                isImmersiveMode: state.isImmersiveMode
             }),
         }
     )

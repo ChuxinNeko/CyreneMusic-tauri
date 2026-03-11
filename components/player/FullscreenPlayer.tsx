@@ -70,6 +70,8 @@ export function FullscreenPlayer() {
         setDesktopLyricStrokeColor,
         isLyricsFolded,
         setIsLyricsFolded,
+        isImmersiveMode,
+        setIsImmersiveMode,
     } = usePlayerStore()
 
     const [localProgress, setLocalProgress] = React.useState(0)
@@ -280,6 +282,14 @@ export function FullscreenPlayer() {
                             <Activity className="mr-2 h-4 w-4" />
                             音频律动
                         </DropdownMenuCheckboxItem>
+                        <DropdownMenuCheckboxItem
+                            checked={isImmersiveMode}
+                            onCheckedChange={setIsImmersiveMode}
+                            className="focus:bg-white/10 focus:text-white data-[state=checked]:bg-white/5"
+                        >
+                            <Monitor className="mr-2 h-4 w-4" />
+                            沉浸模式
+                        </DropdownMenuCheckboxItem>
                         <DropdownMenuItem
                             onClick={openDesktopLyric}
                             className="focus:bg-white/10 focus:text-white"
@@ -430,10 +440,23 @@ export function FullscreenPlayer() {
                     {/* Flexible spacer above */}
                     <div className="flex-[0.5] min-h-[1vh]" />
 
-                    {/* Album Art Container with responsive size */}
-                    <div className="relative aspect-square w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink">
-                        <div className="absolute inset-0 bg-black/40 blur-3xl scale-95 translate-y-8 opacity-60 hover:opacity-80 transition-opacity duration-500" />
-                        <div className="relative w-full h-full rounded-[20px] overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.4)] transition-transform duration-500 hover:scale-[1.02] bg-white/5 border border-white/10">
+                    {/* Album Art Container with responsive size (or Immersive Mode Background) */}
+                    <div className={
+                        isImmersiveMode
+                            ? "fixed inset-y-0 left-0 w-[60vw] max-w-none rounded-none border-none shadow-none z-0 pointer-events-none transition-all duration-700"
+                            : "relative aspect-square w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink transition-all duration-700"
+                    }
+                    style={
+                        isImmersiveMode
+                            ? { maskImage: 'linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)', WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)' }
+                            : {}
+                    }>
+                        {!isImmersiveMode && <div className="absolute inset-0 bg-black/40 blur-3xl scale-95 translate-y-8 opacity-60 hover:opacity-80 transition-opacity duration-500" />}
+                        <div className={
+                            isImmersiveMode
+                                ? "relative w-full h-full"
+                                : "relative w-full h-full rounded-[20px] overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.4)] transition-transform duration-500 hover:scale-[1.02] bg-white/5 border border-white/10"
+                        }>
                             {/* 静态图：当动态封面存在时充当占位，或者作为 fallback */}
                             {currentTrack?.picUrl ? (
                                 <img
@@ -496,7 +519,7 @@ export function FullscreenPlayer() {
                     <div className="h-[3vh] min-h-[16px] shrink-0" />
 
                     {/* Track Info */}
-                    <div className="w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink-0 flex flex-col items-center text-center space-y-1 lg:space-y-2">
+                    <div className="relative z-10 w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink-0 flex flex-col items-center text-center space-y-1 lg:space-y-2">
                         <h1 className="text-[clamp(1.5rem,4vh,2.6rem)] font-bold text-white leading-tight tracking-[-0.5px] truncate w-full">
                             {currentTrack?.name || "未在播放"}
                         </h1>
@@ -509,7 +532,7 @@ export function FullscreenPlayer() {
                     <div className="h-[3vh] min-h-[16px] shrink-0" />
 
                     {/* Controls & Progress */}
-                    <div className="w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink-0 space-y-4 lg:space-y-6">
+                    <div className="relative z-10 w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink-0 space-y-4 lg:space-y-6">
                         {/* Progress Bar */}
                         <div className="space-y-2 lg:space-y-3 group/progress">
                             <div className="h-3 flex items-center">

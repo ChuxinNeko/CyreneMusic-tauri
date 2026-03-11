@@ -21,7 +21,6 @@
     "core:window:allow-set-size",
     "core:window:allow-inner-size",
     "core:window:allow-start-dragging",
-    "process:default",
-    "media:default"
+    "process:default"
   ]
 }

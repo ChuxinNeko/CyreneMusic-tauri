@@ -39,6 +39,7 @@ async fn fetch_image(url: String) -> Result<String, String> {
     Ok(format!("data:{};base64,{}", content_type, b64))
 }
 
+#[cfg(desktop)]
 #[tauri::command]
 async fn open_desktop_lyric(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("desktop-lyric") {
@@ -60,14 +61,14 @@ async fn open_desktop_lyric(app: tauri::AppHandle) -> Result<(), String> {
     .transparent(true)
     .shadow(false)
     .skip_taskbar(true)
-    .inner_size(800.0, 100.0) // 宽一点以容纳长句，高度矮一点
-    // 可以设置一个默认位置，比如屏幕的中下部，或者在前端挂载后自己 resize/set_position
+    .inner_size(800.0, 100.0)
     .build()
     .map_err(|e| format!("Failed to create window: {}", e))?;
 
     Ok(())
 }
 
+#[cfg(desktop)]
 #[tauri::command]
 async fn close_desktop_lyric(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("desktop-lyric") {
@@ -76,12 +77,10 @@ async fn close_desktop_lyric(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(desktop)]
 #[tauri::command]
 fn update_vibrancy(window: tauri::Window, is_dark: bool) -> Result<(), String> {
-    #[cfg(desktop)]
-    {
-        let _ = window_vibrancy::apply_mica(&window, Some(is_dark));
-    }
+    let _ = window_vibrancy::apply_mica(&window, Some(is_dark));
     Ok(())
 }
 
@@ -194,7 +193,16 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
-        .invoke_handler(tauri::generate_handler![greet, fetch_image, open_desktop_lyric, close_desktop_lyric, update_vibrancy, lx_http_request, get_system_info, get_process_info])
+        .invoke_handler({
+            #[cfg(desktop)]
+            {
+                tauri::generate_handler![greet, fetch_image, open_desktop_lyric, close_desktop_lyric, update_vibrancy, lx_http_request, get_system_info, get_process_info]
+            }
+            #[cfg(mobile)]
+            {
+                tauri::generate_handler![greet, fetch_image, lx_http_request, get_system_info, get_process_info]
+            }
+        })
         .setup(|app| {
             #[cfg(desktop)]
             {
