@@ -126,17 +126,20 @@
 }
 
 @layer base {
-
-  html,
-  body {
-    background-color: transparent !important;
-  }
-
   * {
     @apply border-border outline-ring/50;
   }
 
+  html,
   body {
     @apply text-foreground;
+    background-color: var(--background);
+  }
+
+  @media (min-width: 768px) {
+    html,
+    body {
+      background-color: transparent !important;
+    }
   }
 }

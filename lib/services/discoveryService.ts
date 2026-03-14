@@ -72,31 +72,74 @@ class DiscoveryService {
         return headers
     }
 
-    public async getToplists(): Promise<Toplist[]> {
-        try {
-            const response = await fetch(`${urlService.baseUrl}/toplists`)
-            const result = await response.json()
-            return result.toplists || []
-        } catch (e) {
-            console.error("[DiscoveryService] getToplists failed:", e)
-            return []
-        }
+    private getCacheKey(key: string, token?: string) {
+        return token ? `cyrene_cache_${key}_${token}` : `cyrene_cache_${key}`
     }
 
-    public async getRecommendForYou(token: string): Promise<RecommendData | null> {
-        try {
-            const response = await fetch(`${urlService.baseUrl}/recommend/for_you`, {
-                headers: this.getHeaders(token)
-            })
-            const result = await response.json()
-            if (result.success) {
-                return result.data
+    private async getWithCache<T>(key: string, fetcher: () => Promise<T>, forceRefresh: boolean = false): Promise<T | null> {
+        const CACHE_KEY = key
+        const CACHE_EXPIRY_KEY = `${key}_expiry`
+
+        if (!forceRefresh) {
+            try {
+                const cached = localStorage.getItem(CACHE_KEY)
+                const expiry = localStorage.getItem(CACHE_EXPIRY_KEY)
+                if (cached && expiry && Date.now() < Number(expiry)) {
+                    return JSON.parse(cached) as T
+                }
+            } catch (e) {
+                console.error("[DiscoveryService] Cache read failed:", e)
             }
-            return null
-        } catch (e) {
-            console.error("[DiscoveryService] getRecommendForYou failed:", e)
-            return null
         }
+
+        const data = await fetcher()
+        
+        if (data) {
+            try {
+                localStorage.setItem(CACHE_KEY, JSON.stringify(data))
+                const nextMidnight = new Date()
+                nextMidnight.setHours(24, 0, 0, 0)
+                localStorage.setItem(CACHE_EXPIRY_KEY, nextMidnight.getTime().toString())
+            } catch (e) {
+                console.error("[DiscoveryService] Cache write failed:", e)
+            }
+        }
+        
+        return data
+    }
+
+    public async getToplists(forceRefresh: boolean = false): Promise<Toplist[]> {
+        const fetcher = async () => {
+            try {
+                const response = await fetch(`${urlService.baseUrl}/toplists`)
+                const result = await response.json()
+                return result.toplists || []
+            } catch (e) {
+                console.error("[DiscoveryService] getToplists fetch failed:", e)
+                return []
+            }
+        }
+        const data = await this.getWithCache<Toplist[]>(this.getCacheKey('toplists'), fetcher, forceRefresh)
+        return data || []
+    }
+
+    public async getRecommendForYou(token: string, forceRefresh: boolean = false): Promise<RecommendData | null> {
+        const fetcher = async () => {
+            try {
+                const response = await fetch(`${urlService.baseUrl}/recommend/for_you`, {
+                    headers: this.getHeaders(token)
+                })
+                const result = await response.json()
+                if (result.success) {
+                    return result.data
+                }
+                return null
+            } catch (e) {
+                console.error("[DiscoveryService] getRecommendForYou fetch failed:", e)
+                return null
+            }
+        }
+        return this.getWithCache<RecommendData | null>(this.getCacheKey('recommend_for_you', token), fetcher, forceRefresh)
     }
 
     public async getPlaylistDetail(id: string | number, limit: number = 200, token?: string): Promise<PlaylistDetail | null> {
@@ -129,27 +172,31 @@ class DiscoveryService {
         }
     }
 
-    public async getDiscoverPlaylists(cat: string = "全部歌单"): Promise<DiscoveryPlaylist[]> {
-        try {
-            const encodedCat = encodeURIComponent(cat)
-            const response = await fetch(`${urlService.baseUrl}/netease/top/playlist?cat=${encodedCat}`)
-            const result = await response.json()
-            if (result.status === 200) {
-                const list = (result.playlists as any[] || [])
-                return list.map(item => ({
-                    id: item.id,
-                    name: item.name,
-                    coverImgUrl: item.coverImgUrl,
-                    creatorNickname: item.creator.nickname,
-                    playCount: item.playCount,
-                    trackCount: item.trackCount
-                }))
+    public async getDiscoverPlaylists(cat: string = "全部歌单", forceRefresh: boolean = false): Promise<DiscoveryPlaylist[]> {
+        const fetcher = async () => {
+            try {
+                const encodedCat = encodeURIComponent(cat)
+                const response = await fetch(`${urlService.baseUrl}/netease/top/playlist?cat=${encodedCat}`)
+                const result = await response.json()
+                if (result.status === 200) {
+                    const list = (result.playlists as any[] || [])
+                    return list.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        coverImgUrl: item.coverImgUrl,
+                        creatorNickname: item.creator.nickname,
+                        playCount: item.playCount,
+                        trackCount: item.trackCount
+                    }))
+                }
+                return []
+            } catch (e) {
+                console.error("[DiscoveryService] getDiscoverPlaylists fetch failed:", e)
+                return []
             }
-            return []
-        } catch (e) {
-            console.error("[DiscoveryService] getDiscoverPlaylists failed:", e)
-            return []
         }
+        const data = await this.getWithCache<DiscoveryPlaylist[]>(this.getCacheKey(`discover_playlists_${cat}`), fetcher, forceRefresh)
+        return data || []
     }
 
     public convertToTrack(song: any): Track {

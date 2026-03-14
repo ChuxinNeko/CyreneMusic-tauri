@@ -11,6 +11,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@capacitor/status-bar": "^8.0.1",
     "@hookform/resolvers": "^5.2.2",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
@@ -20,9 +21,11 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "crypto-js": "^4.2.0",
+    "fast-average-color": "^9.5.0",
     "framer-motion": "^12.34.3",
     "gl-matrix": "^3.4.4",
     "howler": "^2.2.4",
+    "liquid-glass-react": "^1.1.1",
     "lucide-react": "^0.575.0",
     "next": "16.1.6",
     "next-themes": "^0.4.6",
@@ -34,6 +37,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.1",
     "tauri-plugin-media-api": "^0.1.1",
+    "tauri-plugin-status-bar-color-api": "^1.0.0",
     "zod": "^4.3.6",
     "zustand": "^5.0.11"
   },

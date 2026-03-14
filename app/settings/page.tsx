@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { ChevronRight, Server, ChevronLeft, User, Music, KeyRound, Info, FileText, Settings2 } from "lucide-react"
+import { ChevronRight, Server, ChevronLeft, User, Music, KeyRound, Info, FileText, Settings2, Palette } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,6 +17,8 @@ import { AudioSourceManager } from "@/components/settings/AudioSourceManager"
 import { AccountBindingManager } from "@/components/settings/AccountBindingManager"
 import { QualitySettingsDialog } from "@/components/settings/QualitySettingsDialog"
 import { useAudioSourceStore } from "@/lib/store/useAudioSourceStore"
+import { AppearanceSettingsManager } from "@/components/settings/AppearanceSettingsManager"
+import { useTheme } from "next-themes"
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense } from "react"
@@ -24,7 +26,7 @@ import { Suspense } from "react"
 import Image from "next/image"
 import { motion } from "framer-motion"
 
-type SettingsView = "main" | "backend-source" | "audio-source" | "account-binding" | "about" | "user-agreement"
+type SettingsView = "main" | "backend-source" | "audio-source" | "account-binding" | "appearance" | "about" | "user-agreement"
 
 function SettingsPageContent() {
     const router = useRouter()
@@ -48,6 +50,7 @@ function SettingsPageContent() {
     const [qualityDialogOpen, setQualityDialogOpen] = useState(false)
     const activeSource = useActiveSource()
     const { quality } = useAudioSourceStore()
+    const { theme } = useTheme()
 
     useEffect(() => {
         // Initial load
@@ -117,6 +120,19 @@ function SettingsPageContent() {
                     <span className="text-foreground">第三方账号绑定</span>
                 </div>
             )
+        } else if (view === "appearance") {
+            return (
+                <div className="flex items-center gap-1">
+                    <span
+                        className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => setView("main")}
+                    >
+                        设置
+                    </span>
+                    <ChevronRight className="h-6 w-6 text-muted-foreground" />
+                    <span className="text-foreground">外观设置</span>
+                </div>
+            )
         } else if (view === "about") {
             return (
                 <div className="flex items-center gap-1">
@@ -172,6 +188,35 @@ function SettingsPageContent() {
                                 </p>
                             </div>
                             <UserCard onLoginClick={() => setAuthDialogOpen(true)} />
+                        </section>
+
+                        <section className="space-y-4">
+                            <div className="space-y-1">
+                                <h2 className="text-lg font-semibold tracking-tight">界面</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    个性化视觉与交互体验
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3">
+                                <div
+                                    className="group flex items-center justify-between p-4 bg-card border rounded-xl hover:bg-accent/50 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
+                                    onClick={() => setView("appearance")}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-2.5 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                                            <Palette className="h-5 w-5 text-primary" />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <h3 className="font-medium leading-none">外观设置</h3>
+                                            <p className="text-xs text-muted-foreground">
+                                                {theme === "dark" ? "深色模式" : theme === "light" ? "浅色模式" : "跟随系统"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <ChevronRight className="h-5 w-5 text-muted-foreground/50 group-hover:text-foreground transition-colors" />
+                                </div>
+                            </div>
                         </section>
 
                         <section className="space-y-4">
@@ -293,6 +338,12 @@ function SettingsPageContent() {
                                 </div>
                             </div>
                         </section>
+                    </div>
+                )}
+
+                {view === "appearance" && (
+                    <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-right-4 duration-300 pb-10">
+                        <AppearanceSettingsManager />
                     </div>
                 )}
 

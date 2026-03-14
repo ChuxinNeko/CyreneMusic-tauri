@@ -188,6 +188,29 @@ fn get_process_info() -> ProcessInfo {
     }
 }
 
+#[tauri::command]
+fn set_status_bar_style(is_dark_text: bool) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    {
+        use jni::objects::JValue;
+        let ctx = ndk_context::android_context();
+        let vm = unsafe { jni::JavaVM::from_raw(ctx.vm() as *mut _) }
+            .map_err(|e| format!("Get JVM fail: {}", e))?;
+        let mut env = vm.attach_current_thread().map_err(|e| format!("Attach thread fail: {}", e))?;
+        
+        let activity = unsafe { jni::objects::JObject::from_raw(ctx.context() as *mut _) };
+        
+        env.call_method(
+            &activity,
+            "setStatusBarDarkText",
+            "(Z)V",
+            &[JValue::Bool(is_dark_text as jni::sys::jboolean)],
+        ).map_err(|e| format!("call_method fail: {:?}", e))?;
+    }
+    
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -196,11 +219,11 @@ pub fn run() {
         .invoke_handler({
             #[cfg(desktop)]
             {
-                tauri::generate_handler![greet, fetch_image, open_desktop_lyric, close_desktop_lyric, update_vibrancy, lx_http_request, get_system_info, get_process_info]
+                tauri::generate_handler![greet, fetch_image, open_desktop_lyric, close_desktop_lyric, update_vibrancy, lx_http_request, get_system_info, get_process_info, set_status_bar_style]
             }
             #[cfg(mobile)]
             {
-                tauri::generate_handler![greet, fetch_image, lx_http_request, get_system_info, get_process_info]
+                tauri::generate_handler![greet, fetch_image, lx_http_request, get_system_info, get_process_info, set_status_bar_style]
             }
         })
         .setup(|app| {

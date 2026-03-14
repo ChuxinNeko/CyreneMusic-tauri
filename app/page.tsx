@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { discoveryService, RecommendData, Toplist } from "@/lib/services/discoveryService"
 import { accountService } from "@/lib/services/accountService"
 import { useAuthStore } from "@/lib/store/useAuthStore"
-import { Loader2, Music2, Trophy, Play } from "lucide-react"
+import { Loader2, Music2, Trophy, Play, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { GreetingHeader } from "@/components/discovery/GreetingHeader"
 import { HeroSection } from "@/components/discovery/HeroSection"
@@ -52,6 +52,7 @@ function HomeContent() {
   const [activeTab, setActiveTab] = useState<string>("recommend")
   const [isBound, setIsBound] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(true)
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false)
   const [recommendData, setRecommendData] = useState<RecommendData | null>(null)
   const [toplists, setToplists] = useState<Toplist[]>([])
   const [randomTracks, setRandomTracks] = useState<any[]>([])
@@ -79,24 +80,26 @@ function HomeContent() {
     setLoading(false)
   }, [token])
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forceRefresh: boolean = false) => {
+    if (forceRefresh) setIsRefreshing(true)
+    else setLoading(true)
+    
     if (!isBound || !token) {
-      setLoading(true)
       try {
-        const toplistRes = await discoveryService.getToplists()
+        const toplistRes = await discoveryService.getToplists(forceRefresh)
         setToplists(toplistRes)
       } catch (error) {
         console.error("Fetch toplists failed:", error)
       }
       setLoading(false)
+      setIsRefreshing(false)
       return
     }
 
-    setLoading(true)
     try {
       const [toplistRes, recommendRes] = await Promise.all([
-        discoveryService.getToplists(),
-        discoveryService.getRecommendForYou(token)
+        discoveryService.getToplists(forceRefresh),
+        discoveryService.getRecommendForYou(token, forceRefresh)
       ])
       setToplists(toplistRes)
       setRecommendData(recommendRes)
@@ -104,6 +107,7 @@ function HomeContent() {
       console.error("Fetch discovery data failed:", error)
     }
     setLoading(false)
+    setIsRefreshing(false)
   }, [isBound, token])
 
   useEffect(() => {
@@ -112,6 +116,10 @@ function HomeContent() {
 
   useEffect(() => {
     fetchData()
+  }, [fetchData])
+
+  const handleRefresh = useCallback(() => {
+    fetchData(true)
   }, [fetchData])
 
   useEffect(() => {
@@ -167,22 +175,34 @@ function HomeContent() {
   }
 
   return (
-    <div className="h-full px-4 pt-2 pb-8 lg:px-8 max-w-7xl mx-auto">
+    <div className={`h-full pb-8 lg:px-8 max-w-7xl mx-auto ${(selectedPlaylistId || isDailyView) ? 'px-0 pt-0' : 'px-4 pt-2'}`}>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10 py-2">
+        <div className={`flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10 ${(!selectedPlaylistId && !isDailyView) ? 'py-2' : 'hidden'}`}>
           {!selectedPlaylistId && !isDailyView ? (
-            <TabsList className="bg-muted/50 p-1">
-              {isBound && (
-                <TabsTrigger value="recommend" className="gap-2 px-6">
-                  <Music2 className="h-4 w-4" />
-                  为你推荐
+            <div className="flex items-center w-full justify-between pr-2">
+              <TabsList className="bg-muted/50 p-1">
+                {isBound && (
+                  <TabsTrigger value="recommend" className="gap-2 px-6">
+                    <Music2 className="h-4 w-4" />
+                    为你推荐
+                  </TabsTrigger>
+                )}
+                <TabsTrigger value="leaderboard" className="gap-2 px-6">
+                  <Trophy className="h-4 w-4" />
+                  全部榜单
                 </TabsTrigger>
-              )}
-              <TabsTrigger value="leaderboard" className="gap-2 px-6">
-                <Trophy className="h-4 w-4" />
-                全部榜单
-              </TabsTrigger>
-            </TabsList>
+              </TabsList>
+              <Button
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleRefresh} 
+                  disabled={isRefreshing}
+                  className="rounded-full h-8 w-8 hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
+                  title="刷新数据"
+              >
+                  <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
           ) : null}
         </div>
 

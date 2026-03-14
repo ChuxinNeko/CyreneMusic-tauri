@@ -7,8 +7,19 @@ import { getCurrentWindow } from "@tauri-apps/api/window"
 import { invoke } from "@tauri-apps/api/core"
 import { Button } from "@/components/ui/button"
 import { useAuthStore } from "@/lib/store/useAuthStore"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { SearchBox } from "./SearchBox"
+
+function SearchArea() {
+    const searchParams = useSearchParams()
+    const isPlaylistDetail = !!searchParams.get("playlist") || searchParams.get("view") === "daily"
+    
+    return (
+        <div className={`flex-1 flex justify-center items-center z-10 ${isPlaylistDetail ? 'hidden md:flex' : ''}`} data-tauri-drag-region>
+            <SearchBox />
+        </div>
+    )
+}
 import {
     Avatar,
     AvatarFallback,
@@ -66,7 +77,7 @@ export function TitleBar() {
     }
 
     return (
-        <div className="sticky top-0 z-50 pt-[env(safe-area-inset-top)] bg-background/80 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="sticky top-0 z-50 pt-[max(env(safe-area-inset-top),32px)] md:pt-[env(safe-area-inset-top)] bg-transparent border-b">
             <div data-tauri-drag-region className="h-14 flex items-center px-4 select-none bg-transparent">
                 {/* Left Section: Navigation */}
                 <div className="hidden md:flex items-center gap-1 z-10 mr-4" data-tauri-drag-region>
@@ -79,9 +90,9 @@ export function TitleBar() {
                 </div>
 
                 {/* Center Section: Search (Flex-1 and center its content) */}
-                <div className="flex-1 flex justify-center items-center z-10" data-tauri-drag-region>
-                    <SearchBox />
-                </div>
+                <React.Suspense fallback={<div className="flex-1 flex justify-center items-center z-10" data-tauri-drag-region><SearchBox /></div>}>
+                    <SearchArea />
+                </React.Suspense>
 
                 {/* Right Section: Controls */}
                 <div className="hidden md:flex items-center z-10 ml-4" data-tauri-drag-region>

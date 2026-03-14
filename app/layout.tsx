@@ -17,6 +17,16 @@ export const metadata: Metadata = {
   description: "A professional music player supported by Tauri",
 };
 
+import type { Viewport } from "next";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+};
+
 import React from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { MainLayout } from "@/components/layout/MainLayout";

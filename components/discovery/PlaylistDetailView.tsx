@@ -150,14 +150,20 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
     }
 
     return (
-        <div className="space-y-4 animate-in fade-in duration-500 pb-20 max-w-6xl mx-auto px-4 sm:px-0">
+        <div className="space-y-4 animate-in fade-in duration-500 pb-20 max-w-6xl mx-auto px-4 sm:px-0 relative pt-[env(safe-area-inset-top)] isolate">
+            {/* 移动端全宽顶部封面渐变背景 */}
+            <div className="md:hidden absolute top-0 left-1/2 -translate-x-1/2 w-screen aspect-square sm:max-h-[500px] -z-10 pointer-events-none overflow-hidden origin-top">
+                <AsyncImage src={playlist.coverImgUrl} className="w-full h-full object-cover scale-105" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-background/60 to-background" />
+            </div>
+
             {/* Action Bar / Back Button */}
-            <div className="flex items-center">
+            <div className="flex items-center pt-2 md:pt-0 translate-y-[20px]">
                 <Button
                     variant="ghost"
                     size="sm"
                     onClick={onBack}
-                    className="h-8 -ml-2 gap-1 text-muted-foreground hover:text-foreground hover:bg-transparent transition-colors"
+                    className="h-8 md:-ml-2 gap-1 md:text-muted-foreground md:hover:text-foreground md:hover:bg-transparent transition-colors md:bg-transparent bg-background/40 backdrop-blur-md text-foreground rounded-full px-3 md:rounded-md md:px-2 z-20"
                 >
                     <ChevronLeft className="h-5 w-5" />
                     <span className="text-sm font-medium">返回</span>
@@ -165,25 +171,25 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
             </div>
 
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row gap-8 lg:gap-12 items-start">
-                <div className="relative w-44 sm:w-52 lg:w-56 aspect-square rounded-2xl overflow-hidden shadow-[0_20px_50px_-15px_rgba(0,0,0,0.2)] flex-shrink-0 bg-muted">
-                    <AsyncImage src={playlist.coverImgUrl} className="w-full h-full object-cover" />
+            <div className="flex flex-col md:flex-row gap-6 md:gap-8 lg:gap-12 items-center md:items-start text-center md:text-left relative z-10">
+                {/* 桌面端封面图区域 (移动端隐藏) */}
+                <div className="hidden md:block relative md:w-44 lg:w-56 aspect-square md:rounded-2xl overflow-hidden md:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.2)] flex-shrink-0 bg-muted transition-all duration-300">
+                    <AsyncImage src={playlist.coverImgUrl} className="w-full h-full object-cover scale-105" />
                 </div>
 
-                <div className="flex-1 min-w-0 space-y-3 pt-1">
-                    <div className="space-y-1">
-                        <span className="text-[11px] font-bold text-muted-foreground/60 uppercase tracking-widest">歌单</span>
-                        <h1 className="text-xl lg:text-2xl font-black tracking-tight leading-[1.2] text-foreground break-words">
+                <div className="flex-1 min-w-0 space-y-4 md:space-y-3 pt-[55vw] sm:pt-[250px] md:pt-1 flex flex-col items-center md:items-start w-full px-4 md:px-0">
+                    <div className="space-y-2 md:space-y-1 w-full">
+                        <span className="text-[11px] font-bold text-muted-foreground/60 uppercase tracking-widest block text-center md:text-left hidden md:block">歌单</span>
+                        <h1 className="text-2xl sm:text-3xl md:text-xl lg:text-2xl font-black tracking-tight leading-tight text-foreground break-words text-center md:text-left">
                             {playlist.name}
                         </h1>
                     </div>
 
-                    <div className="flex items-center gap-1.5 text-sm">
-                        <span className="text-muted-foreground">由</span>
-                        <span className="font-bold text-foreground/80 hover:text-primary cursor-pointer transition-colors">
+                    <div className="flex items-center justify-center md:justify-start gap-1.5 text-[13px] md:text-sm font-medium">
+                        <span className="text-primary font-bold hover:underline cursor-pointer transition-colors">
                             {playlist.creator}
                         </span>
-                        <span className="text-muted-foreground">创建</span>
+                        <span className="text-muted-foreground/60 hidden md:inline">创建</span>
                     </div>
 
                     {playlist.description && (
@@ -192,7 +198,7 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                                 className={`relative overflow-hidden transition-all duration-500 ease-in-out ${isDescriptionExpanded ? "max-h-[1000px] opacity-100" : "max-h-[3em] opacity-80"
                                     }`}
                             >
-                                <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl whitespace-pre-wrap font-medium">
+                                <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl whitespace-pre-wrap font-medium text-center md:text-left">
                                     {playlist.description}
                                 </p>
                             </div>
@@ -207,40 +213,43 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                         </div>
                     )}
 
-                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-bold text-muted-foreground/70">
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-2 md:gap-x-5 gap-y-2 text-xs md:text-xs font-bold text-muted-foreground/50 md:text-muted-foreground/70">
                         {playlist.tags && playlist.tags.length > 0 && (
                             <div className="flex items-center gap-1">
-                                <span className="text-muted-foreground/30 font-normal">#</span>
+                                <span className="md:hidden">·</span>
+                                <span className="text-muted-foreground/30 font-normal hidden md:inline">#</span>
                                 <span>{playlist.tags.join(' / ')}</span>
                             </div>
                         )}
-                        <div className="flex items-center gap-4">
-                            <span className="flex items-center gap-1.5">
-                                <ListMusicInIcon className="h-3.5 w-3.5" />
-                                {playlist.trackCount} 首
+                        <div className="flex items-center gap-2 md:gap-4">
+                            <span className="flex items-center gap-1">
+                                <span className="md:hidden">·</span>
+                                <ListMusicInIcon className="h-3 w-3 md:h-3.5 md:w-3.5 hidden md:block" />
+                                {playlist.trackCount} 首歌曲
                             </span>
-                            <span className="flex items-center gap-1.5">
-                                <PlayInIcon className="h-3 w-3" />
+                            <span className="flex items-center gap-1">
+                                <span className="md:hidden">·</span>
+                                <PlayInIcon className="h-3 w-3 hidden md:block" />
                                 {formatPlayCount(playlist.playCount)} 次播放
                             </span>
                         </div>
                     </div>
 
-                    <div className="pt-3 flex items-center gap-3">
+                    <div className="pt-2 md:pt-3 w-full flex items-center justify-center md:justify-start gap-3">
                         <Button
                             onClick={handlePlayAll}
-                            className="h-11 px-7 rounded-full gap-2.5 bg-foreground text-background hover:bg-foreground/90 transition-all font-bold shadow-lg shadow-foreground/10"
+                            className="h-12 md:h-11 flex-1 md:flex-none md:px-7 rounded-2xl md:rounded-full gap-2.5 bg-foreground text-background hover:bg-foreground/90 transition-all font-bold shadow-lg shadow-foreground/10 text-[15px] md:text-sm"
                         >
-                            <Play className="h-4 w-4 fill-current" />
+                            <Play className="h-5 w-5 md:h-4 md:w-4 fill-current" />
                             播放全部
                         </Button>
 
                         {type === 'personal' && (
                             <Button
-                                variant="ghost"
+                                variant="secondary"
                                 size="icon"
                                 onClick={() => setShowDeleteConfirm(true)}
-                                className="h-11 w-11 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                                className="h-12 w-12 md:h-11 md:w-11 rounded-2xl md:rounded-full text-destructive bg-destructive/10 hover:bg-destructive/20 transition-all flex-shrink-0"
                                 title="删除歌单"
                             >
                                 <Trash2 className="h-5 w-5" />
@@ -250,8 +259,9 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                 </div>
             </div>
 
-            <div className="space-y-1 pt-4">
-                <div className="flex items-center px-4 py-3 text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] border-t border-b border-border/40 mb-2">
+            <div className="space-y-1 pt-2 md:pt-4">
+                {/* 桌面端表头，移动端隐藏 */}
+                <div className="hidden md:flex items-center px-4 py-3 text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] border-t border-b border-border/40 mb-2">
                     <span className="w-12 text-center">#</span>
                     <span className="flex-[2.5] px-4">标题</span>
                     <span className="flex-[1.5] px-4 hidden lg:block">专辑</span>
@@ -265,10 +275,11 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                             <div
                                 key={track.id}
                                 onClick={() => handlePlayTrack(track)}
-                                className={`flex items-center px-4 py-3 rounded-xl transition-all duration-200 group cursor-pointer border border-transparent ${isCurrent ? 'bg-primary/5 border-primary/10' : 'hover:bg-accent/40'
+                                className={`flex items-center px-2 py-3 md:px-4 md:py-3 rounded-xl transition-all duration-200 group cursor-pointer border border-transparent ${isCurrent ? 'bg-primary/5 md:bg-primary/5 border-primary/10' : 'hover:bg-accent/40 active:bg-accent/60 md:active:bg-transparent'
                                     }`}
                             >
-                                <div className="w-12 flex items-center justify-center">
+                                {/* 移动端隐藏序号 */}
+                                <div className="w-10 md:w-12 hidden md:flex items-center justify-center">
                                     {isCurrent && isPlaying ? (
                                         <div className="flex items-end gap-[2px] h-3.5 mb-0.5">
                                             <div className="w-[3px] bg-primary animate-[music-bar-1_0.8s_ease-in-out_infinite]" />
@@ -285,15 +296,19 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                                     </span>
                                 </div>
 
-                                <div className="flex-[2.5] px-4 min-w-0 flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0 shadow-sm transition-all group-hover:scale-105 group-hover:shadow-md bg-muted">
+                                {/* 列表项主体信息 */}
+                                <div className="flex-[4] md:flex-[2.5] px-2 md:px-4 min-w-0 flex items-center gap-3 md:gap-4 pl-2 md:pl-0">
+                                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-md md:rounded-lg overflow-hidden flex-shrink-0 shadow-sm transition-all group-hover:scale-105 group-hover:shadow-md bg-muted">
                                         <AsyncImage src={track.picUrl} className="w-full h-full object-cover" />
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className={`font-bold text-[15px] truncate transition-colors leading-snug ${isCurrent ? 'text-primary' : 'text-foreground group-hover:text-primary'
+                                    <div className="flex-1 min-w-0 pr-2 md:pr-0 text-left">
+                                        <h4 className={`font-bold text-[14px] md:text-[15px] truncate transition-colors leading-snug ${isCurrent ? 'text-primary' : 'text-foreground group-hover:text-primary'
                                             }`}>
                                             {track.name}
                                         </h4>
+                                        <div className="text-[12px] md:text-[12px] text-muted-foreground/80 truncate md:hidden mt-0.5 block">
+                                            {track.artists}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -364,53 +379,63 @@ export function DailySongsDetailView({ songs, onBack }: { songs: any[], onBack: 
     }
 
     return (
-        <div className="space-y-4 animate-in fade-in duration-500 pb-20 max-w-6xl mx-auto px-4 sm:px-0">
-            <div className="flex items-center">
+        <div className="space-y-4 animate-in fade-in duration-500 pb-20 max-w-6xl mx-auto px-4 sm:px-0 relative pt-[env(safe-area-inset-top)] isolate">
+            {/* 移动端全宽顶部推荐封面渐变背景 */}
+            <div className="md:hidden absolute top-0 left-1/2 -translate-x-1/2 w-screen aspect-square sm:max-h-[500px] -z-10 pointer-events-none flex flex-col items-center justify-center bg-primary/10 overflow-hidden">
+                <div className="text-center space-y-4 -mt-10">
+                    <div className="text-[120px] leading-none font-black text-primary/80">{new Date().getDate()}</div>
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/60 to-background" />
+            </div>
+
+            <div className="flex items-center pt-2 md:pt-0 translate-y-[20px]">
                 <Button
                     variant="ghost"
                     size="sm"
                     onClick={onBack}
-                    className="h-8 -ml-2 gap-1 text-muted-foreground hover:text-foreground hover:bg-transparent transition-colors"
+                    className="h-8 md:-ml-2 gap-1 md:text-muted-foreground md:hover:text-foreground md:hover:bg-transparent transition-colors md:bg-transparent bg-background/40 backdrop-blur-md text-foreground rounded-full px-3 md:rounded-md md:px-2 z-20"
                 >
                     <ChevronLeft className="h-5 w-5" />
                     <span className="text-sm font-medium">返回</span>
                 </Button>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-8 lg:gap-12 items-start">
-                <div className="relative w-44 sm:w-52 lg:w-56 aspect-square rounded-2xl overflow-hidden shadow-[0_20px_50px_-15px_rgba(0,0,0,0.2)] flex-shrink-0 bg-primary/10 flex items-center justify-center">
+            <div className="flex flex-col md:flex-row gap-6 md:gap-8 lg:gap-12 items-center md:items-start text-center md:text-left relative z-10">
+                {/* 桌面端封面图区域 (移动端隐藏) */}
+                <div className="hidden md:flex relative md:w-44 lg:w-56 aspect-square md:rounded-2xl overflow-hidden md:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.2)] flex-shrink-0 bg-primary/10 items-center justify-center transition-all duration-300">
                     <div className="text-center space-y-2">
                         <div className="text-6xl font-black text-primary">{new Date().getDate()}</div>
                         <div className="text-sm font-bold text-primary/60">每日歌曲推荐</div>
                     </div>
                 </div>
 
-                <div className="flex-1 min-w-0 space-y-3 pt-1">
-                    <div className="space-y-1">
-                        <span className="text-[11px] font-bold text-muted-foreground/60 uppercase tracking-widest">推荐内容</span>
-                        <h1 className="text-xl lg:text-2xl font-black tracking-tight leading-[1.2] text-foreground break-words">
+                <div className="flex-1 min-w-0 space-y-4 md:space-y-3 pt-[55vw] sm:pt-[250px] md:pt-1 flex flex-col items-center md:items-start w-full px-4 md:px-0">
+                    <div className="space-y-2 md:space-y-1 w-full">
+                        <span className="text-[11px] font-bold text-muted-foreground/60 uppercase tracking-widest text-center md:text-left hidden md:block">推荐内容</span>
+                        <h1 className="text-2xl sm:text-3xl md:text-xl lg:text-2xl font-black tracking-tight leading-tight text-foreground break-words text-center md:text-left">
                             每日歌曲推荐
                         </h1>
                     </div>
 
-                    <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl font-medium">
+                    <p className="text-sm text-muted-foreground/80 leading-relaxed max-w-3xl font-medium text-center md:text-left">
                         根据您的品味每日更新，发现更多心动旋律。
                     </p>
 
-                    <div className="pt-3">
+                    <div className="pt-2 md:pt-3 w-full flex justify-center md:justify-start">
                         <Button
                             onClick={handlePlayAll}
-                            className="h-11 px-7 rounded-full gap-2.5 bg-foreground text-background hover:bg-foreground/90 transition-all font-bold shadow-lg shadow-foreground/10"
+                            className="h-12 md:h-11 flex-1 md:flex-none md:px-7 rounded-2xl md:rounded-full gap-2.5 bg-foreground text-background hover:bg-foreground/90 transition-all font-bold shadow-lg shadow-foreground/10 text-[15px] md:text-sm"
                         >
-                            <Play className="h-4 w-4 fill-current" />
+                            <Play className="h-5 w-5 md:h-4 md:w-4 fill-current" />
                             播放全部
                         </Button>
                     </div>
                 </div>
             </div>
 
-            <div className="space-y-1 pt-4">
-                <div className="flex items-center px-4 py-3 text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] border-t border-b border-border/40 mb-2">
+            <div className="space-y-1 pt-2 md:pt-4">
+                {/* 桌面端表头，移动端隐藏 */}
+                <div className="hidden md:flex items-center px-4 py-3 text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] border-t border-b border-border/40 mb-2">
                     <span className="w-12 text-center">#</span>
                     <span className="flex-[2.5] px-4">标题</span>
                     <span className="flex-[1.5] px-4 hidden lg:block">专辑</span>
@@ -425,10 +450,11 @@ export function DailySongsDetailView({ songs, onBack }: { songs: any[], onBack: 
                             <div
                                 key={track.id}
                                 onClick={() => handlePlayTrack(song)}
-                                className={`flex items-center px-4 py-3 rounded-xl transition-all duration-200 group cursor-pointer border border-transparent ${isCurrent ? 'bg-primary/5 border-primary/10' : 'hover:bg-accent/40'
+                                className={`flex items-center px-2 py-3 md:px-4 md:py-3 rounded-xl transition-all duration-200 group cursor-pointer border border-transparent ${isCurrent ? 'bg-primary/5 md:bg-primary/5 border-primary/10' : 'hover:bg-accent/40 active:bg-accent/60 md:active:bg-transparent'
                                     }`}
                             >
-                                <div className="w-12 flex items-center justify-center">
+                                {/* 移动端隐藏序号 */}
+                                <div className="w-10 md:w-12 hidden md:flex items-center justify-center">
                                     {isCurrent && isPlaying ? (
                                         <div className="flex items-end gap-[2px] h-3.5 mb-0.5">
                                             <div className="w-[3px] bg-primary animate-[music-bar-1_0.8s_ease-in-out_infinite]" />
@@ -445,15 +471,19 @@ export function DailySongsDetailView({ songs, onBack }: { songs: any[], onBack: 
                                     </span>
                                 </div>
 
-                                <div className="flex-[2.5] px-4 min-w-0 flex items-center gap-4">
-                                    <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0 shadow-sm transition-all group-hover:scale-105 group-hover:shadow-md bg-muted">
+                                {/* 列表项主体信息 */}
+                                <div className="flex-[4] md:flex-[2.5] px-2 md:px-4 min-w-0 flex items-center gap-3 md:gap-4 pl-2 md:pl-0">
+                                    <div className="h-10 w-10 md:h-12 md:w-12 rounded-md md:rounded-lg overflow-hidden flex-shrink-0 shadow-sm transition-all group-hover:scale-105 group-hover:shadow-md bg-muted">
                                         <AsyncImage src={track.picUrl} className="w-full h-full object-cover" />
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className={`font-bold text-[15px] truncate transition-colors leading-snug ${isCurrent ? 'text-primary' : 'text-foreground group-hover:text-primary'
+                                    <div className="flex-1 min-w-0 pr-2 md:pr-0 text-left">
+                                        <h4 className={`font-bold text-[14px] md:text-[15px] truncate transition-colors leading-snug ${isCurrent ? 'text-primary' : 'text-foreground group-hover:text-primary'
                                             }`}>
                                             {track.name}
                                         </h4>
+                                        <div className="text-[12px] md:text-[12px] text-muted-foreground/80 truncate md:hidden mt-0.5 block">
+                                            {track.artists}
+                                        </div>
                                     </div>
                                 </div>
 

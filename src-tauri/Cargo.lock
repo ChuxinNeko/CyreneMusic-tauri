@@ -667,7 +667,9 @@ name = "cyrene_music_tauri"
 version = "0.1.0"
 dependencies = [
  "base64 0.22.1",
+ "jni",
  "lazy_static",
+ "ndk-context",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
@@ -677,6 +679,7 @@ dependencies = [
  "tauri-plugin-media",
  "tauri-plugin-opener",
  "tauri-plugin-process",
+ "tauri-plugin-status-bar-color",
  "window-vibrancy 0.7.1",
 ]
 
@@ -4121,6 +4124,18 @@ checksum = "d55511a7bf6cd70c8767b02c97bf8134fa434daf3926cfc1be0a0f94132d165a"
 dependencies = [
  "tauri",
  "tauri-plugin",
+]
+
+[[package]]
+name = "tauri-plugin-status-bar-color"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14396c0f56b0afdbe53b1eaab0e48953c0b02d90f776aa8014e22b1bb47033c3"
+dependencies = [
+ "serde",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 1.0.69",
 ]
 
 [[package]]

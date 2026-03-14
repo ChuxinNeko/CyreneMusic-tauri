@@ -39,7 +39,7 @@ export function HeroSection({
                 className="lg:col-span-3 h-[240px] relative overflow-hidden group cursor-pointer border-none shadow-xl transition-all duration-500 hover:shadow-primary/20 bg-gradient-to-br from-primary/10 via-background to-accent/5"
             >
                 {/* Right Side Collage (Background) */}
-                <div className="absolute right-[-20px] top-[-20px] bottom-[-20px] w-[280px] hidden sm:block pointer-events-none transition-transform duration-700 group-hover:scale-105">
+                <div className="absolute right-[-20px] top-[-20px] bottom-[-20px] w-[280px] pointer-events-none transition-transform duration-700 group-hover:scale-105">
                     <div className="w-full h-full rotate-[5.7deg] opacity-40">
                         <div className="grid grid-cols-2 gap-1.5 w-full h-full">
                             {collageCovers.map((url, i) => (
