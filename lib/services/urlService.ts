@@ -145,6 +145,9 @@ class UrlService {
 
     // Spotify API
     public get spotifySearchUrl(): string { return `${this.baseUrl}/spotify/search`; }
+
+    // Update API
+    public get latestNextVersionUrl(): string { return `${this.baseUrl}/version/next/latest`; }
 }
 
 export const urlService = UrlService.getInstance();

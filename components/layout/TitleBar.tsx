@@ -7,12 +7,16 @@ import { getCurrentWindow } from "@tauri-apps/api/window"
 import { invoke } from "@tauri-apps/api/core"
 import { Button } from "@/components/ui/button"
 import { useAuthStore } from "@/lib/store/useAuthStore"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import { SearchBox } from "./SearchBox"
 
 function SearchArea() {
     const searchParams = useSearchParams()
-    const isPlaylistDetail = !!searchParams.get("playlist") || searchParams.get("view") === "daily"
+    const pathname = usePathname()
+    const isPlaylistDetail = !!searchParams.get("playlist") || 
+                            searchParams.get("view") === "daily" ||
+                            pathname === "/album" ||
+                            pathname === "/artist"
     
     return (
         <div className={`flex-1 flex justify-center items-center z-10 ${isPlaylistDetail ? 'hidden md:flex' : ''}`} data-tauri-drag-region>

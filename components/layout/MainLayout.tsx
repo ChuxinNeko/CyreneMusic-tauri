@@ -1,5 +1,5 @@
 "use client"
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 
 import { usePathname, useSearchParams } from "next/navigation"
 import { Sidebar } from "./Sidebar"
@@ -8,21 +8,42 @@ import { MobileNav } from "./MobileNav"
 import { PlayerBar } from "../player/PlayerBar"
 import { FullscreenPlayer } from "../player/FullscreenPlayer"
 import { SetupWizard } from "../setup/SetupWizard"
+import { updateService, UpdateInfo } from "@/lib/services/updateService"
+import { UpdateDialog } from "../common/UpdateDialog"
 
 export function MainLayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     const searchParams = useSearchParams()
     const isTray = pathname === "/tray"
     const isDesktopLyric = pathname === "/desktop-lyric"
+
+    const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
+    const [showUpdateDialog, setShowUpdateDialog] = useState(false)
     
-    // Check if we are on a playlist detail view (assuming these are the params used in page.tsx)
-    const isPlaylistDetail = !!searchParams.get("playlist") || searchParams.get("view") === "daily"
+    // Check if we are on a detail view (playlist, daily, album, or artist)
+    const isPlaylistDetail = !!searchParams.get("playlist") || 
+                            searchParams.get("view") === "daily" ||
+                            pathname === "/album" ||
+                            pathname === "/artist"
 
     useEffect(() => {
         const handleContextMenu = (e: MouseEvent) => {
             e.preventDefault()
         }
         document.addEventListener("contextmenu", handleContextMenu)
+
+        // 检查更新
+        const checkUpdate = async () => {
+            // 稍作延迟，避开首屏加载高峰
+            await new Promise(resolve => setTimeout(resolve, 3000))
+            const info = await updateService.checkUpdate()
+            if (info) {
+                setUpdateInfo(info)
+                setShowUpdateDialog(true)
+            }
+        }
+        checkUpdate()
+
         return () => {
             document.removeEventListener("contextmenu", handleContextMenu)
         }
@@ -49,6 +70,11 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
             <MobileNav />
             <FullscreenPlayer />
             <SetupWizard />
+            <UpdateDialog 
+                updateInfo={updateInfo} 
+                open={showUpdateDialog} 
+                onOpenChange={setShowUpdateDialog} 
+            />
         </div>
     )
 }

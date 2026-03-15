@@ -51,8 +51,11 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { invoke } from "@tauri-apps/api/core"
 import { toast } from "sonner"
+import { useIsMobile } from "@/hooks/use-mobile"
+
 
 export function FullscreenPlayer() {
+    const isMobile = useIsMobile()
     const {
         currentTrack,
         isPlaying,
@@ -97,6 +100,7 @@ export function FullscreenPlayer() {
     const [showAddToPlaylist, setShowAddToPlaylist] = React.useState(false)
     const [showAddToPlaylistMode, setShowAddToPlaylistMode] = React.useState<'add' | 'remove'>('add')
     const [qualityMenuOpen, setQualityMenuOpen] = React.useState(false)
+    const [showMobileLyrics, setShowMobileLyrics] = React.useState(false)
     const { quality, setQuality } = useAudioSourceStore()
     const activeSource = useActiveSource()
 
@@ -502,179 +506,180 @@ export function FullscreenPlayer() {
                 </DropdownMenu>
                 <div data-tauri-drag-region className="flex-1 h-full mx-4" />
                 <div className="flex items-center gap-2 z-10">
-                    <div className="flex bg-white/5 rounded-full p-1 mr-2 border border-white/10">
-                        <button
-                            onClick={() => setRightPanelMode('lyrics')}
-                            className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${rightPanelMode === 'lyrics' ? 'bg-white/20 text-white shadow-sm' : 'text-white/50 hover:text-white/80'}`}
-                        >
-                            歌词
-                        </button>
-                        <button
-                            onClick={() => setRightPanelMode('info')}
-                            className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${rightPanelMode === 'info' ? 'bg-white/20 text-white shadow-sm' : 'text-white/50 hover:text-white/80'}`}
-                        >
-                            歌曲信息
-                        </button>
-                    </div>
-                    <button
-                        onClick={() => setRightPanelMode(rightPanelMode === 'eq' ? 'lyrics' : 'eq')}
-                        className={`p-2 rounded-full transition-colors mr-1 ${rightPanelMode === 'eq' ? 'text-white bg-white/15 hover:bg-white/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
-                        title="均衡器设置"
-                    >
-                        <SlidersHorizontal size={20} />
-                    </button>
-                    <button
-                        onClick={() => setIsLyricsFolded(!isLyricsFolded)}
-                        className={`p-2 rounded-full transition-all duration-300 ${isLyricsFolded ? 'text-white bg-white/15' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
-                        title={isLyricsFolded ? '展开歌词' : '折叠歌词'}
-                    >
-                        <img src="/icon/icon_lyrics.svg" alt="Lyrics" className="w-5 h-5" style={{ filter: isLyricsFolded ? 'invert(1) brightness(100)' : 'invert(1) brightness(100) opacity(0.3)' }} />
-                    </button>
-                    {hasTranslation && (
-                        <button
-                            onClick={toggleTranslation}
-                            className={`p-2 rounded-full transition-colors ${showTranslation ? 'text-white bg-white/15 hover:bg-white/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
-                            title={showTranslation ? '隐藏翻译' : '显示翻译'}
-                        >
-                            <Languages size={20} />
-                        </button>
+                    {!isMobile && (
+                        <>
+                            <div className="flex bg-white/5 rounded-full p-1 mr-2 border border-white/10">
+                                <button
+                                    onClick={() => setRightPanelMode('lyrics')}
+                                    className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${rightPanelMode === 'lyrics' ? 'bg-white/20 text-white shadow-sm' : 'text-white/50 hover:text-white/80'}`}
+                                >
+                                    歌词
+                                </button>
+                                <button
+                                    onClick={() => setRightPanelMode('info')}
+                                    className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${rightPanelMode === 'info' ? 'bg-white/20 text-white shadow-sm' : 'text-white/50 hover:text-white/80'}`}
+                                >
+                                    歌曲信息
+                                </button>
+                            </div>
+                            <button
+                                onClick={() => setRightPanelMode(rightPanelMode === 'eq' ? 'lyrics' : 'eq')}
+                                className={`p-2 rounded-full transition-colors mr-1 ${rightPanelMode === 'eq' ? 'text-white bg-white/15 hover:bg-white/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+                                title="均衡器设置"
+                            >
+                                <SlidersHorizontal size={20} />
+                            </button>
+                            <button
+                                onClick={() => setIsLyricsFolded(!isLyricsFolded)}
+                                className={`p-2 rounded-full transition-all duration-300 ${isLyricsFolded ? 'text-white bg-white/15' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+                                title={isLyricsFolded ? '展开歌词' : '折叠歌词'}
+                            >
+                                <img src="/icon/icon_lyrics.svg" alt="Lyrics" className="w-5 h-5" style={{ filter: isLyricsFolded ? 'invert(1) brightness(100)' : 'invert(1) brightness(100) opacity(0.3)' }} />
+                            </button>
+                            {hasTranslation && (
+                                <button
+                                    onClick={toggleTranslation}
+                                    className={`p-2 rounded-full transition-colors ${showTranslation ? 'text-white bg-white/15 hover:bg-white/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
+                                    title={showTranslation ? '隐藏翻译' : '显示翻译'}
+                                >
+                                    <Languages size={20} />
+                                </button>
+                            )}
+                            <div className="flex items-center gap-2 ml-4 text-white/50">
+                                <button
+                                    onClick={minimize}
+                                    className="p-2 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                                >
+                                    <Minus size={20} />
+                                </button>
+                                <button
+                                    onClick={toggleMaximize}
+                                    className="p-2 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+                                >
+                                    <Square size={20} />
+                                </button>
+                                <button
+                                    onClick={closeWindow}
+                                    className="p-2 hover:text-white hover:bg-white/10 rounded-full transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+                        </>
                     )}
-                    <div className="flex items-center gap-2 ml-4 text-white/50">
-                        <button
-                            onClick={minimize}
-                            className="p-2 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-                        >
-                            <Minus size={20} />
-                        </button>
-                        <button
-                            onClick={toggleMaximize}
-                            className="p-2 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-                        >
-                            <Square size={20} />
-                        </button>
+                    {isMobile && (
                         <button
                             onClick={closeWindow}
-                            className="p-2 hover:text-white hover:bg-white/10 rounded-full transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                            className="p-2 text-white/30 hover:text-white hover:bg-white/10 rounded-full transition-colors"
                         >
-                            <X size={20} />
+                            <X size={24} />
                         </button>
-                    </div>
+                    )}
                 </div>
             </div>
 
-            {/* Main Content Layout (45/55 or Centered) */}
-            <div className={`relative z-10 grid flex-1 min-h-0 w-full max-w-[1700px] mx-auto overflow-hidden pb-6 lg:pb-8 transition-all duration-700 ease-in-out ${isLyricsFolded ? 'grid-cols-1 max-w-[800px]' : 'grid-cols-1 lg:grid-cols-[45%_55%]'}`}>
+            {/* Main Content Layout (45/55 Grid for Desktop, Single Col for Mobile) */}
+            <div className={`relative z-10 grid flex-1 min-h-0 w-full max-w-[1700px] mx-auto overflow-hidden transition-all duration-700 ease-in-out ${isLyricsFolded ? 'grid-cols-1 max-w-[800px]' : 'grid-cols-1 lg:grid-cols-[45%_55%]'}`}>
 
-                {/* Left Panel: Info & Controls */}
-                <div className={`flex flex-col items-center justify-center h-full min-h-0 overflow-hidden transition-all duration-700 ease-in-out ${isLyricsFolded ? 'px-4' : 'px-[4vw] lg:px-[6vw]'}`}>
+                {/* Left Column (Desktop & Mobile) */}
+                <div className={`flex flex-col items-center h-full min-h-0 overflow-hidden w-full transition-all duration-700 ease-in-out ${isLyricsFolded ? 'px-4' : 'px-[4vw] lg:px-[6vw]'}`}>
+                    {/* Top flexible spacer to balance vertical position */}
+                    {!isMobile && <div className="flex-[0.8] min-h-[2vh] shrink-0" />}
 
-                    {/* Flexible spacer above */}
-                    <div className="flex-[0.5] min-h-[1vh]" />
-
-                    {/* Album Art Container with responsive size (or Immersive Mode Background) */}
-                    <div className={
-                        isImmersiveMode
-                            ? "fixed inset-y-0 left-0 w-[60vw] max-w-none rounded-none border-none shadow-none z-0 pointer-events-none transition-all duration-700"
-                            : "relative aspect-square w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink transition-all duration-700"
-                    }
-                    style={
-                        isImmersiveMode
-                            ? { maskImage: 'linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)', WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)' }
-                            : {}
-                    }>
-                        {!isImmersiveMode && <div className="absolute inset-0 bg-black/40 blur-3xl scale-95 translate-y-8 opacity-60 hover:opacity-80 transition-opacity duration-500" />}
-                        <div className={
-                            isImmersiveMode
-                                ? "relative w-full h-full"
-                                : "relative w-full h-full rounded-[20px] overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.4)] transition-transform duration-500 hover:scale-[1.02] bg-white/5 border border-white/10"
-                        }>
-                            {/* 静态图：当动态封面存在时充当占位，或者作为 fallback */}
-                            {currentTrack?.picUrl ? (
-                                <img
-                                    src={currentTrack.picUrl}
-                                    alt={currentTrack.name}
-                                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${dynamicCoverUrl && isVideoLoaded ? 'opacity-0' : 'opacity-100'
-                                        }`}
-                                />
-                            ) : (
-                                <div className="absolute inset-0 w-full h-full flex items-center justify-center text-white/10 text-4xl font-bold">CYRENE</div>
-                            )}
-
-                            {/* 动态封面：使用双视频交替播放实现无缝淡入淡出 */}
-                            {dynamicCoverUrl && (
-                                <>
-                                    <video
-                                        ref={video0Ref}
-                                        src={dynamicCoverUrl}
-                                        autoPlay={activeVideo === 0}
-                                        muted
-                                        playsInline
-                                        onLoadedData={() => {
-                                            if (activeVideo === 0) setIsVideoLoaded(true);
-                                        }}
-                                        onTimeUpdate={() => {
-                                            if (activeVideo !== 0 || !video0Ref.current || !video1Ref.current) return;
-                                            const v0 = video0Ref.current;
-                                            if (v0.duration - v0.currentTime <= crossfadeDuration) {
-                                                video1Ref.current.currentTime = 0;
-                                                video1Ref.current.play();
-                                                setActiveVideo(1);
-                                            }
-                                        }}
-                                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded && activeVideo === 0 ? 'opacity-100' : 'opacity-0'
-                                            }`}
-                                    />
-                                    <video
-                                        ref={video1Ref}
-                                        src={dynamicCoverUrl}
-                                        muted
-                                        playsInline
-                                        onTimeUpdate={() => {
-                                            if (activeVideo !== 1 || !video1Ref.current || !video0Ref.current) return;
-                                            const v1 = video1Ref.current;
-                                            if (v1.duration - v1.currentTime <= crossfadeDuration) {
-                                                video0Ref.current.currentTime = 0;
-                                                video0Ref.current.play();
-                                                setActiveVideo(0);
-                                            }
-                                        }}
-                                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded && activeVideo === 1 ? 'opacity-100' : 'opacity-0'
-                                            }`}
-                                    />
-                                </>
-                            )}
+                    {/* Content Section: Cover/Info (+ Slides into Lyrics on Mobile) */}
+                    <div className={`w-full min-h-0 ${isMobile ? 'flex flex-[1.5] transition-transform duration-700 ease-in-out' : 'flex-none'} ${isMobile && showMobileLyrics ? '-translate-x-full' : 'translate-x-0'}`}>
+                        {/* Part 1: Album Art & Info */}
+                        <div className={`flex flex-col items-center w-full shrink-0 ${!isMobile ? 'justify-start' : 'justify-center'}`}>
+                            {isMobile && <div className="flex-[0.5] min-h-[1vh]" />}
+                            <div className={
+                                isImmersiveMode
+                                    ? "fixed inset-y-0 left-0 w-[60vw] max-w-none rounded-none border-none shadow-none z-0 pointer-events-none transition-all duration-700"
+                                    : "relative aspect-square w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink transition-all duration-700"
+                            }
+                                style={isImmersiveMode ? { maskImage: 'linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)', WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)' } : {}}
+                            >
+                                {!isImmersiveMode && <div className="absolute inset-0 bg-black/40 blur-3xl scale-95 translate-y-8 opacity-60 hover:opacity-80 transition-opacity duration-500" />}
+                                <div className={isImmersiveMode ? "relative w-full h-full" : "relative w-full h-full rounded-[20px] overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.4)] transition-transform duration-500 hover:scale-[1.02] bg-white/5 border border-white/10"}>
+                                    {currentTrack?.picUrl ? (
+                                        <img src={currentTrack.picUrl} alt={currentTrack.name} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${dynamicCoverUrl && isVideoLoaded ? 'opacity-0' : 'opacity-100'}`} />
+                                    ) : (
+                                        <div className="absolute inset-0 w-full h-full flex items-center justify-center text-white/10 text-4xl font-bold">CYRENE</div>
+                                    )}
+                                    {dynamicCoverUrl && (
+                                        <>
+                                            <video
+                                                ref={video0Ref}
+                                                src={dynamicCoverUrl}
+                                                autoPlay={activeVideo === 0}
+                                                muted
+                                                playsInline
+                                                onLoadedData={() => { if (activeVideo === 0) setIsVideoLoaded(true); }}
+                                                onTimeUpdate={() => {
+                                                    if (activeVideo !== 0 || !video0Ref.current || !video1Ref.current) return;
+                                                    const v0 = video0Ref.current;
+                                                    if (v0.duration - v0.currentTime <= crossfadeDuration) {
+                                                        video1Ref.current.currentTime = 0;
+                                                        video1Ref.current.play();
+                                                        setActiveVideo(1);
+                                                    }
+                                                }}
+                                                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded && activeVideo === 0 ? 'opacity-100' : 'opacity-0'}`}
+                                            />
+                                            <video
+                                                ref={video1Ref}
+                                                src={dynamicCoverUrl}
+                                                muted
+                                                playsInline
+                                                onTimeUpdate={() => {
+                                                    if (activeVideo !== 1 || !video1Ref.current || !video0Ref.current) return;
+                                                    const v1 = video1Ref.current;
+                                                    if (v1.duration - v1.currentTime <= crossfadeDuration) {
+                                                        video0Ref.current.currentTime = 0;
+                                                        video0Ref.current.play();
+                                                        setActiveVideo(0);
+                                                    }
+                                                }}
+                                                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded && activeVideo === 1 ? 'opacity-100' : 'opacity-0'}`}
+                                            />
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="h-[3vh] min-h-[16px] shrink-0" />
+                            <div className="relative z-10 w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink-0 flex flex-col items-start text-left space-y-1 lg:space-y-2">
+                                <div className="flex w-full justify-between items-center gap-4">
+                                    <h1 className="text-[clamp(1.5rem,4vh,2.6rem)] font-bold text-white leading-tight tracking-[-0.5px] truncate flex-1">
+                                        {currentTrack?.name || "未在播放"}
+                                    </h1>
+                                    {currentTrack && (
+                                        <button onClick={handleHeartClick} className={`p-2 rounded-full transition-all duration-300 shrink-0 ${isInPlaylist ? 'text-red-500' : 'text-white/30 hover:text-white/80 hover:bg-white/10'}`}>
+                                            <Heart size={24} fill={isInPlaylist ? "currentColor" : "none"} />
+                                        </button>
+                                    )}
+                                </div>
+                                <p className="text-[clamp(1rem,2vh,1.3rem)] text-white/50 font-medium truncate w-full">
+                                    {currentTrack?.artists || "未知歌手"}
+                                </p>
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Spacing between art and info */}
-                    <div className="h-[3vh] min-h-[16px] shrink-0" />
-
-                    {/* Track Info */}
-                    <div className="relative z-10 w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink-0 flex flex-col items-start text-left space-y-1 lg:space-y-2">
-                        <div className="flex w-full justify-between items-center gap-4">
-                            <h1 className="text-[clamp(1.5rem,4vh,2.6rem)] font-bold text-white leading-tight tracking-[-0.5px] truncate flex-1">
-                                {currentTrack?.name || "未在播放"}
-                            </h1>
-                            {currentTrack && (
-                                <button
-                                    onClick={handleHeartClick}
-                                    className={`p-2 rounded-full transition-all duration-300 shrink-0 ${isInPlaylist ? 'text-red-500' : 'text-white/30 hover:text-white/80 hover:bg-white/10'}`}
-                                >
-                                    <Heart size={24} fill={isInPlaylist ? "currentColor" : "none"} />
+                        {/* Part 2: Panel Section (Mobile only, slides behind Info) */}
+                        {isMobile && (
+                            <div className="relative h-full overflow-hidden shrink-0 w-full">
+                                <button onClick={() => setShowMobileLyrics(false)} className="absolute top-4 left-6 z-[120] p-2 bg-white/10 hover:bg-white/20 rounded-full text-white/60 hover:text-white transition-all shadow-xl">
+                                    <ChevronDown size={28} className="rotate-90" />
                                 </button>
-                            )}
-                        </div>
-                        <p className="text-[clamp(1rem,2vh,1.3rem)] text-white/50 font-medium truncate w-full">
-                            {currentTrack?.artists || "未知歌手"}
-                        </p>
+                                <div className="absolute inset-0 w-full h-full animate-in fade-in zoom-in-95 duration-500">
+                                    {rightPanelMode === 'lyrics' ? <LyricPlayer /> : rightPanelMode === 'info' ? <SongInfoPanel /> : <EqualizerPanel />}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Spacing between info and controls */}
+                    {/* Progress & Controls Section (Fixed in Column 1 position) */}
                     <div className="h-[3vh] min-h-[16px] shrink-0" />
-
-                    {/* Controls & Progress */}
-                    <div className="relative z-10 w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink-0 space-y-4 lg:space-y-6">
-                        {/* Progress Bar */}
+                    <div className="relative z-20 w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink-0 space-y-4 lg:space-y-6 pb-4">
+                        {/* Progress */}
                         <div className="space-y-2 lg:space-y-3 group/progress">
                             <div className="h-3 flex items-center">
                                 <Slider
@@ -700,16 +705,9 @@ export function FullscreenPlayer() {
                                         </button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="center" className="w-56 bg-black/90 backdrop-blur-xl border-white/10 text-white">
-                                        <div className="px-2 py-1.5 text-xs font-medium text-white/60 border-b border-white/10 mb-1">
-                                            音质选择
-                                        </div>
+                                        <div className="px-2 py-1.5 text-xs font-medium text-white/60 border-b border-white/10 mb-1">音质选择</div>
                                         {getQualityOptions().map((q) => (
-                                            <DropdownMenuCheckboxItem
-                                                key={q.value}
-                                                checked={quality === q.value}
-                                                onCheckedChange={() => handleQualityChange(q.value)}
-                                                className="focus:bg-white/10 focus:text-white data-[state=checked]:bg-white/5 py-2"
-                                            >
+                                            <DropdownMenuCheckboxItem key={q.value} checked={quality === q.value} onCheckedChange={() => handleQualityChange(q.value)} className="focus:bg-white/10 focus:text-white data-[state=checked]:bg-white/5 py-2">
                                                 <div className="flex flex-col">
                                                     <span className="font-medium">{q.label}</span>
                                                     <span className="text-xs text-white/50">{q.desc}</span>
@@ -727,59 +725,72 @@ export function FullscreenPlayer() {
                             <button onClick={handleSkipPrevious} className="text-white/90 hover:text-white transition-all active:scale-90 p-2">
                                 <img src="/icon/icon_rewind.svg" alt="Previous" className="w-10 h-10 lg:w-12 lg:h-12 invert brightness-200" style={{ filter: 'invert(1) brightness(100)' }} />
                             </button>
-                            <button
-                                onClick={handleTogglePlay}
-                                className="text-white hover:text-white/90 active:scale-95 transition-all p-2"
-                            >
-                                {isPlaying ? (
-                                    <img src="/icon/icon_pause.svg" alt="Pause" className="w-12 h-12 lg:w-14 lg:h-14" style={{ filter: 'invert(1) brightness(100)' }} />
-                                ) : (
-                                    <img src="/icon/icon_play.svg" alt="Play" className="w-12 h-12 lg:w-14 lg:h-14" style={{ filter: 'invert(1) brightness(100)' }} />
-                                )}
+                            <button onClick={handleTogglePlay} className="text-white hover:text-white/90 active:scale-95 transition-all p-2">
+                                {isPlaying ? <img src="/icon/icon_pause.svg" alt="Pause" className="w-12 h-12 lg:w-14 lg:h-14" style={{ filter: 'invert(1) brightness(100)' }} /> : <img src="/icon/icon_play.svg" alt="Play" className="w-12 h-12 lg:w-14 lg:h-14" style={{ filter: 'invert(1) brightness(100)' }} />}
                             </button>
                             <button onClick={handleSkipNext} className="text-white/90 hover:text-white transition-all active:scale-90 p-2">
                                 <img src="/icon/icon_forward.svg" alt="Next" className="w-10 h-10 lg:w-12 lg:h-12 invert brightness-200" style={{ filter: 'invert(1) brightness(100)' }} />
                             </button>
                         </div>
 
-                        {/* Volume Slider - Matching Progress Bar Width */}
-                        <div className="flex items-center justify-between gap-3 text-white/40 group/volume mt-1 lg:mt-2 w-full">
-                            <Volume size={16} className="shrink-0" />
-                            <div className="flex-1 h-3 flex items-center">
-                                <Slider
-                                    value={[localVolume]}
-                                    max={1}
-                                    step={0.01}
-                                    onValueChange={handleVolumeChange}
-                                    onValueCommit={handleVolumeCommit}
-                                    className="w-full opacity-60 group-hover/volume:opacity-100 transition-opacity"
-                                    variant="apple"
-                                />
+                        {/* Volume & Mobile Actions */}
+                        <div className="space-y-4 lg:space-y-6">
+                            <div className="flex items-center justify-between gap-3 text-white/40 group/volume mt-1 lg:mt-2 w-full">
+                                <Volume size={16} className="shrink-0" />
+                                <div className="flex-1 h-3 flex items-center">
+                                    <Slider value={[localVolume]} max={1} step={0.01} onValueChange={handleVolumeChange} onValueCommit={handleVolumeCommit} className="w-full opacity-60 group-hover/volume:opacity-100 transition-opacity" variant="apple" />
+                                </div>
+                                <Volume2 size={20} className="shrink-0" />
                             </div>
-                            <Volume2 size={20} className="shrink-0" />
+
+                            {/* Mobile Dynamic Buttons */}
+                            {isMobile && (
+                                <div className="flex items-center justify-center gap-8 py-2">
+                                    <button onClick={() => { setRightPanelMode('lyrics'); setShowMobileLyrics(true); }} className={`flex flex-col items-center transition-all ${showMobileLyrics && rightPanelMode === 'lyrics' ? 'text-white' : 'text-white/30'}`}>
+                                        <div className={`p-2.5 rounded-full transition-colors ${showMobileLyrics && rightPanelMode === 'lyrics' ? 'bg-white/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-transparent'}`}>
+                                            <img src="/icon/icon_lyrics.svg" alt="Lyrics" className="w-6 h-6 invert brightness-200" style={{ opacity: showMobileLyrics && rightPanelMode === 'lyrics' ? 1 : 0.6 }} />
+                                        </div>
+                                    </button>
+                                    <button onClick={() => { setRightPanelMode('info'); setShowMobileLyrics(true); }} className={`flex flex-col items-center transition-all ${showMobileLyrics && rightPanelMode === 'info' ? 'text-white' : 'text-white/30'}`}>
+                                        <div className={`p-2.5 rounded-full transition-colors ${showMobileLyrics && rightPanelMode === 'info' ? 'bg-white/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-transparent'}`}>
+                                            <Activity size={24} className={showMobileLyrics && rightPanelMode === 'info' ? 'opacity-100' : 'opacity-60'} />
+                                        </div>
+                                    </button>
+                                    <button onClick={() => { setRightPanelMode('eq'); setShowMobileLyrics(true); }} className={`flex flex-col items-center transition-all ${showMobileLyrics && rightPanelMode === 'eq' ? 'text-white' : 'text-white/30'}`}>
+                                        <div className={`p-2.5 rounded-full transition-colors ${showMobileLyrics && rightPanelMode === 'eq' ? 'bg-white/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-transparent'}`}>
+                                            <SlidersHorizontal size={24} className={showMobileLyrics && rightPanelMode === 'eq' ? 'opacity-100' : 'opacity-60'} />
+                                        </div>
+                                    </button>
+                                    {hasTranslation && (
+                                        <button onClick={toggleTranslation} className={`flex flex-col items-center transition-all ${showTranslation ? 'text-white' : 'text-white/30'}`}>
+                                            <div className={`p-2.5 rounded-full transition-colors ${showTranslation ? 'bg-white/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-transparent'}`}>
+                                                <Languages size={24} className={showTranslation ? 'opacity-100' : 'opacity-60'} />
+                                            </div>
+                                        </button>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
-
-                    {/* Flexible spacer below */}
-                    <div className="flex-1 min-h-[1vh]" />
+                    {!isMobile && <div className="flex-1 min-h-[1vh]" />}
                 </div>
 
-                {/* Right Panel: High-Fidelity Lyric Player or Song Info Panel */}
-                <div className={`relative h-full overflow-hidden transition-all duration-700 ease-in-out ${isLyricsFolded ? 'opacity-0 translate-x-full pointer-events-none w-0' : 'opacity-100 translate-x-0 w-full'}`}>
-                    {rightPanelMode === 'lyrics' ? (
+                {/* Right Column (Desktop only, Col 2) */}
+                {!isMobile && (
+                    <div className={`relative h-full overflow-hidden transition-all duration-700 ease-in-out ${isLyricsFolded ? 'opacity-0 translate-x-full pointer-events-none w-0' : 'opacity-100 translate-x-0'}`}>
                         <div className="absolute inset-0 w-full h-full animate-in fade-in zoom-in-95 duration-500">
-                            <LyricPlayer />
+                            {rightPanelMode === 'lyrics' ? (
+                                <LyricPlayer />
+                            ) : rightPanelMode === 'info' ? (
+                                <SongInfoPanel />
+                            ) : (
+                                <div className="flex items-center justify-center h-full">
+                                    <EqualizerPanel />
+                                </div>
+                            )}
                         </div>
-                    ) : rightPanelMode === 'info' ? (
-                        <div className="absolute inset-0 w-full h-full animate-in fade-in zoom-in-95 duration-500">
-                            <SongInfoPanel />
-                        </div>
-                    ) : (
-                        <div className="absolute inset-0 w-full h-full animate-in fade-in zoom-in-95 duration-500 flex items-center justify-center">
-                            <EqualizerPanel />
-                        </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
 
             <AddToPlaylistDialog

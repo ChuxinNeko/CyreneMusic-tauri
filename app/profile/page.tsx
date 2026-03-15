@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import {
     User,
     Music2,
@@ -22,10 +23,22 @@ import { TopRankingSection } from "@/components/profile/TopRankingSection"
 
 export default function ProfilePage() {
     const { user, isLoggedIn, token } = useAuthStore()
+    const searchParams = useSearchParams()
+    const router = useRouter()
     const [stats, setStats] = useState<any>(null)
     const [playlists, setPlaylists] = useState<Playlist[]>([])
     const [loading, setLoading] = useState(true)
-    const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | number | null>(null)
+    const selectedPlaylistId = searchParams.get("playlist")
+
+    const setSelectedPlaylistId = (id: string | number | null) => {
+        const params = new URLSearchParams(searchParams.toString())
+        if (id) {
+            params.set("playlist", id.toString())
+        } else {
+            params.delete("playlist")
+        }
+        router.push(`/profile?${params.toString()}`)
+    }
 
     const fetchData = async (silent = false) => {
         if (!isLoggedIn) return
