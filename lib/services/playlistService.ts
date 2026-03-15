@@ -94,12 +94,75 @@ class PlaylistService {
             const response = await fetch(`${urlService.baseUrl}/playlists/${playlistId}/tracks/batch`, {
                 method: "POST",
                 headers: this.getHeaders(),
-                body: JSON.stringify({ tracks })
+                body: JSON.stringify({ 
+                    tracks: tracks.map(t => ({
+                        ...t,
+                        trackId: String(t.trackId)
+                    }))
+                })
             });
             return response.ok;
         } catch (error) {
             console.error("[PlaylistService] addTracksToPlaylist failed:", error);
             return false;
+        }
+    }
+
+    public async addTrackToPlaylist(
+        playlistId: string | number,
+        trackId: string | number,
+        name: string,
+        artists: string,
+        album: string,
+        picUrl: string,
+        source: string
+    ): Promise<boolean> {
+        try {
+            const response = await fetch(`${urlService.baseUrl}/playlists/${playlistId}/tracks`, {
+                method: "POST",
+                headers: this.getHeaders(),
+                body: JSON.stringify({ trackId: String(trackId), name, artists, album, picUrl, source })
+            });
+            return response.ok;
+        } catch (error) {
+            console.error("[PlaylistService] addTrackToPlaylist failed:", error);
+            return false;
+        }
+    }
+
+    public async removeTrackFromPlaylist(
+        playlistId: string | number,
+        trackId: string | number,
+        source: string
+    ): Promise<boolean> {
+        try {
+            const response = await fetch(`${urlService.baseUrl}/playlists/${playlistId}/tracks/remove`, {
+                method: "POST",
+                headers: this.getHeaders(),
+                body: JSON.stringify({ trackId: String(trackId), source })
+            });
+            return response.ok;
+        } catch (error) {
+            console.error("[PlaylistService] removeTrackFromPlaylist failed:", error);
+            return false;
+        }
+    }
+
+    /**
+     * 检查歌曲是否在用户的任何歌单中
+     */
+    public async checkTrackInPlaylists(trackId: string | number, source: string): Promise<{ inPlaylist: boolean; playlistIds: number[]; playlistNames: string[] }> {
+        try {
+            const response = await fetch(`${urlService.baseUrl}/playlists/check-track?trackId=${String(trackId)}&source=${source}`, {
+                headers: this.getHeaders()
+            });
+            if (response.ok) {
+                return await response.json();
+            }
+            return { inPlaylist: false, playlistIds: [], playlistNames: [] };
+        } catch (error) {
+            console.error("[PlaylistService] checkTrackInPlaylists failed:", error);
+            return { inPlaylist: false, playlistIds: [], playlistNames: [] };
         }
     }
 }

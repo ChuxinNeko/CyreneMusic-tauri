@@ -20,7 +20,8 @@ import {
     Monitor,
     Baseline,
     Palette,
-    SlidersHorizontal
+    SlidersHorizontal,
+    Heart
 } from "lucide-react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { emit } from "@tauri-apps/api/event"
@@ -32,6 +33,8 @@ import { LyricPlayer } from "./LyricPlayer"
 import { SongInfoPanel } from "./song-info/SongInfoPanel"
 import { WebGLBackground } from "./WebGLBackground"
 import { EqualizerPanel } from "./EqualizerPanel"
+import { AddToPlaylistDialog } from "./AddToPlaylistDialog"
+import { playlistService } from "@/lib/services/playlistService"
 import { Slider } from "@/components/ui/slider"
 import {
     DropdownMenu,
@@ -43,6 +46,7 @@ import {
     DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
 import { invoke } from "@tauri-apps/api/core"
+import { toast } from "sonner"
 
 export function FullscreenPlayer() {
     const {
@@ -84,6 +88,10 @@ export function FullscreenPlayer() {
     const [rightPanelMode, setRightPanelMode] = React.useState<'lyrics' | 'info' | 'eq'>('lyrics')
     const [dynamicCoverUrl, setDynamicCoverUrl] = React.useState<string | null>(null)
     const [isVideoLoaded, setIsVideoLoaded] = React.useState(false)
+    const [isInPlaylist, setIsInPlaylist] = React.useState(false)
+    const [inPlaylistIds, setInPlaylistIds] = React.useState<number[]>([])
+    const [showAddToPlaylist, setShowAddToPlaylist] = React.useState(false)
+    const [showAddToPlaylistMode, setShowAddToPlaylistMode] = React.useState<'add' | 'remove'>('add')
 
     // 双视频无缝循环淡入淡出
     const video0Ref = React.useRef<HTMLVideoElement>(null)
@@ -178,6 +186,25 @@ export function FullscreenPlayer() {
         }
     }, [currentTrack])
 
+    const checkPlaylistStatus = React.useCallback(async () => {
+        if (currentTrack?.id && currentTrack?.source) {
+            try {
+                const status = await playlistService.checkTrackInPlaylists(currentTrack.id, currentTrack.source)
+                setIsInPlaylist(status.inPlaylist)
+                setInPlaylistIds(status.playlistIds || [])
+            } catch (error) {
+                console.error("Failed to check playlist status:", error)
+            }
+        } else {
+            setIsInPlaylist(false)
+            setInPlaylistIds([])
+        }
+    }, [currentTrack])
+
+    React.useEffect(() => {
+        checkPlaylistStatus()
+    }, [checkPlaylistStatus])
+
     React.useEffect(() => {
         if (!isDraggingProgress.current) {
             setLocalProgress(progress || 0)
@@ -243,6 +270,33 @@ export function FullscreenPlayer() {
         }, 200)
     }
 
+    const handleHeartClick = async (e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (!currentTrack) return
+
+        // 如果存在于多个歌单，或者未收藏，则打开对话框
+        if (inPlaylistIds.length === 0 || inPlaylistIds.length > 1) {
+            setShowAddToPlaylistMode(inPlaylistIds.length === 0 ? 'add' : 'remove')
+            setShowAddToPlaylist(true)
+            return
+        }
+
+        // 仅存在于一个歌单，直接执行移除操作
+        try {
+            const playlistId = inPlaylistIds[0]
+            const success = await playlistService.removeTrackFromPlaylist(playlistId, currentTrack.id, currentTrack.source)
+            if (success) {
+                toast.success("已从歌单中移除")
+                checkPlaylistStatus()
+            } else {
+                toast.error("从歌单移除失败")
+            }
+        } catch (error) {
+            console.error("Failed to remove track from playlist:", error)
+            toast.error("操作失败")
+        }
+    }
+
     return (
         <div className={`fixed inset-0 z-[100] bg-black overflow-hidden flex flex-col transition-all duration-500 ease-in-out ${isAnimatingOut ? 'opacity-0 translate-y-full' : 'opacity-100 translate-y-0'}`}>
             {/* Ambient Background */}
@@ -271,7 +325,7 @@ export function FullscreenPlayer() {
                             <MoreHorizontal size={22} />
                         </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-48 z-[200] bg-black/80 backdrop-blur-xl border-white/10 text-white">
+                    <DropdownMenuContent align="start" className="w-48 bg-black/80 backdrop-blur-xl border-white/10 text-white">
                         <DropdownMenuLabel>播放器设置</DropdownMenuLabel>
                         <DropdownMenuSeparator className="bg-white/10" />
                         <DropdownMenuCheckboxItem
@@ -519,10 +573,20 @@ export function FullscreenPlayer() {
                     <div className="h-[3vh] min-h-[16px] shrink-0" />
 
                     {/* Track Info */}
-                    <div className="relative z-10 w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink-0 flex flex-col items-center text-center space-y-1 lg:space-y-2">
-                        <h1 className="text-[clamp(1.5rem,4vh,2.6rem)] font-bold text-white leading-tight tracking-[-0.5px] truncate w-full">
-                            {currentTrack?.name || "未在播放"}
-                        </h1>
+                    <div className="relative z-10 w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink-0 flex flex-col items-start text-left space-y-1 lg:space-y-2">
+                        <div className="flex w-full justify-between items-center gap-4">
+                            <h1 className="text-[clamp(1.5rem,4vh,2.6rem)] font-bold text-white leading-tight tracking-[-0.5px] truncate flex-1">
+                                {currentTrack?.name || "未在播放"}
+                            </h1>
+                            {currentTrack && (
+                                <button
+                                    onClick={handleHeartClick}
+                                    className={`p-2 rounded-full transition-all duration-300 shrink-0 ${isInPlaylist ? 'text-red-500' : 'text-white/30 hover:text-white/80 hover:bg-white/10'}`}
+                                >
+                                    <Heart size={24} fill={isInPlaylist ? "currentColor" : "none"} />
+                                </button>
+                            )}
+                        </div>
                         <p className="text-[clamp(1rem,2vh,1.3rem)] text-white/50 font-medium truncate w-full">
                             {currentTrack?.artists || "未知歌手"}
                         </p>
@@ -618,6 +682,14 @@ export function FullscreenPlayer() {
                     )}
                 </div>
             </div>
+
+            <AddToPlaylistDialog
+                open={showAddToPlaylist}
+                onOpenChange={setShowAddToPlaylist}
+                track={currentTrack}
+                onStatusChange={checkPlaylistStatus}
+                mode={showAddToPlaylistMode}
+            />
         </div>
     )
 }

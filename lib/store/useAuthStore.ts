@@ -7,11 +7,15 @@ interface AuthState {
     token: string | null
     isLoggedIn: boolean
     isLoading: boolean
+    hasCompletedSetup: boolean
+    hasAcceptedAgreement: boolean
 
     // Actions
     login: (user: User, token: string) => void
     logout: () => void
     updateUser: (user: User) => void
+    completeSetup: () => void
+    acceptAgreement: () => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -21,17 +25,29 @@ export const useAuthStore = create<AuthState>()(
             token: null,
             isLoggedIn: false,
             isLoading: false,
+            hasCompletedSetup: false,
+            hasAcceptedAgreement: false,
 
             login: (user, token) => set({ user, token, isLoggedIn: true }),
 
-            logout: () => set({ user: null, token: null, isLoggedIn: false }),
+            logout: () => set({ user: null, token: null, isLoggedIn: false, hasCompletedSetup: false }),
 
             updateUser: (user) => set({ user }),
+
+            completeSetup: () => set({ hasCompletedSetup: true }),
+
+            acceptAgreement: () => set({ hasAcceptedAgreement: true }),
         }),
         {
             name: 'auth-storage',
             storage: createJSONStorage(() => localStorage),
-            partialize: (state) => ({ user: state.user, token: state.token, isLoggedIn: state.isLoggedIn }),
+            partialize: (state) => ({
+                user: state.user,
+                token: state.token,
+                isLoggedIn: state.isLoggedIn,
+                hasCompletedSetup: state.hasCompletedSetup,
+                hasAcceptedAgreement: state.hasAcceptedAgreement,
+            }),
         }
     )
 )

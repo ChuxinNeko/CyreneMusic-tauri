@@ -95,6 +95,20 @@ export function parseLyrics(track: { id?: string | number; yrc?: string; lyric?:
 
         processed.sort((a, b) => a.time - b.time);
 
+        // 后处理：为普通 LRC 歌词行设置正确的 endTime（= 下一行的 startTime）
+        for (let i = 0; i < processed.length; i++) {
+            if (!processed[i].isVerbatim) {
+                const nextTime = i + 1 < processed.length
+                    ? processed[i + 1].time
+                    : processed[i].time + 5000;
+                processed[i].endTime = nextTime;
+                processed[i].words.forEach(w => {
+                    w.endTime = nextTime;
+                    w.duration = nextTime - w.startTime;
+                });
+            }
+        }
+
         const translationSource = hasYrc ? track?.ytlrc : track?.tlyric;
         if (translationSource && translationSource.trim().length > 0) {
             const tLines = translationSource.split('\n').filter(l => l.trim());

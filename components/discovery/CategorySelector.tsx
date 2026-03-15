@@ -41,12 +41,12 @@ export function CategorySelector({ selectedCategory, onCategoryChange }: Categor
     const hiddenTags = tags.slice(visibleCount)
 
     return (
-        <div className="w-full space-y-2">
-            <div className="flex flex-wrap gap-2 py-2 transition-all duration-300">
+        <div className="w-full space-y-3 sm:space-y-2">
+            <div className="flex items-center gap-2 py-2 transition-all duration-300 overflow-x-auto sm:flex-wrap sm:overflow-visible -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar">
                 <Button
                     variant={selectedCategory === "全部歌单" ? "default" : "secondary"}
                     size="sm"
-                    className="rounded-full px-4 h-8"
+                    className="rounded-full px-3 sm:px-4 h-7 sm:h-8 text-xs sm:text-sm"
                     onClick={() => onCategoryChange("全部歌单")}
                 >
                     全部
@@ -57,7 +57,7 @@ export function CategorySelector({ selectedCategory, onCategoryChange }: Categor
                         key={tag.id}
                         variant={selectedCategory === tag.name ? "default" : "secondary"}
                         size="sm"
-                        className="rounded-full px-4 h-8"
+                        className="rounded-full px-3 sm:px-4 h-7 sm:h-8 text-xs sm:text-sm"
                         onClick={() => onCategoryChange(tag.name)}
                     >
                         {tag.name}
@@ -68,7 +68,7 @@ export function CategorySelector({ selectedCategory, onCategoryChange }: Categor
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="rounded-full px-4 h-8 text-muted-foreground hover:text-foreground group"
+                        className="rounded-full px-3 sm:px-4 h-7 sm:h-8 text-xs sm:text-sm text-muted-foreground hover:text-foreground group"
                         onClick={() => setIsExpanded(true)}
                     >
                         更多
@@ -92,7 +92,7 @@ export function CategorySelector({ selectedCategory, onCategoryChange }: Categor
                                     key={tag.id}
                                     variant={selectedCategory === tag.name ? "default" : "secondary"}
                                     size="sm"
-                                    className="rounded-full px-4 h-8"
+                                    className="rounded-full px-3 sm:px-4 h-7 sm:h-8 text-xs sm:text-sm"
                                     onClick={() => onCategoryChange(tag.name)}
                                 >
                                     {tag.name}
@@ -101,7 +101,7 @@ export function CategorySelector({ selectedCategory, onCategoryChange }: Categor
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="rounded-full px-4 h-8 text-muted-foreground hover:text-foreground group"
+                                className="rounded-full px-3 sm:px-4 h-7 sm:h-8 text-xs sm:text-sm text-muted-foreground hover:text-foreground group"
                                 onClick={() => setIsExpanded(false)}
                             >
                                 收起
