@@ -377,15 +377,31 @@ export const LyricPlayer = React.memo(function LyricPlayer() {
         for (let i = 0; i < parsedLyrics.length; i++) {
             if (loopTime >= parsedLyrics[i].time) {
                 const hasInterlude = currentInterlude !== null
-                if (loopTime >= parsedLyrics[i].endTime && i + 1 < parsedLyrics.length && !hasInterlude) {
-                    activeIndex = i + 1;
+                const isVerbatim = parsedLyrics[i].isVerbatim
+                
+                // 对于逐字歌词，严格按照 endTime 切换
+                if (isVerbatim) {
+                    if (loopTime >= parsedLyrics[i].endTime && i + 1 < parsedLyrics.length && !hasInterlude) {
+                        activeIndex = i + 1;
+                    } else {
+                        activeIndex = i;
+                    }
                 } else {
-                    activeIndex = i;
+                    // 对于普通歌词，根据下一句开始时间提前切换
+                    // 提前量 = 当前句持续时间 * 0.7（在 70% 进度时切换到下一句）
+                    const currentLineDuration = parsedLyrics[i].endTime - parsedLyrics[i].time
+                    const advanceThreshold = parsedLyrics[i].time + currentLineDuration * 0.7
+                    
+                    if (i + 1 < parsedLyrics.length && !hasInterlude && loopTime >= advanceThreshold) {
+                        activeIndex = i + 1;
+                    } else {
+                        activeIndex = i;
+                    }
                 }
             }
         }
 
-        // 仅在歌词行切换或间奏状态变化时更新布局，不再节流每100ms打断CSS transition
+        // 仅在歌词行切换或间奏状态变化时更新布局，不再节流每 100ms 打断 CSS transition
         const interludeChanged = currentInterlude?.start !== interludeRef.current?.start
         if (currentScrollIndexRef.current !== activeIndex || interludeChanged) {
             currentScrollIndexRef.current = activeIndex

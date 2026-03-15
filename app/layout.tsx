@@ -31,6 +31,7 @@ import React from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { LogProvider } from "@/components/providers/LogProvider";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function RootLayout({
   children,
@@ -53,6 +54,7 @@ export default function RootLayout({
               {children}
             </MainLayout>
           </LogProvider>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>

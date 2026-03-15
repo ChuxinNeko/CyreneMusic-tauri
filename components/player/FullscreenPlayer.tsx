@@ -36,6 +36,10 @@ import { EqualizerPanel } from "./EqualizerPanel"
 import { AddToPlaylistDialog } from "./AddToPlaylistDialog"
 import { playlistService } from "@/lib/services/playlistService"
 import { Slider } from "@/components/ui/slider"
+import { useAudioSourceStore, useActiveSource } from "@/lib/store/useAudioSourceStore"
+import { AudioQuality } from "@/lib/services/audioSourceService"
+import { lxMusicRuntimeService } from "@/lib/services/lxMusicRuntimeService"
+import { AudioSourceType } from "@/lib/models/audioSourceConfig"
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -92,6 +96,9 @@ export function FullscreenPlayer() {
     const [inPlaylistIds, setInPlaylistIds] = React.useState<number[]>([])
     const [showAddToPlaylist, setShowAddToPlaylist] = React.useState(false)
     const [showAddToPlaylistMode, setShowAddToPlaylistMode] = React.useState<'add' | 'remove'>('add')
+    const [qualityMenuOpen, setQualityMenuOpen] = React.useState(false)
+    const { quality, setQuality } = useAudioSourceStore()
+    const activeSource = useActiveSource()
 
     // 双视频无缝循环淡入淡出
     const video0Ref = React.useRef<HTMLVideoElement>(null)
@@ -295,6 +302,76 @@ export function FullscreenPlayer() {
             console.error("Failed to remove track from playlist:", error)
             toast.error("操作失败")
         }
+    }
+
+    const getQualityLabel = (q: string) => {
+        const labels: Record<string, string> = {
+            [AudioQuality.Standard]: 'STANDARD',
+            [AudioQuality.ExHigh]: 'EXHIGH',
+            [AudioQuality.Lossless]: 'LOSSLESS',
+            [AudioQuality.HiRes]: 'HIRES',
+            '128k': '128K',
+            '320k': '320K',
+            'flac': 'FLAC',
+            'flac24bit': 'FLAC24BIT',
+        }
+        return labels[q] || q.toUpperCase()
+    }
+
+    const getQualityOptions = () => {
+        const qualityLabels: Record<string, { label: string, desc: string }> = {
+            [AudioQuality.Standard]: { label: "标准音质", desc: "128kbps，节省流量" },
+            [AudioQuality.ExHigh]: { label: "极高音质", desc: "320kbps，音质细腻" },
+            [AudioQuality.Lossless]: { label: "无损音质", desc: "FLAC，CD 级音质" },
+            [AudioQuality.HiRes]: { label: "Hi-Res 音质", desc: "24bit/96kHz 及以上" },
+            '128k': { label: "标准音质", desc: "128kbps，有效节省流量" },
+            '320k': { label: "极高音质", desc: "320kbps，音质更加细腻" },
+            'flac': { label: "无损音质", desc: "FLAC，无损 CD 级音质" },
+            'flac24bit': { label: "Hi-Res 音质", desc: "24bit/96kHz 及以上极致体验" },
+        }
+
+        let qualities: { value: string; label: string; desc: string }[] = [
+            {
+                value: AudioQuality.Standard,
+                ...qualityLabels[AudioQuality.Standard]
+            },
+            {
+                value: AudioQuality.ExHigh,
+                ...qualityLabels[AudioQuality.ExHigh]
+            },
+            {
+                value: AudioQuality.Lossless,
+                ...qualityLabels[AudioQuality.Lossless]
+            },
+            {
+                value: AudioQuality.HiRes,
+                ...qualityLabels[AudioQuality.HiRes]
+            },
+        ]
+
+        // 如果当前是洛雪音源，则动态获取支持的音质
+        const isLxMusic = activeSource?.type === AudioSourceType.LxMusic
+        if (isLxMusic) {
+            const supported = lxMusicRuntimeService.currentScript?.supportedQualities
+            if (supported && supported.length > 0) {
+                qualities = supported.map(q => ({
+                    value: q,
+                    label: qualityLabels[q]?.label || q.toUpperCase(),
+                    desc: qualityLabels[q]?.desc || "洛雪音源提供的音质"
+                }))
+            }
+        }
+
+        return qualities
+    }
+
+    const handleQualityChange = (newQuality: string) => {
+        setQuality(newQuality)
+        setQualityMenuOpen(false)
+        toast.success("音质已切换", {
+            description: "新音质将在下次切换歌曲时生效",
+            duration: 3000,
+        })
     }
 
     return (
@@ -616,9 +693,31 @@ export function FullscreenPlayer() {
                             </div>
                             <div className="relative flex justify-between items-center text-[0.75rem] text-white/50 font-semibold tabular-nums tracking-wider px-1">
                                 <span>{formatTime(isDraggingProgress.current ? localProgress * duration : currentTime)}</span>
-                                <span className="absolute left-1/2 -translate-x-1/2 text-[0.6rem] text-white/80 bg-white/10 px-1.5 py-0.5 rounded-[4px] font-bold tracking-widest uppercase">
-                                    Lossless
-                                </span>
+                                <DropdownMenu open={qualityMenuOpen} onOpenChange={setQualityMenuOpen}>
+                                    <DropdownMenuTrigger asChild>
+                                        <button className="text-[0.6rem] text-white/80 bg-white/10 px-1.5 py-0.5 rounded-[4px] font-bold tracking-widest uppercase hover:bg-white/20 transition-colors">
+                                            {getQualityLabel(quality)}
+                                        </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="center" className="w-56 bg-black/90 backdrop-blur-xl border-white/10 text-white">
+                                        <div className="px-2 py-1.5 text-xs font-medium text-white/60 border-b border-white/10 mb-1">
+                                            音质选择
+                                        </div>
+                                        {getQualityOptions().map((q) => (
+                                            <DropdownMenuCheckboxItem
+                                                key={q.value}
+                                                checked={quality === q.value}
+                                                onCheckedChange={() => handleQualityChange(q.value)}
+                                                className="focus:bg-white/10 focus:text-white data-[state=checked]:bg-white/5 py-2"
+                                            >
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium">{q.label}</span>
+                                                    <span className="text-xs text-white/50">{q.desc}</span>
+                                                </div>
+                                            </DropdownMenuCheckboxItem>
+                                        ))}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                                 <span>-{formatTime(Math.max(0, duration - (isDraggingProgress.current ? localProgress * duration : currentTime)))}</span>
                             </div>
                         </div>
