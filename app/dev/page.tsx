@@ -14,6 +14,7 @@ interface SystemInfo {
     os_version: string
     kernel_version: string
     total_memory: number
+    is_mica_supported: boolean
 }
 
 interface ProcessInfo {
@@ -132,6 +133,12 @@ export default function DevPage() {
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">总内存:</span>
                                     <span className="font-medium">{formatBytes(systemInfo.total_memory)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">云母材质 (Mica):</span>
+                                    <span className={`font-medium ${systemInfo.is_mica_supported ? 'text-green-500' : 'text-red-500'}`}>
+                                        {systemInfo.is_mica_supported ? '支持' : '不支持'}
+                                    </span>
                                 </div>
                             </>
                         ) : (

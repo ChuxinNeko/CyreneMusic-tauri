@@ -10,6 +10,7 @@ import { FullscreenPlayer } from "../player/FullscreenPlayer"
 import { SetupWizard } from "../setup/SetupWizard"
 import { updateService, UpdateInfo } from "@/lib/services/updateService"
 import { UpdateDialog } from "../common/UpdateDialog"
+import { invoke } from "@tauri-apps/api/core"
 
 export function MainLayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
@@ -19,6 +20,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
 
     const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
     const [showUpdateDialog, setShowUpdateDialog] = useState(false)
+    const [isMicaSupported, setIsMicaSupported] = useState(false)
     
     // Check if we are on a detail view (playlist, daily, album, or artist)
     const isPlaylistDetail = !!searchParams.get("playlist") || 
@@ -44,6 +46,17 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
         }
         checkUpdate()
 
+        // 检查系统是否支持 Mica
+        const checkMicaSupport = async () => {
+            try {
+                const info: any = await invoke("get_system_info")
+                setIsMicaSupported(info.is_mica_supported)
+            } catch (e) {
+                console.error("Failed to check Mica support:", e)
+            }
+        }
+        checkMicaSupport()
+
         return () => {
             document.removeEventListener("contextmenu", handleContextMenu)
         }
@@ -54,7 +67,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
     }
 
     return (
-        <div className="flex flex-col h-screen overflow-hidden bg-background md:bg-transparent text-foreground">
+        <div className={`flex flex-col h-screen overflow-hidden bg-background ${isMicaSupported ? 'md:bg-transparent' : ''} text-foreground`}>
             <div className="flex flex-1 overflow-hidden">
                 <Sidebar />
                 <div className="flex-1 flex flex-col min-w-0">

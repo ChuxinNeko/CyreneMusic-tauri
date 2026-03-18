@@ -148,6 +148,7 @@ struct SystemInfo {
     os_version: String,
     kernel_version: String,
     total_memory: u64,
+    is_mica_supported: bool,
 }
 
 #[tauri::command]
@@ -155,11 +156,34 @@ fn get_system_info() -> SystemInfo {
     let mut sys = SYS.lock().unwrap();
     sys.refresh_memory();
     
+    let os_version = System::os_version().unwrap_or_else(|| "Unknown".to_owned());
+    let is_mica_supported = if cfg!(target_os = "windows") {
+        // Windows 11 is version 10.0, build 22000+
+        // os_version can be "10.0.22000" or "11 (26200)" depending on sysinfo version/OS
+        if os_version.contains("11") {
+            true
+        } else if let Some(build) = os_version.split('.').nth(2).and_then(|s| s.parse::<u32>().ok()) {
+            build >= 22000
+        } else if let Some(start) = os_version.find('(') {
+            if let Some(end) = os_version.find(')') {
+                let build_str = &os_version[start + 1..end];
+                build_str.parse::<u32>().map(|b| b >= 22000).unwrap_or(false)
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    } else {
+        false
+    };
+    
     SystemInfo {
         name: System::name().unwrap_or_else(|| "Unknown".to_owned()),
-        os_version: System::os_version().unwrap_or_else(|| "Unknown".to_owned()),
+        os_version,
         kernel_version: System::kernel_version().unwrap_or_else(|| "Unknown".to_owned()),
         total_memory: sys.total_memory(), // IN BYTES
+        is_mica_supported,
     }
 }
 

@@ -82,6 +82,13 @@ class PlayerService {
             usePlayerStore.getState().setIsLoading(false)
             this.startProgressTimer()
             this.broadcastState()
+            
+            // 同步 MediaSession 状态
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.playbackState = 'playing'
+                this.updateMediaSessionPosition()
+            }
+
             // 连接音频分析器以获取实时频率数据
             audioAnalyser.connectToHowl(howl)
         })
@@ -90,6 +97,11 @@ class PlayerService {
             usePlayerStore.getState().setIsPlaying(false)
             this.stopProgressTimer()
             this.broadcastState()
+
+            // 同步 MediaSession 状态
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.playbackState = 'paused'
+            }
 
             // 暂停时立刻同步一次时间，防止悬浮歌词继续插值
             if (typeof window !== 'undefined') {
@@ -109,6 +121,7 @@ class PlayerService {
             const track = usePlayerStore.getState().currentTrack
             if (track) {
                 this.updateSMTCMetadata(track, duration)
+                this.updateMediaSessionPosition()
             }
         })
 
@@ -180,27 +193,82 @@ class PlayerService {
         try {
             this.broadcastState()
             if ('mediaSession' in navigator) {
+                const artwork = track.picUrl ? [
+                    { src: track.picUrl, sizes: '96x96', type: 'image/jpeg' },
+                    { src: track.picUrl, sizes: '128x128', type: 'image/jpeg' },
+                    { src: track.picUrl, sizes: '192x192', type: 'image/jpeg' },
+                    { src: track.picUrl, sizes: '256x256', type: 'image/jpeg' },
+                    { src: track.picUrl, sizes: '384x384', type: 'image/jpeg' },
+                    { src: track.picUrl, sizes: '512x512', type: 'image/jpeg' },
+                ] : []
+
                 navigator.mediaSession.metadata = new MediaMetadata({
                     title: track.name,
                     artist: track.artists,
                     album: track.album || '',
-                    artwork: [
-                        { src: track.picUrl || '', sizes: '512x512', type: 'image/jpeg' }
-                    ]
+                    artwork: artwork
                 })
 
-                navigator.mediaSession.setActionHandler('play', () => this.togglePlay())
-                navigator.mediaSession.setActionHandler('pause', () => this.togglePlay())
-                navigator.mediaSession.setActionHandler('previoustrack', () => this.playPrevious())
-                navigator.mediaSession.setActionHandler('nexttrack', () => this.playNext())
-                navigator.mediaSession.setActionHandler('seekto', (details) => {
-                    if (details.seekTime !== undefined) {
-                        this.seek(details.seekTime)
+                // 安卓通知栏状态显示至关重要：告诉系统当前是否在播放
+                navigator.mediaSession.playbackState = this.howl?.playing() ? 'playing' : 'paused'
+
+                // 设置操作处理函数
+                const actionHandlers: [MediaSessionAction, MediaSessionActionHandler | null][] = [
+                    ['play', () => this.togglePlay()],
+                    ['pause', () => this.togglePlay()],
+                    ['previoustrack', () => this.playPrevious()],
+                    ['nexttrack', () => this.playNext()],
+                    ['stop', () => {
+                        this.howl?.stop()
+                        navigator.mediaSession.playbackState = 'none'
+                    }],
+                    ['seekto', (details) => {
+                        if (details.seekTime !== undefined) {
+                            this.seek(details.seekTime)
+                            this.updateMediaSessionPosition()
+                        }
+                    }]
+                ]
+
+                for (const [action, handler] of actionHandlers) {
+                    try {
+                        navigator.mediaSession.setActionHandler(action, handler)
+                    } catch (e) {
+                        console.warn(`[PlayerService] Action handler for ${action} not supported`)
                     }
-                })
+                }
+
+                // 如果有时长信息，立刻同步进度
+                if (duration) {
+                    this.updateMediaSessionPosition()
+                }
             }
         } catch (error) {
             console.error("[PlayerService] Failed to set SMTC metadata:", error)
+        }
+    }
+
+    /**
+     * 同步播放进度到 MediaSession，确保安卓通知栏进度条正常工作
+     */
+    private updateMediaSessionPosition() {
+        if (!this.howl || !('mediaSession' in navigator) || !navigator.mediaSession.setPositionState) {
+            return
+        }
+
+        try {
+            const currentTime = this.howl.seek() as number
+            const duration = this.howl.duration()
+
+            if (duration && duration > 0) {
+                navigator.mediaSession.setPositionState({
+                    duration: duration,
+                    playbackRate: 1,
+                    position: Math.min(currentTime, duration)
+                })
+            }
+        } catch (e) {
+            console.warn("[PlayerService] Failed to set MediaSession position state:", e)
         }
     }
 
@@ -598,6 +666,7 @@ class PlayerService {
                     isPlaying: this.howl.playing()
                 })
             }
+            this.updateMediaSessionPosition()
         }
     }
 

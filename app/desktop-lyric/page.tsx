@@ -192,6 +192,9 @@ export default function DesktopLyricPage() {
     }
 
     const { currentLine, activeIndex } = getVisibleLines()
+    const mainLineHeight = Math.max(lyricFontSize * 1.35, lyricFontSize + 18)
+    const translationFontSize = Math.max(14, lyricFontSize * 0.55)
+    const translationLineHeight = Math.max(translationFontSize * 1.35, translationFontSize + 10)
 
     return (
         <div
@@ -221,13 +224,14 @@ export default function DesktopLyricPage() {
             <div className={`absolute inset-0 z-10 p-4 transition-opacity duration-300 pointer-events-none flex flex-col justify-center`}>
                 {/* 歌词区 */}
                 {currentLine ? (
-                    <div className="flex flex-col gap-2 w-full text-center drop-shadow-[0_0_8px_rgba(0,0,0,0.8)] overflow-hidden">
+                    <div className="flex flex-col gap-2 w-full py-2 text-center drop-shadow-[0_0_8px_rgba(0,0,0,0.8)] overflow-visible">
                         <div
                             ref={activeLineRef}
-                            className="lyric-line-active font-bold tracking-wide transition-all duration-300 overflow-x-auto whitespace-nowrap scroll-smooth no-scrollbar"
+                            className="lyric-line-active font-bold tracking-wide transition-all duration-300 overflow-x-auto overflow-y-visible whitespace-nowrap scroll-smooth no-scrollbar"
                             style={{
                                 fontSize: `${lyricFontSize}px`,
-                                lineHeight: `${lyricFontSize * 1.2}px`,
+                                lineHeight: `${mainLineHeight}px`,
+                                padding: "0.18em 0 0.28em",
                                 color: lyricColor,
                                 WebkitTextStroke: `1px ${lyricStrokeColor}`
                             }}
@@ -238,7 +242,11 @@ export default function DesktopLyricPage() {
                                         key={i}
                                         className="inline-block mx-0.5"
                                         ref={el => { if (el) wordsRef.current.set(activeIndex! * 1000 + i, el) }}
-                                        style={{ textShadow: `0 2px 4px ${lyricStrokeColor}80` }}
+                                        style={{
+                                            textShadow: `0 2px 4px ${lyricStrokeColor}80`,
+                                            paddingBottom: "0.08em",
+                                            verticalAlign: "baseline"
+                                        }}
                                     >
                                         {w.text}
                                     </span>
@@ -247,9 +255,11 @@ export default function DesktopLyricPage() {
                         </div>
                         {currentLine.translation && (
                             <div
-                                className="lyric-line-translation font-medium transition-all duration-300 drop-shadow-md overflow-x-auto whitespace-nowrap scroll-smooth no-scrollbar"
+                                className="lyric-line-translation font-medium transition-all duration-300 drop-shadow-md overflow-x-auto overflow-y-visible whitespace-nowrap scroll-smooth no-scrollbar"
                                 style={{
-                                    fontSize: `${Math.max(14, lyricFontSize * 0.55)}px`,
+                                    fontSize: `${translationFontSize}px`,
+                                    lineHeight: `${translationLineHeight}px`,
+                                    padding: "0.1em 0 0.2em",
                                     color: lyricColor,
                                     opacity: 0.8,
                                     WebkitTextStroke: `1px ${lyricStrokeColor}`
