@@ -10,6 +10,7 @@ import { useAudioSourceStore } from "../store/useAudioSourceStore"
 import { Track } from "../models/track"
 import { historyService } from "./historyService"
 import { lxMusicRuntimeService } from "./lxMusicRuntimeService"
+import { androidMediaNotificationService, isAndroidTauriRuntime } from "./androidMediaNotificationService"
 
 import { listen, emit } from '@tauri-apps/api/event'
 
@@ -18,12 +19,14 @@ class PlayerService {
     private howl: Howl | null = null
     private progressInterval: any = null
     private fadeDuration = 500 // 500ms cross-fade
+    private androidMediaBridgeBound = false
     private fallbackQualityUrl: string | null = null // 播放失败时的备选 (通常为 320k) URL
 
     private constructor() {
         if (typeof window !== "undefined") {
             this.setupSMTC()
             this.setupRemoteControl()
+            this.setupAndroidNativeMediaControls()
         }
     }
 
@@ -76,12 +79,57 @@ class PlayerService {
         // SMTC setup placeholder
     }
 
+    private setupAndroidNativeMediaControls() {
+        if (!isAndroidTauriRuntime() || this.androidMediaBridgeBound) {
+            return
+        }
+
+        window.addEventListener("cyrene:android-media-action", (event: Event) => {
+            const detail = (event as CustomEvent<{ action?: string }>).detail
+            switch (detail?.action) {
+                case "toggle-play":
+                    this.togglePlay()
+                    break
+                case "next":
+                    this.playNext()
+                    break
+                case "prev":
+                    this.playPrevious()
+                    break
+            }
+        })
+
+        this.androidMediaBridgeBound = true
+    }
+
+    private syncAndroidMediaNotification(force = false) {
+        if (!isAndroidTauriRuntime()) {
+            return
+        }
+
+        const state = usePlayerStore.getState()
+        if (!state.currentTrack) {
+            if (force) {
+                androidMediaNotificationService.hide()
+            }
+            return
+        }
+
+        androidMediaNotificationService.sync(
+            state.currentTrack,
+            state.isPlaying,
+            this.getCurrentTime(),
+            state.duration
+        )
+    }
+
     private setupEvents(howl: Howl) {
         howl.on('play', () => {
             usePlayerStore.getState().setIsPlaying(true)
             usePlayerStore.getState().setIsLoading(false)
             this.startProgressTimer()
             this.broadcastState()
+            this.syncAndroidMediaNotification(true)
             
             // 同步 MediaSession 状态
             if ('mediaSession' in navigator) {
@@ -97,6 +145,7 @@ class PlayerService {
             usePlayerStore.getState().setIsPlaying(false)
             this.stopProgressTimer()
             this.broadcastState()
+            this.syncAndroidMediaNotification(true)
 
             // 同步 MediaSession 状态
             if ('mediaSession' in navigator) {
@@ -117,6 +166,7 @@ class PlayerService {
             usePlayerStore.getState().setIsLoading(false)
             const duration = howl.duration()
             usePlayerStore.getState().setDuration(duration)
+            this.syncAndroidMediaNotification(true)
 
             const track = usePlayerStore.getState().currentTrack
             if (track) {
@@ -142,6 +192,7 @@ class PlayerService {
             console.error("[PlayerService] 备选 URL 也尝试失败或不存在。")
             usePlayerStore.getState().setIsLoading(false)
             usePlayerStore.getState().setIsPlaying(false)
+            this.syncAndroidMediaNotification(true)
         })
 
         howl.on('end', () => {
@@ -172,6 +223,8 @@ class PlayerService {
                         isPlaying: true
                     })
                 }
+
+                this.syncAndroidMediaNotification()
 
                 // 累积听歌时长
                 const currentTrack = usePlayerStore.getState().currentTrack
@@ -299,6 +352,7 @@ class PlayerService {
             historyService.recordPlay(track)
 
             this.updateSMTCMetadata(track)
+            this.syncAndroidMediaNotification(true)
 
             // 异步获取副歌时间
             if (track.source === 'netease') {
@@ -667,6 +721,7 @@ class PlayerService {
                 })
             }
             this.updateMediaSessionPosition()
+            this.syncAndroidMediaNotification(true)
         }
     }
 
@@ -699,6 +754,7 @@ class PlayerService {
 
     public cleanup() {
         // Cleanup logic
+        androidMediaNotificationService.hide()
     }
 }
 

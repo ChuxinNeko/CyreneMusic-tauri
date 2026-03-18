@@ -1,6 +1,7 @@
 package com.cyrenemusic.app
 
 import android.os.Bundle
+import android.webkit.WebView
 import androidx.activity.enableEdgeToEdge
 import androidx.core.view.WindowInsetsControllerCompat
 
@@ -15,5 +16,23 @@ class MainActivity : TauriActivity() {
       val insetsController = WindowInsetsControllerCompat(window, window.decorView)
       insetsController.isAppearanceLightStatusBars = isDark
     }
+  }
+
+  override fun onWebViewCreate(webView: WebView) {
+    super.onWebViewCreate(webView)
+    AndroidMediaNotificationManager.attach(this, webView)
+  }
+
+  override fun onDestroy() {
+    AndroidMediaNotificationManager.detach(this)
+    super.onDestroy()
+  }
+
+  fun updateMediaNotification(payloadJson: String) {
+    AndroidMediaNotificationManager.updateFromJson(payloadJson)
+  }
+
+  fun hideMediaNotification() {
+    AndroidMediaNotificationManager.hide()
   }
 }

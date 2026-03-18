@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import React from "react"
 import {
@@ -400,6 +400,7 @@ export function FullscreenPlayer() {
                 >
                     <ChevronDown size={28} />
                 </button>
+                {!isMobile && (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <button className="text-white/30 hover:text-white/80 transition-colors p-2 hover:bg-white/5 rounded-full z-10 ml-1">
@@ -504,8 +505,65 @@ export function FullscreenPlayer() {
                         </div>
                     </DropdownMenuContent>
                 </DropdownMenu>
+                )}
                 <div data-tauri-drag-region className="flex-1 h-full mx-4" />
                 <div className="flex items-center gap-2 z-10">
+                    {isMobile && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className="text-white/30 hover:text-white/80 transition-colors p-2 hover:bg-white/5 rounded-full z-10">
+                                    <MoreHorizontal size={22} />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 bg-black/80 backdrop-blur-xl border-white/10 text-white">
+                                <DropdownMenuLabel>播放器设置</DropdownMenuLabel>
+                                <DropdownMenuSeparator className="bg-white/10" />
+                                <DropdownMenuCheckboxItem
+                                    checked={audioVisualization}
+                                    onCheckedChange={toggleAudioVisualization}
+                                    className="focus:bg-white/10 focus:text-white data-[state=checked]:bg-white/5"
+                                >
+                                    <Activity className="mr-2 h-4 w-4" />
+                                    音频律动
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuCheckboxItem
+                                    checked={isImmersiveMode}
+                                    onCheckedChange={setIsImmersiveMode}
+                                    className="focus:bg-white/10 focus:text-white data-[state=checked]:bg-white/5"
+                                >
+                                    <Monitor className="mr-2 h-4 w-4" />
+                                    沉浸模式
+                                </DropdownMenuCheckboxItem>
+                                <DropdownMenuSeparator className="bg-white/10" />
+                                <div className="px-2 py-1.5">
+                                    <div className="flex items-center text-sm font-medium mb-2 opacity-80">
+                                        <Type className="mr-2 h-4 w-4" /> 歌词字号
+                                    </div>
+                                    <Slider
+                                        value={[lyricFontSize]}
+                                        max={60}
+                                        min={20}
+                                        step={1}
+                                        onValueChange={(v) => setLyricFontSize(v[0])}
+                                        className="w-full"
+                                    />
+                                </div>
+                                <div className="px-2 py-1.5 mb-1.5">
+                                    <div className="flex items-center text-sm font-medium mb-2 opacity-80">
+                                        <Droplets className="mr-2 h-4 w-4" /> 背景模糊
+                                    </div>
+                                    <Slider
+                                        value={[lyricBlurStrength]}
+                                        max={20}
+                                        min={0}
+                                        step={1}
+                                        onValueChange={(v) => setLyricBlurStrength(v[0])}
+                                        className="w-full"
+                                    />
+                                </div>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
                     {!isMobile && (
                         <>
                             <div className="flex bg-white/5 rounded-full p-1 mr-2 border border-white/10">
@@ -567,14 +625,6 @@ export function FullscreenPlayer() {
                             </div>
                         </>
                     )}
-                    {isMobile && (
-                        <button
-                            onClick={closeWindow}
-                            className="p-2 text-white/30 hover:text-white hover:bg-white/10 rounded-full transition-colors"
-                        >
-                            <X size={24} />
-                        </button>
-                    )}
                 </div>
             </div>
 
@@ -587,9 +637,10 @@ export function FullscreenPlayer() {
                     {!isMobile && <div className="flex-[0.8] min-h-[2vh] shrink-0" />}
 
                     {/* Content Section: Cover/Info (+ Slides into Lyrics on Mobile) */}
-                    <div className={`w-full min-h-0 ${isMobile ? 'flex flex-[1.5] transition-transform duration-700 ease-in-out' : 'flex-none'} ${isMobile && showMobileLyrics ? '-translate-x-full' : 'translate-x-0'}`}>
+                    <div className={`relative w-full min-h-0 overflow-hidden ${isMobile ? 'flex-[1.5]' : 'flex-none'}`}>
+                        <div className={`min-h-0 ${isMobile ? 'flex h-full w-[200%] transition-transform duration-700 ease-in-out' : 'w-full'} ${isMobile && showMobileLyrics ? '-translate-x-1/2' : 'translate-x-0'}`}>
                         {/* Part 1: Album Art & Info */}
-                        <div className={`flex flex-col items-center w-full shrink-0 ${!isMobile ? 'justify-start' : 'justify-center'}`}>
+                        <div className={`flex flex-col items-center shrink-0 ${isMobile ? 'w-1/2 overflow-hidden' : 'w-full'} ${!isMobile ? 'justify-start' : 'justify-center'}`}>
                             {isMobile && <div className="flex-[0.5] min-h-[1vh]" />}
                             <div className={
                                 isImmersiveMode
@@ -665,7 +716,7 @@ export function FullscreenPlayer() {
 
                         {/* Part 2: Panel Section (Mobile only, slides behind Info) */}
                         {isMobile && (
-                            <div className="relative h-full overflow-hidden shrink-0 w-full">
+                            <div className="relative h-full overflow-hidden shrink-0 w-1/2">
                                 <button onClick={() => setShowMobileLyrics(false)} className="absolute top-4 left-6 z-[120] p-2 bg-white/10 hover:bg-white/20 rounded-full text-white/60 hover:text-white transition-all shadow-xl">
                                     <ChevronDown size={28} className="rotate-90" />
                                 </button>
@@ -674,6 +725,7 @@ export function FullscreenPlayer() {
                                 </div>
                             </div>
                         )}
+                        </div>
                     </div>
 
                     {/* Progress & Controls Section (Fixed in Column 1 position) */}

@@ -1,9 +1,9 @@
-use tauri::Manager;
 use base64::Engine;
-use std::collections::HashMap;
 use serde::Deserialize;
-use sysinfo::System;
+use std::collections::HashMap;
 use std::sync::Mutex;
+use sysinfo::System;
+use tauri::Manager;
 
 lazy_static::lazy_static! {
     static ref SYS: Mutex<System> = Mutex::new(System::new_all());
@@ -117,12 +117,13 @@ async fn lx_http_request(options: HttpRequestOptions) -> Result<serde_json::Valu
         }
     }
 
-    let response = request.send()
+    let response = request
+        .send()
         .await
         .map_err(|e| format!("Request failed: {}", e))?;
 
     let status = response.status().as_u16();
-    
+
     // 获取响应头
     let mut headers = HashMap::new();
     for (name, value) in response.headers().iter() {
@@ -132,14 +133,84 @@ async fn lx_http_request(options: HttpRequestOptions) -> Result<serde_json::Valu
     }
 
     // 尝试解析 JSON，如果失败则返回文本
-    let body_text = response.text().await.map_err(|e| format!("Failed to read body: {}", e))?;
-    let body_json: serde_json::Value = serde_json::from_str(&body_text).unwrap_or(serde_json::Value::String(body_text));
+    let body_text = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read body: {}", e))?;
+    let body_json: serde_json::Value =
+        serde_json::from_str(&body_text).unwrap_or(serde_json::Value::String(body_text));
 
     Ok(serde_json::json!({
         "statusCode": status,
         "headers": headers,
         "body": body_json
     }))
+}
+
+#[cfg(target_os = "android")]
+#[derive(serde::Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AndroidMediaNotificationPayload {
+    title: String,
+    artist: String,
+    album: Option<String>,
+    artwork_url: Option<String>,
+    is_playing: bool,
+    duration_ms: u64,
+    position_ms: u64,
+}
+
+#[cfg(target_os = "android")]
+fn with_android_activity<F>(mut callback: F) -> Result<(), String>
+where
+    F: FnMut(&mut jni::JNIEnv, jni::objects::JObject) -> Result<(), String>,
+{
+    let ctx = ndk_context::android_context();
+    let vm = unsafe { jni::JavaVM::from_raw(ctx.vm() as *mut _) }
+        .map_err(|e| format!("Get JVM fail: {}", e))?;
+    let mut env_guard = vm
+        .attach_current_thread()
+        .map_err(|e| format!("Attach thread fail: {}", e))?;
+    let env = &mut *env_guard;
+    let activity = unsafe { jni::objects::JObject::from_raw(ctx.context() as *mut _) };
+    callback(env, activity)
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+fn android_media_notification_update(
+    payload: AndroidMediaNotificationPayload,
+) -> Result<(), String> {
+    let payload_json = serde_json::to_string(&payload)
+        .map_err(|e| format!("Serialize notification payload fail: {}", e))?;
+
+    with_android_activity(|env, activity| {
+        let payload_arg = env
+            .new_string(&payload_json)
+            .map_err(|e| format!("Create payload string fail: {}", e))?;
+        let payload_obj = jni::objects::JObject::from(payload_arg);
+
+        env.call_method(
+            &activity,
+            "updateMediaNotification",
+            "(Ljava/lang/String;)V",
+            &[jni::objects::JValue::Object(&payload_obj)],
+        )
+        .map_err(|e| format!("Call updateMediaNotification fail: {:?}", e))?;
+
+        Ok(())
+    })
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+fn android_media_notification_hide() -> Result<(), String> {
+    with_android_activity(|env, activity| {
+        env.call_method(&activity, "hideMediaNotification", "()V", &[])
+            .map_err(|e| format!("Call hideMediaNotification fail: {:?}", e))?;
+
+        Ok(())
+    })
 }
 
 #[derive(serde::Serialize)]
@@ -155,19 +226,26 @@ struct SystemInfo {
 fn get_system_info() -> SystemInfo {
     let mut sys = SYS.lock().unwrap();
     sys.refresh_memory();
-    
+
     let os_version = System::os_version().unwrap_or_else(|| "Unknown".to_owned());
     let is_mica_supported = if cfg!(target_os = "windows") {
         // Windows 11 is version 10.0, build 22000+
         // os_version can be "10.0.22000" or "11 (26200)" depending on sysinfo version/OS
         if os_version.contains("11") {
             true
-        } else if let Some(build) = os_version.split('.').nth(2).and_then(|s| s.parse::<u32>().ok()) {
+        } else if let Some(build) = os_version
+            .split('.')
+            .nth(2)
+            .and_then(|s| s.parse::<u32>().ok())
+        {
             build >= 22000
         } else if let Some(start) = os_version.find('(') {
             if let Some(end) = os_version.find(')') {
                 let build_str = &os_version[start + 1..end];
-                build_str.parse::<u32>().map(|b| b >= 22000).unwrap_or(false)
+                build_str
+                    .parse::<u32>()
+                    .map(|b| b >= 22000)
+                    .unwrap_or(false)
             } else {
                 false
             }
@@ -177,7 +255,7 @@ fn get_system_info() -> SystemInfo {
     } else {
         false
     };
-    
+
     SystemInfo {
         name: System::name().unwrap_or_else(|| "Unknown".to_owned()),
         os_version,
@@ -198,7 +276,7 @@ fn get_process_info() -> ProcessInfo {
     let mut sys = SYS.lock().unwrap();
     sys.refresh_processes();
     let pid = sysinfo::get_current_pid().unwrap();
-    
+
     if let Some(process) = sys.process(pid) {
         ProcessInfo {
             memory: process.memory(), // IN BYTES
@@ -213,25 +291,24 @@ fn get_process_info() -> ProcessInfo {
 }
 
 #[tauri::command]
-fn set_status_bar_style(is_dark_text: bool) -> Result<(), String> {
+fn set_status_bar_style(_is_dark_text: bool) -> Result<(), String> {
     #[cfg(target_os = "android")]
     {
         use jni::objects::JValue;
-        let ctx = ndk_context::android_context();
-        let vm = unsafe { jni::JavaVM::from_raw(ctx.vm() as *mut _) }
-            .map_err(|e| format!("Get JVM fail: {}", e))?;
-        let mut env = vm.attach_current_thread().map_err(|e| format!("Attach thread fail: {}", e))?;
-        
-        let activity = unsafe { jni::objects::JObject::from_raw(ctx.context() as *mut _) };
-        
-        env.call_method(
-            &activity,
-            "setStatusBarDarkText",
-            "(Z)V",
-            &[JValue::Bool(is_dark_text as jni::sys::jboolean)],
-        ).map_err(|e| format!("call_method fail: {:?}", e))?;
+
+        with_android_activity(|env, activity| {
+            env.call_method(
+                &activity,
+                "setStatusBarDarkText",
+                "(Z)V",
+                &[JValue::Bool(_is_dark_text as jni::sys::jboolean)],
+            )
+            .map_err(|e| format!("call_method fail: {:?}", e))?;
+
+            Ok(())
+        })?;
     }
-    
+
     Ok(())
 }
 
@@ -243,11 +320,44 @@ pub fn run() {
         .invoke_handler({
             #[cfg(desktop)]
             {
-                tauri::generate_handler![greet, fetch_image, open_desktop_lyric, close_desktop_lyric, update_vibrancy, lx_http_request, get_system_info, get_process_info, set_status_bar_style]
+                tauri::generate_handler![
+                    greet,
+                    fetch_image,
+                    open_desktop_lyric,
+                    close_desktop_lyric,
+                    update_vibrancy,
+                    lx_http_request,
+                    get_system_info,
+                    get_process_info,
+                    set_status_bar_style
+                ]
             }
             #[cfg(mobile)]
             {
-                tauri::generate_handler![greet, fetch_image, lx_http_request, get_system_info, get_process_info, set_status_bar_style]
+                #[cfg(target_os = "android")]
+                {
+                    tauri::generate_handler![
+                        greet,
+                        fetch_image,
+                        lx_http_request,
+                        get_system_info,
+                        get_process_info,
+                        set_status_bar_style,
+                        android_media_notification_update,
+                        android_media_notification_hide
+                    ]
+                }
+                #[cfg(not(target_os = "android"))]
+                {
+                    tauri::generate_handler![
+                        greet,
+                        fetch_image,
+                        lx_http_request,
+                        get_system_info,
+                        get_process_info,
+                        set_status_bar_style
+                    ]
+                }
             }
         })
         .setup(|app| {
