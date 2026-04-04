@@ -10,6 +10,8 @@ import { useAuthStore } from "@/lib/store/useAuthStore"
 import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import { SearchBox } from "./SearchBox"
 
+import { useWindowMaterialStore, updateWindowMaterialTheme } from "@/lib/store/useWindowMaterialStore"
+
 function SearchArea() {
     const searchParams = useSearchParams()
     const pathname = usePathname()
@@ -42,6 +44,7 @@ export function TitleBar() {
     const [isMaximized, setIsMaximized] = React.useState(false)
     const { user, isLoggedIn, logout } = useAuthStore()
     const router = useRouter()
+    const { material } = useWindowMaterialStore()
 
     React.useEffect(() => {
         const updateMaximizedState = async () => {
@@ -53,16 +56,16 @@ export function TitleBar() {
     }, [])
 
     React.useEffect(() => {
-        const syncVibrancy = async () => {
+        const syncMaterial = async () => {
             try {
                 const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-                await invoke("update_vibrancy", { isDark });
+                await updateWindowMaterialTheme(material, isDark);
             } catch (error) {
-                console.error("Failed to sync vibrancy:", error);
+                console.error("Failed to sync window material:", error);
             }
         };
-        syncVibrancy();
-    }, [theme])
+        syncMaterial();
+    }, [theme, material])
 
     const minimize = async () => {
         const appWindow = getCurrentWindow();

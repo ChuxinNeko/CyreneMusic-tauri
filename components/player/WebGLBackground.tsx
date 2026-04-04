@@ -12,6 +12,7 @@ export interface WebGLBackgroundProps extends React.HTMLAttributes<HTMLDivElemen
     bass?: number;
     mid?: number;
     treble?: number;
+    isMobile?: boolean;
 }
 
 export interface WebGLBackgroundRef {
@@ -20,7 +21,7 @@ export interface WebGLBackgroundRef {
 }
 
 export const WebGLBackground = forwardRef<WebGLBackgroundRef, WebGLBackgroundProps>(
-    ({ album, fps = 30, playing = true, flowSpeed = 2, renderScale = 0.5, lowFreqVolume = 1.0, bass = 0, mid = 0, treble = 0, style, ...props }, ref) => {
+    ({ album, fps = 30, playing = true, flowSpeed = 2, renderScale = 0.5, lowFreqVolume = 1.0, bass = 0, mid = 0, treble = 0, isMobile = false, style, ...props }, ref) => {
         const wrapperRef = useRef<HTMLDivElement>(null);
         const rendererRef = useRef<MeshGradientRenderer | null>(null);
 
@@ -40,6 +41,11 @@ export const WebGLBackground = forwardRef<WebGLBackgroundRef, WebGLBackgroundPro
 
             const renderer = new MeshGradientRenderer(canvas);
             rendererRef.current = renderer;
+
+            // 移动端性能优化：先设置移动模式再设置其他参数
+            if (isMobile) {
+                renderer.setMobileMode(true);
+            }
 
             // Initial configurations
             renderer.setFPS(fps);

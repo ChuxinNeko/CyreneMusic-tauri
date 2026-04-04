@@ -10,7 +10,11 @@ import { FullscreenPlayer } from "../player/FullscreenPlayer"
 import { SetupWizard } from "../setup/SetupWizard"
 import { updateService, UpdateInfo } from "@/lib/services/updateService"
 import { UpdateDialog } from "../common/UpdateDialog"
-import { invoke } from "@tauri-apps/api/core"
+import {
+    useWindowMaterialStore,
+    fetchSystemMaterialSupport,
+    applyWindowMaterial,
+} from "@/lib/store/useWindowMaterialStore"
 
 export function MainLayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
@@ -20,7 +24,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
 
     const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
     const [showUpdateDialog, setShowUpdateDialog] = useState(false)
-    const [isMicaSupported, setIsMicaSupported] = useState(false)
+    const { material, setSystemSupport } = useWindowMaterialStore()
     
     // Check if we are on a detail view (playlist, daily, album, or artist)
     const isPlaylistDetail = !!searchParams.get("playlist") || 
@@ -46,28 +50,43 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
         }
         checkUpdate()
 
-        // 检查系统是否支持 Mica
-        const checkMicaSupport = async () => {
+        // 初始化窗口材质
+        const initWindowMaterial = async () => {
             try {
-                const info: any = await invoke("get_system_info")
-                setIsMicaSupported(info.is_mica_supported)
+                const support = await fetchSystemMaterialSupport()
+                setSystemSupport(support)
+                // 获取当前存储的材质偏好并应用
+                const currentMaterial = useWindowMaterialStore.getState().material
+                // 验证当前材质是否被系统支持，不支持则回退到 opaque
+                if (currentMaterial === "mica" && !support.isMicaSupported) {
+                    useWindowMaterialStore.getState().setMaterial("opaque")
+                    await applyWindowMaterial("opaque")
+                } else if (currentMaterial === "acrylic" && !support.isAcrylicSupported) {
+                    useWindowMaterialStore.getState().setMaterial("opaque")
+                    await applyWindowMaterial("opaque")
+                } else {
+                    await applyWindowMaterial(currentMaterial)
+                }
             } catch (e) {
-                console.error("Failed to check Mica support:", e)
+                console.error("Failed to init window material:", e)
             }
         }
-        checkMicaSupport()
+        initWindowMaterial()
 
         return () => {
             document.removeEventListener("contextmenu", handleContextMenu)
         }
     }, [])
 
+    // 是否使用透明背景
+    const isTransparent = material === "mica" || material === "acrylic"
+
     if (isTray || isDesktopLyric) {
         return <div className="h-screen w-full bg-background/0 overflow-hidden">{children}</div>
     }
 
     return (
-        <div className={`flex flex-col h-screen overflow-hidden bg-background ${isMicaSupported ? 'md:bg-transparent' : ''} text-foreground`}>
+        <div className={`flex flex-col h-screen overflow-hidden bg-background ${isTransparent ? 'md:bg-transparent' : ''} text-foreground`}>
             <div className="flex flex-1 overflow-hidden">
                 <Sidebar />
                 <div className="flex-1 flex flex-col min-w-0">

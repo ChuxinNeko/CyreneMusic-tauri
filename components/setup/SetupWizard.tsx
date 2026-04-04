@@ -91,7 +91,7 @@ export function SetupWizard() {
             </div>
 
             {/* 移动端：完全覆盖整个页面 */}
-            <div className="flex md:hidden fixed inset-0 z-[90] bg-background flex-col">
+            <div className="flex md:hidden fixed inset-0 z-[90] bg-background flex-col" style={{ paddingTop: 'calc(env(safe-area-inset-top, 32px) + 24px)' }}>
                 <SetupContent
                     currentStep={currentStep}
                     direction={direction}
@@ -328,16 +328,7 @@ function StepLogin({
                 </div>
             </div>
 
-            <div className="shrink-0 p-6 flex justify-center border-t">
-                <Button
-                    variant="ghost"
-                    onClick={onSkip}
-                    className="text-muted-foreground hover:text-foreground"
-                >
-                    暂时跳过，稍后再说
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-            </div>
+            {/* 跳过按钮已移除，强制要求登录以进入下一步 */}
         </div>
     )
 }

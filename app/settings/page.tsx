@@ -170,6 +170,46 @@ function SettingsPageContent() {
         }
     }
 
+const SettingsItemGroup = ({ children }: { children: React.ReactNode }) => (
+    <div className="flex flex-col border rounded-xl overflow-hidden bg-card shadow-sm ring-1 ring-black/5 dark:ring-white/5 divide-y">
+        {children}
+    </div>
+);
+
+interface SettingsItemProps {
+    icon: React.ElementType;
+    title: string;
+    description?: React.ReactNode;
+    onClick: () => void;
+    rightElement?: React.ReactNode;
+}
+
+const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }: SettingsItemProps) => {
+    return (
+        <div
+            className="group flex items-center justify-between p-4 bg-transparent hover:bg-accent/40 cursor-pointer transition-colors duration-200"
+            onClick={onClick}
+        >
+            <div className="flex items-center gap-4 flex-1 overflow-hidden">
+                <div className="flex shrink-0 items-center justify-center w-10 h-10 bg-primary/10 rounded-xl group-hover:bg-primary/20 group-hover:scale-105 transition-all duration-300">
+                    <Icon className="h-5 w-5 text-primary" />
+                </div>
+                <div className="space-y-1.5 flex-1 min-w-0">
+                    <h3 className="text-sm font-medium leading-none group-hover:text-primary transition-colors truncate">{title}</h3>
+                    {description && (
+                        <p className="text-xs text-muted-foreground truncate transition-colors">
+                            {description}
+                        </p>
+                    )}
+                </div>
+            </div>
+            <div className="flex items-center shrink-0 ml-4 text-muted-foreground/50 group-hover:text-foreground transition-colors">
+                {rightElement || <ChevronRight className="h-4 w-4 transform group-hover:translate-x-1 transition-all" />}
+            </div>
+        </div>
+    );
+};
+
     return (
         <div className="h-full flex flex-col p-6 space-y-6">
             <div className="flex items-center space-x-2 h-8">
@@ -180,8 +220,8 @@ function SettingsPageContent() {
 
             <div className="flex-1 overflow-auto">
                 {view === "main" && (
-                    <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-left-4 duration-300 pb-10">
-                        <section className="space-y-4">
+                    <div className="space-y-8 max-w-2xl mx-auto animate-in fade-in slide-in-from-left-4 duration-300 pb-10">
+                        <section className="space-y-3">
                             <div className="space-y-1">
                                 <h2 className="text-lg font-semibold tracking-tight">账号</h2>
                                 <p className="text-sm text-muted-foreground">
@@ -191,7 +231,7 @@ function SettingsPageContent() {
                             <UserCard onLoginClick={() => setAuthDialogOpen(true)} />
                         </section>
 
-                        <section className="space-y-4">
+                        <section className="space-y-3">
                             <div className="space-y-1">
                                 <h2 className="text-lg font-semibold tracking-tight">界面</h2>
                                 <p className="text-sm text-muted-foreground">
@@ -199,28 +239,17 @@ function SettingsPageContent() {
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-3">
-                                <div
-                                    className="group flex items-center justify-between p-4 bg-card border rounded-xl hover:bg-accent/50 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
+                            <SettingsItemGroup>
+                                <SettingsItem
+                                    icon={Palette}
+                                    title="外观设置"
+                                    description={theme === "dark" ? "深色模式" : theme === "light" ? "浅色模式" : "跟随系统"}
                                     onClick={() => setView("appearance")}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2.5 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                                            <Palette className="h-5 w-5 text-primary" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <h3 className="font-medium leading-none">外观设置</h3>
-                                            <p className="text-xs text-muted-foreground">
-                                                {theme === "dark" ? "深色模式" : theme === "light" ? "浅色模式" : "跟随系统"}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <ChevronRight className="h-5 w-5 text-muted-foreground/50 group-hover:text-foreground transition-colors" />
-                                </div>
-                            </div>
+                                />
+                            </SettingsItemGroup>
                         </section>
 
-                        <section className="space-y-4">
+                        <section className="space-y-3">
                             <div className="space-y-1">
                                 <h2 className="text-lg font-semibold tracking-tight">服务</h2>
                                 <p className="text-sm text-muted-foreground">
@@ -228,85 +257,35 @@ function SettingsPageContent() {
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-3">
-                                <div
-                                    className="group flex items-center justify-between p-4 bg-card border rounded-xl hover:bg-accent/50 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
+                            <SettingsItemGroup>
+                                <SettingsItem
+                                    icon={Music}
+                                    title="音源设置"
+                                    description={activeSource ? `当前使用: ${activeSource.name}` : "未配置音源，歌曲可能无法播放"}
                                     onClick={() => setView("audio-source")}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2.5 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                                            <Music className="h-5 w-5 text-primary" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <h3 className="font-medium leading-none">音源设置</h3>
-                                            <p className="text-xs text-muted-foreground">
-                                                {activeSource
-                                                    ? `当前使用: ${activeSource.name}`
-                                                    : "未配置音源，歌曲可能无法播放"}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <ChevronRight className="h-5 w-5 text-muted-foreground/50 group-hover:text-foreground transition-colors" />
-                                </div>
-
-                                <div
-                                    className="group flex items-center justify-between p-4 bg-card border rounded-xl hover:bg-accent/50 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
+                                />
+                                <SettingsItem
+                                    icon={Server}
+                                    title="后端源"
+                                    description={sourceType === BackendSourceType.Official ? "当前使用官方源" : `自定义源: ${customUrl || "未配置"}`}
                                     onClick={() => setView("backend-source")}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2.5 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                                            <Server className="h-5 w-5 text-primary" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <h3 className="font-medium leading-none">后端源</h3>
-                                            <p className="text-xs text-muted-foreground">
-                                                {sourceType === BackendSourceType.Official
-                                                    ? "当前使用官方源"
-                                                    : `自定义源: ${customUrl || "未配置"}`}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <ChevronRight className="h-5 w-5 text-muted-foreground/50 group-hover:text-foreground transition-colors" />
-                                </div>
-
-                                <div
-                                    className="group flex items-center justify-between p-4 bg-card border rounded-xl hover:bg-accent/50 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
+                                />
+                                <SettingsItem
+                                    icon={KeyRound}
+                                    title="第三方账号绑定"
+                                    description="同步网易云、酷狗音乐等平台数据"
                                     onClick={() => setView("account-binding")}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2.5 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                                            <KeyRound className="h-5 w-5 text-primary" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <h3 className="font-medium leading-none">第三方账号绑定</h3>
-                                            <p className="text-xs text-muted-foreground">
-                                                同步网易云、酷狗音乐等平台数据
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <ChevronRight className="h-5 w-5 text-muted-foreground/50 group-hover:text-foreground transition-colors" />
-                                </div>
-                                <div
-                                    className="group flex items-center justify-between p-4 bg-card border rounded-xl hover:bg-accent/50 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
+                                />
+                                <SettingsItem
+                                    icon={Info}
+                                    title="关于"
+                                    description="关于 CyreneMusicNext"
                                     onClick={() => setView("about")}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2.5 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                                            <Info className="h-5 w-5 text-primary" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <h3 className="font-medium leading-none">关于</h3>
-                                            <p className="text-xs text-muted-foreground">
-                                                关于 CyreneMusicNext
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <ChevronRight className="h-5 w-5 text-muted-foreground/50 group-hover:text-foreground transition-colors" />
-                                </div>
-                            </div>
+                                />
+                            </SettingsItemGroup>
                         </section>
 
-                        <section className="space-y-4">
+                        <section className="space-y-3">
                             <div className="space-y-1">
                                 <h2 className="text-lg font-semibold tracking-tight">播放</h2>
                                 <p className="text-sm text-muted-foreground">
@@ -314,30 +293,14 @@ function SettingsPageContent() {
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-3">
-                                <div
-                                    className="group flex items-center justify-between p-4 bg-card border rounded-xl hover:bg-accent/50 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
+                            <SettingsItemGroup>
+                                <SettingsItem
+                                    icon={Settings2}
+                                    title="音质选择"
+                                    description={`当前选择: ${quality === 'standard' || quality === '128k' ? '标准' : quality === 'exhigh' || quality === '320k' ? '极高' : quality === 'lossless' || quality === 'flac' ? '无损' : quality === 'hires' || quality === 'flac24bit' ? 'Hi-Res' : quality.toUpperCase()}`}
                                     onClick={() => setQualityDialogOpen(true)}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="p-2.5 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                                            <Settings2 className="h-5 w-5 text-primary" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <h3 className="font-medium leading-none">音质选择</h3>
-                                            <p className="text-xs text-muted-foreground">
-                                                当前选择：{
-                                                    quality === 'standard' || quality === '128k' ? '标准' :
-                                                        quality === 'exhigh' || quality === '320k' ? '极高' :
-                                                            quality === 'lossless' || quality === 'flac' ? '无损' :
-                                                                quality === 'hires' || quality === 'flac24bit' ? 'Hi-Res' : quality.toUpperCase()
-                                                }
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <ChevronRight className="h-5 w-5 text-muted-foreground/50 group-hover:text-foreground transition-colors" />
-                                </div>
-                            </div>
+                                />
+                            </SettingsItemGroup>
                         </section>
                     </div>
                 )}

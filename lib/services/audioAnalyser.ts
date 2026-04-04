@@ -192,9 +192,6 @@ class AudioAnalyser {
         this.smoothMid = this.lerpSmooth(this.smoothMid, rawMid)
         this.smoothTreble = this.lerpSmooth(this.smoothTreble, rawTreble)
 
-        if (this.logCounter++ % 60 === 0) {
-            console.log(`[AudioAnalyser] freq: bass=${rawBass.toFixed(3)} mid=${rawMid.toFixed(3)} treble=${rawTreble.toFixed(3)} | smooth: ${this.smoothBass.toFixed(3)} ${this.smoothMid.toFixed(3)} ${this.smoothTreble.toFixed(3)}`)
-        }
 
         return {
             bass: this.smoothBass,
@@ -206,6 +203,74 @@ class AudioAnalyser {
     private lerpSmooth(current: number, target: number): number {
         const factor = target > current ? this.smoothUp : this.smoothDown
         return current + (target - current) * factor
+    }
+
+    // 多频段竖条数据的平滑缓存
+    private smoothBars: number[] = []
+
+    /**
+     * 获取指定数量频段的能量数据（对数频率分布 + 平滑处理）。
+     * 用于驱动音频可视化竖条。
+     */
+    getBarData(barCount: number): number[] {
+        if (!this.analyser || !this.dataArray) {
+            // analyser 未就绪时返回全零
+            if (this.smoothBars.length !== barCount) {
+                this.smoothBars = new Array(barCount).fill(0)
+            }
+            return this.smoothBars
+        }
+
+        this.analyser.getByteFrequencyData(this.dataArray)
+
+        const binCount = this.dataArray.length
+        const sampleRate = this.analyser.context.sampleRate
+        const nyquist = sampleRate / 2
+
+        // 对数频率分布的频段边界 (适当收窄范围，避开极低频极易满载和极高频的无声区)
+        const minFreq = 50
+        const maxFreq = Math.min(12000, nyquist)
+        const logMin = Math.log10(minFreq)
+        const logMax = Math.log10(maxFreq)
+
+        if (this.smoothBars.length !== barCount) {
+            this.smoothBars = new Array(barCount).fill(0)
+        }
+
+        // 用于平衡 6 根竖条的默认权重，低频略微压制，高频逐级放大
+        const weights = [0.75, 0.9, 1.1, 1.4, 1.8, 2.5]
+
+        for (let i = 0; i < barCount; i++) {
+            const freqLow = Math.pow(10, logMin + (logMax - logMin) * (i / barCount))
+            const freqHigh = Math.pow(10, logMin + (logMax - logMin) * ((i + 1) / barCount))
+
+            const binLow = Math.max(0, Math.floor(freqLow / nyquist * binCount))
+            const binHigh = Math.min(binCount - 1, Math.ceil(freqHigh / nyquist * binCount))
+
+            let sum = 0
+            let count = 0
+            for (let j = binLow; j <= binHigh; j++) {
+                sum += this.dataArray[j]
+                count++
+            }
+
+            let raw = count > 0 ? (sum / count) / 255 : 0
+            
+            // 应用权重放大
+            const weight = barCount === 6 ? weights[i] : 1 + (i / Math.max(1, barCount - 1)) * 1.5
+            raw = Math.min(1, raw * weight)
+
+            // 对曲线进行微调，让左边大值更有弹性（不一直死板在顶端），右边小值更容易凸显
+            if (i === 0) {
+                raw = Math.pow(raw, 1.3) // 增加低频动态对比度
+            } else if (i >= barCount / 2) {
+                raw = Math.pow(raw, 0.85) // 提拔高频微小的起伏
+            }
+
+            this.smoothBars[i] = this.lerpSmooth(this.smoothBars[i], raw)
+        }
+
+        return this.smoothBars
     }
 
     dispose(): void {

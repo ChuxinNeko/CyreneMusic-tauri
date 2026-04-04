@@ -88,3 +88,57 @@ void main() {
     gl_FragColor = result;
 }
 `;
+
+// 移动端简化 fragment shader：减少流体扰动迭代，移除 vignette 效果
+export const meshFragShaderMobile = `
+precision mediump float;
+
+varying vec3 v_color;
+varying vec2 v_uv;
+uniform sampler2D u_texture;
+uniform float u_time;
+uniform float u_volume;
+uniform float u_alpha;
+uniform float u_bass;
+uniform float u_mid;
+uniform float u_treble;
+
+const float INV_255 = 1.0 / 255.0;
+const float HALF_INV_255 = 0.5 / 255.0;
+const float GRADIENT_NOISE_A = 52.9829189;
+const vec2 GRADIENT_NOISE_B = vec2(0.06711056, 0.00583715);
+
+float gradientNoise(in vec2 uv) {
+    return fract(GRADIENT_NOISE_A * fract(dot(uv, GRADIENT_NOISE_B)));
+}
+
+void main() {
+    float bassPulse = u_bass * 0.12;
+    float midFlow = 0.15 + u_mid * 0.08;
+    float volumeEffect = u_volume * 1.5;
+    float timeVolume = u_time * 1.0 + u_volume;
+    
+    float dither = INV_255 * gradientNoise(gl_FragCoord.xy) - HALF_INV_255;
+    
+    // 简化流体扰动：仅单次迭代
+    vec2 p = v_uv;
+    p.x += midFlow * sin(3.0 * p.y + timeVolume * 1.2 + 0.3);
+    p.y += midFlow * cos(3.0 * p.x + timeVolume * 1.0 + 0.3);
+    
+    // 呼吸式缩放
+    vec2 centeredUV = p - 0.5;
+    float scale = max(0.1, 0.85 - volumeEffect - bassPulse * 0.4);
+    vec2 finalUV = centeredUV * scale + 0.5;
+    
+    vec4 result = texture2D(u_texture, finalUV);
+    
+    float brightnessPulse = 1.0 + u_bass * 0.04;
+    float alphaFactor = u_alpha * max(0.6, 1.0 - u_volume * 0.4);
+    
+    result.rgb *= v_color * alphaFactor * brightnessPulse;
+    result.a *= alphaFactor;
+    result.rgb += dither;
+    
+    gl_FragColor = result;
+}
+`;

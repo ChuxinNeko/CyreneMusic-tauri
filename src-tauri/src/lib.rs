@@ -79,8 +79,43 @@ async fn close_desktop_lyric(app: tauri::AppHandle) -> Result<(), String> {
 
 #[cfg(desktop)]
 #[tauri::command]
-fn update_vibrancy(window: tauri::Window, is_dark: bool) -> Result<(), String> {
-    let _ = window_vibrancy::apply_mica(&window, Some(is_dark));
+fn update_window_material(window: tauri::Window, material: String, is_dark: bool) -> Result<(), String> {
+    match material.as_str() {
+        "mica" => {
+            let _ = window_vibrancy::apply_mica(&window, Some(is_dark));
+        }
+        "acrylic" => {
+            // 亚克力材质使用半透明背景色
+            let color = if is_dark {
+                (18, 18, 18, 180) // 深色模式下的半透明暗色
+            } else {
+                (255, 255, 255, 180) // 浅色模式下的半透明亮色
+            };
+            let _ = window_vibrancy::apply_acrylic(&window, Some(color));
+        }
+        _ => {
+            // "opaque" - 不做任何操作，前端用 CSS 覆盖
+        }
+    }
+    Ok(())
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+fn set_window_material(window: tauri::Window, material: String) -> Result<(), String> {
+    // 对于 opaque 不需要设置任何材质效果
+    // 对于 mica / acrylic，先用 None/默认参数设置一次
+    match material.as_str() {
+        "mica" => {
+            let _ = window_vibrancy::apply_mica(&window, None);
+        }
+        "acrylic" => {
+            let _ = window_vibrancy::apply_acrylic(&window, Some((18, 18, 18, 180)));
+        }
+        _ => {
+            // "opaque" - 前端处理
+        }
+    }
     Ok(())
 }
 
@@ -220,6 +255,7 @@ struct SystemInfo {
     kernel_version: String,
     total_memory: u64,
     is_mica_supported: bool,
+    is_acrylic_supported: bool,
 }
 
 #[tauri::command]
@@ -256,12 +292,40 @@ fn get_system_info() -> SystemInfo {
         false
     };
 
+    // Acrylic 需要 Windows 10 v1809+ (build 17763+)
+    let is_acrylic_supported = if cfg!(target_os = "windows") {
+        if is_mica_supported {
+            true // Windows 11 也支持 Acrylic
+        } else if let Some(build) = os_version
+            .split('.')
+            .nth(2)
+            .and_then(|s| s.parse::<u32>().ok())
+        {
+            build >= 17763
+        } else if let Some(start) = os_version.find('(') {
+            if let Some(end) = os_version.find(')') {
+                let build_str = &os_version[start + 1..end];
+                build_str
+                    .parse::<u32>()
+                    .map(|b| b >= 17763)
+                    .unwrap_or(false)
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    } else {
+        false
+    };
+
     SystemInfo {
         name: System::name().unwrap_or_else(|| "Unknown".to_owned()),
         os_version,
         kernel_version: System::kernel_version().unwrap_or_else(|| "Unknown".to_owned()),
         total_memory: sys.total_memory(), // IN BYTES
         is_mica_supported,
+        is_acrylic_supported,
     }
 }
 
@@ -325,7 +389,8 @@ pub fn run() {
                     fetch_image,
                     open_desktop_lyric,
                     close_desktop_lyric,
-                    update_vibrancy,
+                    update_window_material,
+                    set_window_material,
                     lx_http_request,
                     get_system_info,
                     get_process_info,
@@ -363,9 +428,8 @@ pub fn run() {
         .setup(|app| {
             #[cfg(desktop)]
             {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window_vibrancy::apply_mica(&window, None);
-                }
+                // 不再固定 apply_mica，由前端通过 set_window_material 命令动态设置
+                let _ = app.get_webview_window("main");
 
                 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 

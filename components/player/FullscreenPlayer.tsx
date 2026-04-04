@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React from "react"
 import {
@@ -21,11 +21,14 @@ import {
     Baseline,
     Palette,
     SlidersHorizontal,
-    Heart
+    Heart,
+    Repeat,
+    Repeat1,
+    Shuffle
 } from "lucide-react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { emit } from "@tauri-apps/api/event"
-import { usePlayerStore } from "@/lib/store/usePlayerStore"
+import { usePlayerStore, RepeatMode } from "@/lib/store/usePlayerStore"
 import { playerService } from "@/lib/services/playerService"
 import { audioAnalyser } from "@/lib/services/audioAnalyser"
 import { urlService } from "@/lib/services/urlService"
@@ -33,6 +36,7 @@ import { LyricPlayer } from "./LyricPlayer"
 import { SongInfoPanel } from "./song-info/SongInfoPanel"
 import { WebGLBackground } from "./WebGLBackground"
 import { EqualizerPanel } from "./EqualizerPanel"
+import { AudioVisualizer } from "./AudioVisualizer"
 import { AddToPlaylistDialog } from "./AddToPlaylistDialog"
 import { playlistService } from "@/lib/services/playlistService"
 import { Slider } from "@/components/ui/slider"
@@ -40,6 +44,7 @@ import { useAudioSourceStore, useActiveSource } from "@/lib/store/useAudioSource
 import { AudioQuality } from "@/lib/services/audioSourceService"
 import { lxMusicRuntimeService } from "@/lib/services/lxMusicRuntimeService"
 import { AudioSourceType } from "@/lib/models/audioSourceConfig"
+import { extractColorsFromImage } from "@/lib/utils/extractColors"
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -52,10 +57,12 @@ import {
 import { invoke } from "@tauri-apps/api/core"
 import { toast } from "sonner"
 import { useIsMobile } from "@/hooks/use-mobile"
-
+import { useTheme } from "next-themes"
+import { LiquidGlass } from "@/components/ui/LiquidGlass"
 
 export function FullscreenPlayer() {
     const isMobile = useIsMobile()
+    const { resolvedTheme } = useTheme()
     const {
         currentTrack,
         isPlaying,
@@ -83,6 +90,8 @@ export function FullscreenPlayer() {
         setIsLyricsFolded,
         isImmersiveMode,
         setIsImmersiveMode,
+        repeatMode,
+        setRepeatMode,
     } = usePlayerStore()
 
     const [localProgress, setLocalProgress] = React.useState(0)
@@ -101,6 +110,8 @@ export function FullscreenPlayer() {
     const [showAddToPlaylistMode, setShowAddToPlaylistMode] = React.useState<'add' | 'remove'>('add')
     const [qualityMenuOpen, setQualityMenuOpen] = React.useState(false)
     const [showMobileLyrics, setShowMobileLyrics] = React.useState(false)
+    const [showVolumePopover, setShowVolumePopover] = React.useState(false)
+    const [coverColors, setCoverColors] = React.useState<string[]>([])
     const { quality, setQuality } = useAudioSourceStore()
     const activeSource = useActiveSource()
 
@@ -108,6 +119,7 @@ export function FullscreenPlayer() {
     const video0Ref = React.useRef<HTMLVideoElement>(null)
     const video1Ref = React.useRef<HTMLVideoElement>(null)
     const [activeVideo, setActiveVideo] = React.useState<0 | 1>(0)
+    const activeVideoRef = React.useRef<0 | 1>(0)
     const crossfadeDuration = 1.5; // 1.5 seconds crossfade
 
     // 音频频率数据通过 ref 直接注入 WebGL，避免触发 React 重绘
@@ -182,6 +194,7 @@ export function FullscreenPlayer() {
         setDynamicCoverUrl(null)
         setIsVideoLoaded(false)
         setActiveVideo(0)
+        activeVideoRef.current = 0
         if (currentTrack?.source === 'netease' && currentTrack.id) {
             fetch(`${urlService.baseUrl}/song/dynamic/cover?id=${currentTrack.id}`)
                 .then(res => res.json())
@@ -194,6 +207,14 @@ export function FullscreenPlayer() {
                     }
                 })
                 .catch(err => console.error("Failed to fetch Netease dynamic cover:", err))
+        }
+        // 提取封面主题色
+        if (currentTrack?.picUrl) {
+            extractColorsFromImage(currentTrack.picUrl, 6)
+                .then(setCoverColors)
+                .catch(() => setCoverColors([]))
+        } else {
+            setCoverColors([])
         }
     }, [currentTrack])
 
@@ -241,6 +262,17 @@ export function FullscreenPlayer() {
             return () => clearTimeout(timer)
         }
     }, [isFullscreen, isVisible])
+
+    React.useEffect(() => {
+        if (!isMobile) return
+        if (isVisible) {
+            invoke("set_status_bar_style", { isDarkText: false })
+                .catch(e => console.error("Failed to set status bar text color:", e))
+        } else if (resolvedTheme) {
+            invoke("set_status_bar_style", { isDarkText: resolvedTheme === "light" })
+                .catch(e => console.error("Failed to set status bar text color:", e))
+        }
+    }, [isVisible, resolvedTheme, isMobile])
 
     if (!isVisible) return null
 
@@ -386,14 +418,15 @@ export function FullscreenPlayer() {
                     ref={bgRef}
                     album={currentTrack?.picUrl}
                     playing={isPlaying}
-                    renderScale={0.25} // 降低渲染分辨率以提升性能
+                    renderScale={isMobile ? 0.15 : 0.25}
+                    isMobile={isMobile}
                     className="absolute inset-0 w-full h-full opacity-80"
                 />
                 <div className="absolute inset-0 bg-black/20" />
             </div>
 
             {/* Top Bar / Close Button */}
-            <div data-tauri-drag-region className="relative z-[110] flex justify-between items-center px-6 py-4 lg:px-8 lg:py-4">
+            <div data-tauri-drag-region className="relative z-[110] flex justify-between items-center px-6 pb-4 lg:px-8 lg:pb-4 pt-14 lg:pt-4" style={isMobile ? { paddingTop: 'calc(env(safe-area-inset-top, 40px) + 24px)' } : {}}>
                 <button
                     onClick={() => setIsFullscreen(false)}
                     className="text-white/30 hover:text-white/80 transition-colors p-2 hover:bg-white/5 rounded-full z-10"
@@ -638,18 +671,22 @@ export function FullscreenPlayer() {
 
                     {/* Content Section: Cover/Info (+ Slides into Lyrics on Mobile) */}
                     <div className={`relative w-full min-h-0 overflow-hidden ${isMobile ? 'flex-[1.5]' : 'flex-none'}`}>
-                        <div className={`min-h-0 ${isMobile ? 'flex h-full w-[200%] transition-transform duration-700 ease-in-out' : 'w-full'} ${isMobile && showMobileLyrics ? '-translate-x-1/2' : 'translate-x-0'}`}>
+                        <div className={`relative min-h-0 ${isMobile ? 'flex h-full w-[200%] transition-transform duration-700 ease-in-out' : 'w-full'} ${isMobile && showMobileLyrics ? '-translate-x-1/2' : 'translate-x-0'}`}>
                         {/* Part 1: Album Art & Info */}
                         <div className={`flex flex-col items-center shrink-0 ${isMobile ? 'w-1/2 overflow-hidden' : 'w-full'} ${!isMobile ? 'justify-start' : 'justify-center'}`}>
                             {isMobile && <div className="flex-[0.5] min-h-[1vh]" />}
                             <div className={
                                 isImmersiveMode
-                                    ? "fixed inset-y-0 left-0 w-[60vw] max-w-none rounded-none border-none shadow-none z-0 pointer-events-none transition-all duration-700"
+                                    ? (isMobile
+                                        ? 'fixed max-w-none rounded-none border-none shadow-none z-0 pointer-events-none transition-all duration-700 inset-x-0 top-[8vh] h-[55vh] w-full'
+                                        : 'hidden')
                                     : "relative aspect-square w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink transition-all duration-700"
                             }
-                                style={isImmersiveMode ? { maskImage: 'linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)', WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)' } : {}}
+                                style={isImmersiveMode && isMobile ? {
+                                    maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 30%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)',
+                                    WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 30%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)'
+                                } : {}}
                             >
-                                {!isImmersiveMode && <div className="absolute inset-0 bg-black/40 blur-3xl scale-95 translate-y-8 opacity-60 hover:opacity-80 transition-opacity duration-500" />}
                                 <div className={isImmersiveMode ? "relative w-full h-full" : "relative w-full h-full rounded-[20px] overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.4)] transition-transform duration-500 hover:scale-[1.02] bg-white/5 border border-white/10"}>
                                     {currentTrack?.picUrl ? (
                                         <img src={currentTrack.picUrl} alt={currentTrack.name} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${dynamicCoverUrl && isVideoLoaded ? 'opacity-0' : 'opacity-100'}`} />
@@ -666,9 +703,10 @@ export function FullscreenPlayer() {
                                                 playsInline
                                                 onLoadedData={() => { if (activeVideo === 0) setIsVideoLoaded(true); }}
                                                 onTimeUpdate={() => {
-                                                    if (activeVideo !== 0 || !video0Ref.current || !video1Ref.current) return;
+                                                    if (activeVideoRef.current !== 0 || !video0Ref.current || !video1Ref.current) return;
                                                     const v0 = video0Ref.current;
                                                     if (v0.duration - v0.currentTime <= crossfadeDuration) {
+                                                        activeVideoRef.current = 1;
                                                         video1Ref.current.currentTime = 0;
                                                         video1Ref.current.play();
                                                         setActiveVideo(1);
@@ -682,9 +720,10 @@ export function FullscreenPlayer() {
                                                 muted
                                                 playsInline
                                                 onTimeUpdate={() => {
-                                                    if (activeVideo !== 1 || !video1Ref.current || !video0Ref.current) return;
+                                                    if (activeVideoRef.current !== 1 || !video1Ref.current || !video0Ref.current) return;
                                                     const v1 = video1Ref.current;
                                                     if (v1.duration - v1.currentTime <= crossfadeDuration) {
+                                                        activeVideoRef.current = 0;
                                                         video0Ref.current.currentTime = 0;
                                                         video0Ref.current.play();
                                                         setActiveVideo(0);
@@ -696,6 +735,17 @@ export function FullscreenPlayer() {
                                     )}
                                 </div>
                             </div>
+                            {/* Desktop Non-Immersive Audio Visualizer Capsule */}
+                            {!isMobile && !isImmersiveMode && (
+                                <div className="flex justify-center mt-3 mb-1 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                    <AudioVisualizer
+                                        colors={coverColors}
+                                        isPlaying={isPlaying}
+                                    />
+                                </div>
+                            )}
+                            {isMobile && (
+                            <>
                             <div className="h-[3vh] min-h-[16px] shrink-0" />
                             <div className="relative z-10 w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink-0 flex flex-col items-start text-left space-y-1 lg:space-y-2">
                                 <div className="flex w-full justify-between items-center gap-4">
@@ -712,6 +762,8 @@ export function FullscreenPlayer() {
                                     {currentTrack?.artists || "未知歌手"}
                                 </p>
                             </div>
+                            </>
+                            )}
                         </div>
 
                         {/* Part 2: Panel Section (Mobile only, slides behind Info) */}
@@ -728,7 +780,9 @@ export function FullscreenPlayer() {
                         </div>
                     </div>
 
-                    {/* Progress & Controls Section (Fixed in Column 1 position) */}
+                    {/* Progress & Controls Section (Mobile only — Desktop uses bottom capsule bar) */}
+                    {isMobile && (
+                    <>
                     <div className="h-[3vh] min-h-[16px] shrink-0" />
                     <div className="relative z-20 w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink-0 space-y-4 lg:space-y-6 pb-4">
                         {/* Progress */}
@@ -796,34 +850,34 @@ export function FullscreenPlayer() {
                             </div>
 
                             {/* Mobile Dynamic Buttons */}
-                            {isMobile && (
-                                <div className="flex items-center justify-center gap-8 py-2">
-                                    <button onClick={() => { setRightPanelMode('lyrics'); setShowMobileLyrics(true); }} className={`flex flex-col items-center transition-all ${showMobileLyrics && rightPanelMode === 'lyrics' ? 'text-white' : 'text-white/30'}`}>
-                                        <div className={`p-2.5 rounded-full transition-colors ${showMobileLyrics && rightPanelMode === 'lyrics' ? 'bg-white/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-transparent'}`}>
-                                            <img src="/icon/icon_lyrics.svg" alt="Lyrics" className="w-6 h-6 invert brightness-200" style={{ opacity: showMobileLyrics && rightPanelMode === 'lyrics' ? 1 : 0.6 }} />
+                            <div className="flex items-center justify-center gap-8 py-2">
+                                <button onClick={() => { setRightPanelMode('lyrics'); setShowMobileLyrics(true); }} className={`flex flex-col items-center transition-all ${showMobileLyrics && rightPanelMode === 'lyrics' ? 'text-white' : 'text-white/30'}`}>
+                                    <div className={`p-2.5 rounded-full transition-colors ${showMobileLyrics && rightPanelMode === 'lyrics' ? 'bg-white/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-transparent'}`}>
+                                        <img src="/icon/icon_lyrics.svg" alt="Lyrics" className="w-6 h-6 invert brightness-200" style={{ opacity: showMobileLyrics && rightPanelMode === 'lyrics' ? 1 : 0.6 }} />
+                                    </div>
+                                </button>
+                                <button onClick={() => { setRightPanelMode('info'); setShowMobileLyrics(true); }} className={`flex flex-col items-center transition-all ${showMobileLyrics && rightPanelMode === 'info' ? 'text-white' : 'text-white/30'}`}>
+                                    <div className={`p-2.5 rounded-full transition-colors ${showMobileLyrics && rightPanelMode === 'info' ? 'bg-white/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-transparent'}`}>
+                                        <Activity size={24} className={showMobileLyrics && rightPanelMode === 'info' ? 'opacity-100' : 'opacity-60'} />
+                                    </div>
+                                </button>
+                                <button onClick={() => { setRightPanelMode('eq'); setShowMobileLyrics(true); }} className={`flex flex-col items-center transition-all ${showMobileLyrics && rightPanelMode === 'eq' ? 'text-white' : 'text-white/30'}`}>
+                                    <div className={`p-2.5 rounded-full transition-colors ${showMobileLyrics && rightPanelMode === 'eq' ? 'bg-white/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-transparent'}`}>
+                                        <SlidersHorizontal size={24} className={showMobileLyrics && rightPanelMode === 'eq' ? 'opacity-100' : 'opacity-60'} />
+                                    </div>
+                                </button>
+                                {hasTranslation && (
+                                    <button onClick={toggleTranslation} className={`flex flex-col items-center transition-all ${showTranslation ? 'text-white' : 'text-white/30'}`}>
+                                        <div className={`p-2.5 rounded-full transition-colors ${showTranslation ? 'bg-white/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-transparent'}`}>
+                                            <Languages size={24} className={showTranslation ? 'opacity-100' : 'opacity-60'} />
                                         </div>
                                     </button>
-                                    <button onClick={() => { setRightPanelMode('info'); setShowMobileLyrics(true); }} className={`flex flex-col items-center transition-all ${showMobileLyrics && rightPanelMode === 'info' ? 'text-white' : 'text-white/30'}`}>
-                                        <div className={`p-2.5 rounded-full transition-colors ${showMobileLyrics && rightPanelMode === 'info' ? 'bg-white/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-transparent'}`}>
-                                            <Activity size={24} className={showMobileLyrics && rightPanelMode === 'info' ? 'opacity-100' : 'opacity-60'} />
-                                        </div>
-                                    </button>
-                                    <button onClick={() => { setRightPanelMode('eq'); setShowMobileLyrics(true); }} className={`flex flex-col items-center transition-all ${showMobileLyrics && rightPanelMode === 'eq' ? 'text-white' : 'text-white/30'}`}>
-                                        <div className={`p-2.5 rounded-full transition-colors ${showMobileLyrics && rightPanelMode === 'eq' ? 'bg-white/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-transparent'}`}>
-                                            <SlidersHorizontal size={24} className={showMobileLyrics && rightPanelMode === 'eq' ? 'opacity-100' : 'opacity-60'} />
-                                        </div>
-                                    </button>
-                                    {hasTranslation && (
-                                        <button onClick={toggleTranslation} className={`flex flex-col items-center transition-all ${showTranslation ? 'text-white' : 'text-white/30'}`}>
-                                            <div className={`p-2.5 rounded-full transition-colors ${showTranslation ? 'bg-white/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-transparent'}`}>
-                                                <Languages size={24} className={showTranslation ? 'opacity-100' : 'opacity-60'} />
-                                            </div>
-                                        </button>
-                                    )}
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </div>
+                    </>
+                    )}
                     {!isMobile && <div className="flex-1 min-h-[1vh]" />}
                 </div>
 
@@ -844,6 +898,184 @@ export function FullscreenPlayer() {
                     </div>
                 )}
             </div>
+
+            {/* Desktop Immersive Cover (rendered outside grid to avoid overflow clipping) */}
+            {!isMobile && isImmersiveMode && (
+                <div
+                    className="absolute inset-y-0 left-0 w-[60vw] z-[1] pointer-events-none transition-all duration-700"
+                    style={{
+                        maskImage: 'linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)',
+                        WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)'
+                    }}
+                >
+                    <div className="relative w-full h-full">
+                        {currentTrack?.picUrl ? (
+                            <img src={currentTrack.picUrl} alt={currentTrack.name} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${dynamicCoverUrl && isVideoLoaded ? 'opacity-0' : 'opacity-100'}`} />
+                        ) : (
+                            <div className="absolute inset-0 w-full h-full flex items-center justify-center text-white/10 text-4xl font-bold">CYRENE</div>
+                        )}
+                        {dynamicCoverUrl && (
+                            <>
+                                <video
+                                    src={dynamicCoverUrl}
+                                    autoPlay={activeVideo === 0}
+                                    muted
+                                    playsInline
+                                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded && activeVideo === 0 ? 'opacity-100' : 'opacity-0'}`}
+                                />
+                                <video
+                                    src={dynamicCoverUrl}
+                                    muted
+                                    playsInline
+                                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded && activeVideo === 1 ? 'opacity-100' : 'opacity-0'}`}
+                                />
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Desktop Bottom Capsule Bar */}
+            {!isMobile && (
+                <div className="relative z-[120] flex justify-center items-center gap-4 pb-6 px-8">
+                    {/* Left Capsule: Minimize + Toggle Lyrics */}
+                    <div
+                        className="relative flex items-center gap-3 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-5 py-3"
+                    >
+                        <LiquidGlass className="bg-white/10" />
+                        <button
+                            onClick={() => setIsFullscreen(false)}
+                            className="text-white/70 hover:text-white transition-colors"
+                            title="最小化播放器"
+                        >
+                            <ChevronDown size={20} />
+                        </button>
+                        <button
+                            onClick={() => setIsLyricsFolded(!isLyricsFolded)}
+                            className={`transition-colors ${isLyricsFolded ? 'text-white' : 'text-white/70 hover:text-white'}`}
+                            title={isLyricsFolded ? '展开歌词' : '折叠歌词'}
+                        >
+                            <img src="/icon/icon_lyrics.svg" alt="Lyrics" className="w-5 h-5" style={{ filter: 'invert(1) brightness(100)', opacity: isLyricsFolded ? 1 : 0.7 }} />
+                        </button>
+                    </div>
+
+                    {/* Center Capsule: Song Info + Playback + Progress */}
+                    <div
+                        className="relative flex items-center gap-5 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-5 py-2.5 flex-1 max-w-[900px]"
+                    >
+                        <LiquidGlass className="bg-white/10" />
+                        {/* Mini Cover + Info */}
+                        <div className="flex items-center gap-2.5 min-w-[140px] shrink-0">
+                            {currentTrack?.picUrl ? (
+                                <img src={currentTrack.picUrl} alt={currentTrack.name} className="w-9 h-9 rounded-lg object-cover shrink-0" />
+                            ) : (
+                                <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center shrink-0 text-white/30 text-xs">♪</div>
+                            )}
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-[13px] font-bold text-white truncate">{currentTrack?.name || '未在播放'}</span>
+                                <span className="text-[11px] text-white/50 truncate">{currentTrack?.artists || '未知歌手'}</span>
+                            </div>
+                        </div>
+
+                        {/* Playback Buttons */}
+                        <div className="flex items-center gap-4 shrink-0">
+                            {/* Immersive Mode Audio Visualizer (compact) */}
+                            {isImmersiveMode && (
+                                <AudioVisualizer
+                                    colors={coverColors}
+                                    compact
+                                    isPlaying={isPlaying}
+                                    className="mr-1"
+                                />
+                            )}
+                            <button onClick={handleSkipPrevious} className="text-white/80 hover:text-white transition-all active:scale-90">
+                                <img src="/icon/icon_rewind.svg" alt="Previous" className="w-5 h-5" style={{ filter: 'invert(1) brightness(100)' }} />
+                            </button>
+                            <button onClick={handleTogglePlay} className="text-white hover:text-white/90 active:scale-95 transition-all">
+                                {isPlaying
+                                    ? <img src="/icon/icon_pause.svg" alt="Pause" className="w-7 h-7" style={{ filter: 'invert(1) brightness(100)' }} />
+                                    : <img src="/icon/icon_play.svg" alt="Play" className="w-7 h-7" style={{ filter: 'invert(1) brightness(100)' }} />
+                                }
+                            </button>
+                            <button onClick={handleSkipNext} className="text-white/80 hover:text-white transition-all active:scale-90">
+                                <img src="/icon/icon_forward.svg" alt="Next" className="w-5 h-5" style={{ filter: 'invert(1) brightness(100)' }} />
+                            </button>
+                            {/* Heart Button */}
+                            {currentTrack && (
+                                <button onClick={handleHeartClick} className={`transition-all duration-300 ${isInPlaylist ? 'text-red-500' : 'text-white/50 hover:text-white/80'}`}>
+                                    <Heart size={18} fill={isInPlaylist ? "currentColor" : "none"} />
+                                </button>
+                            )}
+                            {/* Repeat Mode Button */}
+                            <button
+                                onClick={() => {
+                                    const modes = [RepeatMode.All, RepeatMode.One, RepeatMode.Shuffle]
+                                    const currentIndex = modes.indexOf(repeatMode)
+                                    setRepeatMode(modes[(currentIndex + 1) % modes.length])
+                                }}
+                                className={`transition-colors ${repeatMode === RepeatMode.All ? 'text-white/50 hover:text-white/80' : 'text-white hover:text-white/90'}`}
+                                title={repeatMode === RepeatMode.All ? '顺序播放' : repeatMode === RepeatMode.One ? '单曲循环' : '随机播放'}
+                            >
+                                {repeatMode === RepeatMode.One ? <Repeat1 size={18} /> : repeatMode === RepeatMode.Shuffle ? <Shuffle size={18} /> : <Repeat size={18} />}
+                            </button>
+                        </div>
+
+                        {/* Progress */}
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                            <span className="text-[11px] text-white/50 font-semibold tabular-nums shrink-0">{formatTime(isDraggingProgress.current ? localProgress * duration : currentTime)}</span>
+                            <div className="flex-1 h-3 flex items-center">
+                                <Slider
+                                    value={[localProgress]}
+                                    max={1}
+                                    step={0.0001}
+                                    onValueChange={handleSeekChange}
+                                    onValueCommit={handleSeekCommit}
+                                    className="w-full"
+                                    variant="apple"
+                                />
+                            </div>
+                            <span className="text-[11px] text-white/50 font-semibold tabular-nums shrink-0">{formatTime(Math.max(0, duration - (isDraggingProgress.current ? localProgress * duration : currentTime)))}</span>
+                        </div>
+                    </div>
+
+                    {/* Right Capsule: Volume Button */}
+                    <div className="relative group/volbtn">
+                        <button
+                            onClick={() => setShowVolumePopover(!showVolumePopover)}
+                            className="relative flex items-center justify-center w-12 h-12 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full text-white/70 hover:text-white transition-colors overflow-hidden"
+                            title="音量调节"
+                        >
+                            <LiquidGlass className="bg-white/10 group-hover/volbtn:bg-white/20 transition-colors" />
+                            <Volume2 size={20} className="relative z-10" />
+                        </button>
+                        {/* Volume Popover */}
+                        {showVolumePopover && (
+                            <>
+                                <div className="fixed inset-0 z-[119]" onClick={() => setShowVolumePopover(false)} />
+                                <div
+                                    className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 z-[120] border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-3 py-4 flex flex-col items-center gap-2"
+                                >
+                                    <LiquidGlass className="bg-white/10" />
+                                    <Volume2 size={14} className="text-white/60 shrink-0" />
+                                    <div className="h-[120px] w-3 flex items-center">
+                                        <Slider
+                                            value={[localVolume]}
+                                            max={1}
+                                            step={0.01}
+                                            onValueChange={handleVolumeChange}
+                                            onValueCommit={handleVolumeCommit}
+                                            orientation="vertical"
+                                            className="h-full"
+                                            variant="apple"
+                                        />
+                                    </div>
+                                    <Volume size={14} className="text-white/60 shrink-0" />
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <AddToPlaylistDialog
                 open={showAddToPlaylist}

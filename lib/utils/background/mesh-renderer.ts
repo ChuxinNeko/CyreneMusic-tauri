@@ -13,7 +13,7 @@ import {
 } from "./img";
 import { generateControlPoints } from "./cp-generate";
 import { CONTROL_POINT_PRESETS, ControlPointConf } from "./cp-presets";
-import { meshFragShader, meshVertShader } from "./shaders";
+import { meshFragShader, meshFragShaderMobile, meshVertShader } from "./shaders";
 
 type RenderingContext = WebGLRenderingContext;
 
@@ -746,6 +746,11 @@ export class MeshGradientRenderer extends BaseRenderer {
 	private lastFPSUpdate = 0;
 	private currentFPS = 0;
 	private enablePerformanceMonitoring = false;
+	private _mobileMode = false;
+
+	private get meshSubdivision(): number {
+		return this._mobileMode ? 8 : 15;
+	}
 
 	setManualControl(enable: boolean) {
 		this.manualControl = enable;
@@ -979,7 +984,7 @@ export class MeshGradientRenderer extends BaseRenderer {
 			this.mainProgram.attrs.a_color,
 			this.mainProgram.attrs.a_uv,
 		);
-		newMesh.resetSubdivition(15);
+		newMesh.resetSubdivition(this.meshSubdivision);
 
 		const chosenPreset =
 			CONTROL_POINT_PRESETS[
@@ -1107,7 +1112,7 @@ export class MeshGradientRenderer extends BaseRenderer {
 				this.mainProgram.attrs.a_color,
 				this.mainProgram.attrs.a_uv,
 			);
-			newMesh.resetSubdivition(15);
+			newMesh.resetSubdivition(this.meshSubdivision);
 
 			const chosenPreset =
 				Math.random() > 0.8
@@ -1154,6 +1159,24 @@ export class MeshGradientRenderer extends BaseRenderer {
 		this.treble = treble;
 	}
 	override setHasLyric(_hasLyric: boolean): void {
+	}
+
+	override setMobileMode(enable: boolean): void {
+		super.setMobileMode(enable);
+		this._mobileMode = enable;
+		// 重建 shader program 以使用对应的 fragment shader
+		this.mainProgram.dispose();
+		this.mainProgram = new GLProgram(
+			this.gl,
+			meshVertShader,
+			enable ? meshFragShaderMobile : meshFragShader,
+			"main-program-mg",
+		);
+		// 重新绑定已有的 mesh states
+		for (const state of this.meshStates) {
+			state.mesh.bind();
+		}
+		this.requestTick();
 	}
 
 	override dispose(): void {

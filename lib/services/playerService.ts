@@ -12,7 +12,17 @@ import { historyService } from "./historyService"
 import { lxMusicRuntimeService } from "./lxMusicRuntimeService"
 import { androidMediaNotificationService, isAndroidTauriRuntime } from "./androidMediaNotificationService"
 
-import { listen, emit } from '@tauri-apps/api/event'
+import { listen, emit as tauriEmit } from '@tauri-apps/api/event'
+
+const emit = async (event: string, payload?: any) => {
+    try {
+        if (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) {
+            await tauriEmit(event, payload)
+        }
+    } catch (e) {
+        // Ignore emit errors in non-Tauri environments
+    }
+}
 
 class PlayerService {
     private static instance: PlayerService

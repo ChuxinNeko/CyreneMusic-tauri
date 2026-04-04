@@ -55,8 +55,8 @@ export function DiscoverGrid({ category, onPlaylistClick }: DiscoverGridProps) {
     }
 
     return (
-        <div className="space-y-4">
-            <div className="flex justify-end pr-2 -mt-12 relative z-20">
+        <div className="space-y-2 sm:space-y-4">
+            <div className="flex justify-end pr-2 -mt-2 sm:-mt-12 relative z-20">
                 <Button
                     variant="ghost" 
                     size="icon" 
@@ -68,7 +68,7 @@ export function DiscoverGrid({ category, onPlaylistClick }: DiscoverGridProps) {
                     <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
                 </Button>
             </div>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6 py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3 sm:gap-4 lg:gap-6 py-2 sm:py-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
                 {playlists.map((playlist) => (
                     <DiscoveryCard
                         key={playlist.id}

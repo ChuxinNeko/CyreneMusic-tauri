@@ -42,3 +42,8 @@ next-env.d.ts
 /demo/
 /backend/
 /applemusic-like-lyrics/
+
+# signing
+*.keystore
+*.jks
+keystore.properties

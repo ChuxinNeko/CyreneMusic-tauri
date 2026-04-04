@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react"
 import { Track } from "@/lib/models/track"
 import { neteaseSongWikiService } from "@/lib/services/neteaseSongWikiService"
 import { PlayCircle } from "lucide-react"
-import { usePlayerStore } from "@/lib/store/usePlayerStore"
+import { playerService } from "@/lib/services/playerService"
 
 interface SongSimilarSongsProps {
     track: Track | null
@@ -20,7 +20,6 @@ interface SimilarSong {
 export function SongSimilarSongs({ track }: SongSimilarSongsProps) {
     const [similarSongs, setSimilarSongs] = useState<SimilarSong[]>([])
     const [isLoading, setIsLoading] = useState(false)
-    const { setCurrentTrack, setIsPlaying } = usePlayerStore()
 
     useEffect(() => {
         const fetchSimilarSongs = async () => {
@@ -100,8 +99,7 @@ export function SongSimilarSongs({ track }: SongSimilarSongsProps) {
             source: 'netease' as any,
             duration: 0
         }
-        setCurrentTrack(newTrack)
-        setIsPlaying(true)
+        playerService.playTrack(newTrack)
     }
 
     if (isLoading) {
