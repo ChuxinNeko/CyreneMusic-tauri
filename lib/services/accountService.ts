@@ -51,9 +51,12 @@ class AccountService {
 
     public async unbindNetease(token: string): Promise<boolean> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/netease/unbind`, {
+            const response = await fetch(`${urlService.baseUrl}/accounts/netease/unbind`, {
                 method: "POST",
-                headers: this.getHeaders(token)
+                headers: this.getHeaders(token),
+                body: JSON.stringify({
+                    timestamp: Math.floor(Date.now() / 1000)
+                })
             })
             const result = await response.json()
             return result.code === 200
@@ -65,9 +68,12 @@ class AccountService {
 
     public async unbindKugou(token: string): Promise<boolean> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/kugou/unbind`, {
+            const response = await fetch(`${urlService.baseUrl}/accounts/kugou/unbind`, {
                 method: "POST",
-                headers: this.getHeaders(token)
+                headers: this.getHeaders(token),
+                body: JSON.stringify({
+                    timestamp: Math.floor(Date.now() / 1000)
+                })
             })
             const result = await response.json()
             return result.code === 200

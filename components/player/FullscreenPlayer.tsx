@@ -599,43 +599,6 @@ export function FullscreenPlayer() {
                     )}
                     {!isMobile && (
                         <>
-                            <div className="flex bg-white/5 rounded-full p-1 mr-2 border border-white/10">
-                                <button
-                                    onClick={() => setRightPanelMode('lyrics')}
-                                    className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${rightPanelMode === 'lyrics' ? 'bg-white/20 text-white shadow-sm' : 'text-white/50 hover:text-white/80'}`}
-                                >
-                                    歌词
-                                </button>
-                                <button
-                                    onClick={() => setRightPanelMode('info')}
-                                    className={`px-3 py-1 text-xs font-medium rounded-full transition-all ${rightPanelMode === 'info' ? 'bg-white/20 text-white shadow-sm' : 'text-white/50 hover:text-white/80'}`}
-                                >
-                                    歌曲信息
-                                </button>
-                            </div>
-                            <button
-                                onClick={() => setRightPanelMode(rightPanelMode === 'eq' ? 'lyrics' : 'eq')}
-                                className={`p-2 rounded-full transition-colors mr-1 ${rightPanelMode === 'eq' ? 'text-white bg-white/15 hover:bg-white/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
-                                title="均衡器设置"
-                            >
-                                <SlidersHorizontal size={20} />
-                            </button>
-                            <button
-                                onClick={() => setIsLyricsFolded(!isLyricsFolded)}
-                                className={`p-2 rounded-full transition-all duration-300 ${isLyricsFolded ? 'text-white bg-white/15' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
-                                title={isLyricsFolded ? '展开歌词' : '折叠歌词'}
-                            >
-                                <img src="/icon/icon_lyrics.svg" alt="Lyrics" className="w-5 h-5" style={{ filter: isLyricsFolded ? 'invert(1) brightness(100)' : 'invert(1) brightness(100) opacity(0.3)' }} />
-                            </button>
-                            {hasTranslation && (
-                                <button
-                                    onClick={toggleTranslation}
-                                    className={`p-2 rounded-full transition-colors ${showTranslation ? 'text-white bg-white/15 hover:bg-white/20' : 'text-white/30 hover:text-white/60 hover:bg-white/5'}`}
-                                    title={showTranslation ? '隐藏翻译' : '显示翻译'}
-                                >
-                                    <Languages size={20} />
-                                </button>
-                            )}
                             <div className="flex items-center gap-2 ml-4 text-white/50">
                                 <button
                                     onClick={minimize}
@@ -687,7 +650,7 @@ export function FullscreenPlayer() {
                                     WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 30%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)'
                                 } : {}}
                             >
-                                <div className={isImmersiveMode ? "relative w-full h-full" : "relative w-full h-full rounded-[20px] overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.4)] transition-transform duration-500 hover:scale-[1.02] bg-white/5 border border-white/10"}>
+                                <div className={isImmersiveMode ? "relative w-full h-full" : "relative w-full h-full rounded-[20px] overflow-hidden transition-transform duration-500 hover:scale-[1.02] bg-white/5 border border-white/10"}>
                                     {currentTrack?.picUrl ? (
                                         <img src={currentTrack.picUrl} alt={currentTrack.name} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${dynamicCoverUrl && isVideoLoaded ? 'opacity-0' : 'opacity-100'}`} />
                                     ) : (
@@ -940,23 +903,47 @@ export function FullscreenPlayer() {
                 <div className="relative z-[120] flex justify-center items-center gap-4 pb-6 px-8">
                     {/* Left Capsule: Minimize + Toggle Lyrics */}
                     <div
-                        className="relative flex items-center gap-3 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-5 py-3"
+                        className="relative flex items-center gap-2 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-4 py-2.5"
                     >
                         <LiquidGlass className="bg-white/10" />
                         <button
                             onClick={() => setIsFullscreen(false)}
-                            className="text-white/70 hover:text-white transition-colors"
+                            className="text-white/50 hover:text-white transition-colors p-1.5"
                             title="最小化播放器"
                         >
                             <ChevronDown size={20} />
                         </button>
                         <button
                             onClick={() => setIsLyricsFolded(!isLyricsFolded)}
-                            className={`transition-colors ${isLyricsFolded ? 'text-white' : 'text-white/70 hover:text-white'}`}
+                            className={`p-1.5 transition-colors ${isLyricsFolded ? 'text-white' : 'text-white/50 hover:text-white'}`}
                             title={isLyricsFolded ? '展开歌词' : '折叠歌词'}
                         >
-                            <img src="/icon/icon_lyrics.svg" alt="Lyrics" className="w-5 h-5" style={{ filter: 'invert(1) brightness(100)', opacity: isLyricsFolded ? 1 : 0.7 }} />
+                            <img src="/icon/icon_lyrics.svg" alt="Lyrics" className="w-5 h-5" style={{ filter: 'invert(1) brightness(100)', opacity: isLyricsFolded ? 1 : 0.6 }} />
                         </button>
+                        <div className="w-[1px] h-4 bg-white/10 mx-1" />
+                        <button
+                            onClick={() => setRightPanelMode(rightPanelMode === 'info' ? 'lyrics' : 'info')}
+                            className={`p-1.5 rounded-full transition-colors ${rightPanelMode === 'info' ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
+                            title={rightPanelMode === 'info' ? '显示歌词' : '切换歌曲信息'}
+                        >
+                            <Activity size={20} />
+                        </button>
+                        <button
+                            onClick={() => setRightPanelMode(rightPanelMode === 'eq' ? 'lyrics' : 'eq')}
+                            className={`p-1.5 rounded-full transition-colors ${rightPanelMode === 'eq' ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
+                            title={rightPanelMode === 'eq' ? '关闭均衡器' : '均衡器设置'}
+                        >
+                            <SlidersHorizontal size={20} />
+                        </button>
+                        {hasTranslation && (
+                            <button
+                                onClick={toggleTranslation}
+                                className={`p-1.5 rounded-full transition-colors ${showTranslation ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
+                                title={showTranslation ? '隐藏翻译' : '显示翻译'}
+                            >
+                                <Languages size={20} />
+                            </button>
+                        )}
                     </div>
 
                     {/* Center Capsule: Song Info + Playback + Progress */}

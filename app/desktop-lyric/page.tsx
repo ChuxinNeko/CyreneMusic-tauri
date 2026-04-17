@@ -9,6 +9,7 @@ import { Track } from "@/lib/models/track"
 import { parseLyrics, LyricLineData, WordData, INTRO_DELAY } from "@/components/player/parser"
 
 export default function DesktopLyricPage() {
+    const rootRef = useRef<HTMLDivElement>(null)
     const [currentTrack, setCurrentTrack] = useState<Track | null>(null)
     const [parsedLyrics, setParsedLyrics] = useState<LyricLineData[]>([])
     const [isPlaying, setIsPlaying] = useState(false)
@@ -30,10 +31,40 @@ export default function DesktopLyricPage() {
     const activeLineRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
-        // Hide scrollbar & make background transparent
-        document.body.style.backgroundColor = "transparent"
-        document.body.style.overflow = "hidden"
-        document.body.style.userSelect = "none"
+        // Force the desktop lyric window and all route wrappers to stay transparent.
+        const html = document.documentElement
+        const body = document.body
+        const previousHtmlBackground = html.style.background
+        const previousHtmlBackgroundColor = html.style.backgroundColor
+        const previousBodyBackground = body.style.background
+        const previousBodyBackgroundColor = body.style.backgroundColor
+        const previousBodyOverflow = body.style.overflow
+        const previousBodyUserSelect = body.style.userSelect
+
+        html.style.background = "transparent"
+        html.style.backgroundColor = "transparent"
+        body.style.background = "transparent"
+        body.style.backgroundColor = "transparent"
+        body.style.overflow = "hidden"
+        body.style.userSelect = "none"
+
+        const patchedParents: Array<{
+            element: HTMLElement
+            background: string
+            backgroundColor: string
+        }> = []
+
+        let parent = rootRef.current?.parentElement ?? null
+        while (parent && parent !== body) {
+            patchedParents.push({
+                element: parent,
+                background: parent.style.background,
+                backgroundColor: parent.style.backgroundColor,
+            })
+            parent.style.background = "transparent"
+            parent.style.backgroundColor = "transparent"
+            parent = parent.parentElement
+        }
 
         // Listen for current track changes
         const unlistenState = listen('player:state-change', (event: any) => {
@@ -65,6 +96,16 @@ export default function DesktopLyricPage() {
         emit('player:command', 'request-sync')
 
         return () => {
+            html.style.background = previousHtmlBackground
+            html.style.backgroundColor = previousHtmlBackgroundColor
+            body.style.background = previousBodyBackground
+            body.style.backgroundColor = previousBodyBackgroundColor
+            body.style.overflow = previousBodyOverflow
+            body.style.userSelect = previousBodyUserSelect
+            patchedParents.forEach(({ element, background, backgroundColor }) => {
+                element.style.background = background
+                element.style.backgroundColor = backgroundColor
+            })
             unlistenState.then(f => f())
             unlistenTime.then(f => f())
             unlistenSettings.then(f => f())
@@ -198,7 +239,8 @@ export default function DesktopLyricPage() {
 
     return (
         <div
-            className="w-full h-full relative"
+            ref={rootRef}
+            className="w-full h-full relative bg-transparent"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >

@@ -40,9 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /demo/
-/backend/
 /applemusic-like-lyrics/
-
+/backend/
 # signing
 *.keystore
 *.jks

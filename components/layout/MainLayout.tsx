@@ -82,7 +82,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
     const isTransparent = material === "mica" || material === "acrylic"
 
     if (isTray || isDesktopLyric) {
-        return <div className="h-screen w-full bg-background/0 overflow-hidden">{children}</div>
+        return <div className="h-screen w-full bg-transparent overflow-hidden">{children}</div>
     }
 
     return (

@@ -13,7 +13,7 @@ class UrlService {
     // Default configuration
     private readonly STORAGE_KEY_SOURCE_TYPE = "backend_source_type";
     private readonly STORAGE_KEY_CUSTOM_URL = "custom_base_url";
-    public readonly OFFICIAL_BASE_URL = "http://114.66.31.209:4055";
+    public readonly OFFICIAL_BASE_URL = "https://music.nekofun.top";
 
     // State
     private _sourceType: BackendSourceType = BackendSourceType.Official;
