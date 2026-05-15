@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use sysinfo::System;
 use tauri::Manager;
+use tauri::webview::Color;
 
 lazy_static::lazy_static! {
     static ref SYS: Mutex<System> = Mutex::new(System::new_all());
@@ -59,6 +60,7 @@ async fn open_desktop_lyric(app: tauri::AppHandle) -> Result<(), String> {
     .decorations(false)
     .always_on_top(true)
     .transparent(true)
+    .background_color(Color(0, 0, 0, 0))
     .shadow(false)
     .skip_taskbar(true)
     .inner_size(800.0, 100.0)

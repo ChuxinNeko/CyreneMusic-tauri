@@ -30,7 +30,7 @@ export default function DesktopLyricPage() {
     const requestRef = useRef<number>(0)
     const activeLineRef = useRef<HTMLDivElement>(null)
 
-    useEffect(() => {
+    React.useLayoutEffect(() => {
         // Force the desktop lyric window and all route wrappers to stay transparent.
         const html = document.documentElement
         const body = document.body
@@ -240,6 +240,7 @@ export default function DesktopLyricPage() {
     return (
         <div
             ref={rootRef}
+            data-transparent-window="desktop-lyric"
             className="w-full h-full relative bg-transparent"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}

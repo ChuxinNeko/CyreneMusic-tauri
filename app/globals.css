@@ -130,6 +130,12 @@
     @apply border-border outline-ring/50;
   }
 
+  html:has([data-transparent-window]),
+  body:has([data-transparent-window]) {
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+
   html,
   body {
     @apply text-foreground;
