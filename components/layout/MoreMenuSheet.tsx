@@ -5,6 +5,7 @@ import { Clock, HardDrive, Settings, HelpCircle, Code } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useLayoutStore } from "@/lib/store/useLayoutStore"
 import {
     Sheet,
     SheetContent,
@@ -47,6 +48,12 @@ interface MoreMenuSheetProps {
 
 export function MoreMenuSheet({ open, onOpenChange }: MoreMenuSheetProps) {
     const closeSheet = () => onOpenChange(false)
+    const { devModeUnlocked, handleSettingsClick } = useLayoutStore()
+
+    const onSettingsClick = () => {
+        handleSettingsClick()
+        closeSheet()
+    }
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
@@ -58,9 +65,11 @@ export function MoreMenuSheet({ open, onOpenChange }: MoreMenuSheetProps) {
                     <MenuItem icon={Clock} label="历史" href="/history" onClick={closeSheet} />
                     <MenuItem icon={HardDrive} label="本地" href="/local" onClick={closeSheet} />
                     <div className="h-px bg-border my-2 mx-4" />
-                    <MenuItem icon={Settings} label="设置" href="/settings" onClick={closeSheet} />
+                    <MenuItem icon={Settings} label="设置" href="/settings" onClick={onSettingsClick} />
                     <MenuItem icon={HelpCircle} label="支持" href="/support" onClick={closeSheet} />
-                    <MenuItem icon={Code} label="DEV" href="/dev" onClick={closeSheet} />
+                    {devModeUnlocked && (
+                        <MenuItem icon={Code} label="DEV" href="/dev" onClick={closeSheet} />
+                    )}
                 </div>
             </SheetContent>
         </Sheet>

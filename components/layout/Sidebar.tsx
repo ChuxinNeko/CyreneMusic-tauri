@@ -17,12 +17,14 @@ interface SidebarItemProps {
     href: string
     isActive?: boolean
     isCollapsed: boolean
+    onClick?: () => void
 }
 
-function SidebarItem({ icon: Icon, label, href, isActive, isCollapsed }: SidebarItemProps) {
+function SidebarItem({ icon: Icon, label, href, isActive, isCollapsed, onClick }: SidebarItemProps) {
     return (
         <Link
             href={href}
+            onClick={onClick}
             className={cn(
                 "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors h-10 overflow-hidden",
                 isActive
@@ -53,7 +55,7 @@ function SidebarItem({ icon: Icon, label, href, isActive, isCollapsed }: Sidebar
 
 export function Sidebar() {
     const pathname = usePathname()
-    const { isSidebarCollapsed, toggleSidebar } = useLayoutStore()
+    const { isSidebarCollapsed, toggleSidebar, devModeUnlocked, handleSettingsClick } = useLayoutStore()
 
     const navItems = [
         { icon: Home, label: "首页", href: "/" },
@@ -64,9 +66,9 @@ export function Sidebar() {
     ]
 
     const utilityItems = [
-        { icon: Settings, label: "设置", href: "/settings" },
+        { icon: Settings, label: "设置", href: "/settings", onClick: handleSettingsClick },
         { icon: HelpCircle, label: "支持", href: "/support" },
-        { icon: Code, label: "DEV", href: "/dev" },
+        ...(devModeUnlocked ? [{ icon: Code, label: "DEV", href: "/dev" }] : []),
     ]
 
     const isLinkActive = (href: string) => {
@@ -127,6 +129,7 @@ export function Sidebar() {
                             href={item.href}
                             isActive={isLinkActive(item.href)}
                             isCollapsed={isSidebarCollapsed}
+                            onClick={'onClick' in item ? (item as any).onClick : undefined}
                         />
                     ))}
                 </div>

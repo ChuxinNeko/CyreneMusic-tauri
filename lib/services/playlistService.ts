@@ -39,12 +39,12 @@ class PlaylistService {
         }
     }
 
-    public async createPlaylist(name: string): Promise<Playlist | null> {
+    public async createPlaylist(name: string, options?: { source?: string; sourcePlaylistId?: string }): Promise<Playlist | null> {
         try {
             const response = await fetch(`${urlService.baseUrl}/playlists`, {
                 method: "POST",
                 headers: this.getHeaders(),
-                body: JSON.stringify({ name })
+                body: JSON.stringify({ name, ...options })
             });
             if (response.ok) {
                 const result = await response.json();
@@ -145,6 +145,26 @@ class PlaylistService {
         } catch (error) {
             console.error("[PlaylistService] removeTrackFromPlaylist failed:", error);
             return false;
+        }
+    }
+
+    /**
+     * 同步第三方歌单：重新拉取远端歌单数据，增量更新本地歌单
+     */
+    public async syncPlaylist(playlistId: string | number): Promise<PlaylistSyncResult | null> {
+        try {
+            const response = await fetch(`${urlService.baseUrl}/playlists/${playlistId}/sync`, {
+                method: "POST",
+                headers: this.getHeaders()
+            });
+            if (response.ok) {
+                const result = await response.json();
+                return result as PlaylistSyncResult;
+            }
+            return null;
+        } catch (error) {
+            console.error("[PlaylistService] syncPlaylist failed:", error);
+            return null;
         }
     }
 

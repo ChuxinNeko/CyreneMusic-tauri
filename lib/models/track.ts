@@ -29,6 +29,8 @@ export interface Track {
     chorus?: { startTime: number; endTime: number }[];
     /** 歌曲时长 (秒) */
     duration?: number;
+    /** 本地文件路径 (仅 source=local 时有值) */
+    filePath?: string;
 }
 
 /**

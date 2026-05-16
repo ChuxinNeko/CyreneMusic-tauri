@@ -386,6 +386,29 @@ class PlayerService {
                     .catch(e => console.warn('[PlayerService] Failed to fetch Netease chorus:', e));
             }
 
+            // 本地文件：直接使用 asset protocol URL
+            if (track.source === 'local' && track.filePath) {
+                const { convertFileSrc } = await import('@tauri-apps/api/core');
+                const assetUrl = convertFileSrc(track.filePath);
+
+                // 加载歌词：优先内嵌，fallback 到 .lrc 文件
+                if (!track.lyric) {
+                    import('./localMusicService').then(({ localMusicService }) => {
+                        localMusicService.loadLrcForTrack(track).then(lrc => {
+                            if (lrc) {
+                                const currentTrack = usePlayerStore.getState().currentTrack;
+                                if (currentTrack && currentTrack.id === track.id) {
+                                    usePlayerStore.getState().updateTrackLyrics({ lyric: lrc });
+                                }
+                            }
+                        });
+                    });
+                }
+
+                this.initHowl(assetUrl);
+                return;
+            }
+
             const activeConfigSource = useAudioSourceStore.getState().getActiveSource()
             if (!activeConfigSource) {
                 throw new Error("No active audio source configured")

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Library, Plus, Music2, ChevronRight, CloudDownload, MoreVertical, Trash2, Loader2 } from "lucide-react"
+import { Library, Plus, Music2, ChevronRight, CloudDownload, MoreVertical, Trash2, Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AsyncImage } from "@/components/common/AsyncImage"
 import { Playlist } from "@/lib/models/playlist"
@@ -35,6 +35,29 @@ export function PlaylistSection({ playlists, onPlaylistClick, onRefresh, onRemov
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [deletePlaylist, setDeletePlaylist] = useState<Playlist | null>(null)
     const [deleting, setDeleting] = useState(false)
+    const [syncingId, setSyncingId] = useState<string | number | null>(null)
+
+    const handleSync = async (playlist: Playlist) => {
+        if (!playlist.source || !playlist.sourcePlaylistId) return
+        setSyncingId(playlist.id)
+        try {
+            const result = await playlistService.syncPlaylist(playlist.id)
+            if (result) {
+                if (result.insertedCount > 0) {
+                    toast.success(`同步完成，新增 ${result.insertedCount} 首歌曲`)
+                } else {
+                    toast.success("歌单已是最新，无需更新")
+                }
+                onRefresh()
+            } else {
+                toast.error("同步歌单失败")
+            }
+        } catch (error) {
+            toast.error("同步过程中发生错误")
+        } finally {
+            setSyncingId(null)
+        }
+    }
 
     const handleDelete = async () => {
         if (!deletePlaylist) return
@@ -113,6 +136,19 @@ export function PlaylistSection({ playlists, onPlaylistClick, onRefresh, onRemov
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
+                                        {playlist.source && playlist.sourcePlaylistId && (
+                                            <DropdownMenuItem
+                                                className="cursor-pointer"
+                                                disabled={syncingId === playlist.id}
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handleSync(playlist)
+                                                }}
+                                            >
+                                                <RefreshCw className={`w-4 h-4 mr-2 ${syncingId === playlist.id ? 'animate-spin' : ''}`} />
+                                                同步歌单
+                                            </DropdownMenuItem>
+                                        )}
                                         <DropdownMenuItem
                                             className="text-destructive focus:text-destructive cursor-pointer"
                                             onClick={(e) => {

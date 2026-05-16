@@ -9,6 +9,11 @@ export enum RepeatMode {
     Shuffle = 'shuffle'
 }
 
+export enum LyricDisplayStyle {
+    Scroll = 'scroll',
+    Roulette = 'roulette',
+}
+
 interface PlayerState {
     // Current track being played
     currentTrack: Track | null
@@ -45,6 +50,7 @@ interface PlayerState {
     desktopLyricStrokeColor: string
     isLyricsFolded: boolean
     isImmersiveMode: boolean
+    lyricDisplayStyle: LyricDisplayStyle
 
     // Actions
     setCurrentTrack: (track: Track | null) => void
@@ -72,6 +78,7 @@ interface PlayerState {
     setDesktopLyricStrokeColor: (color: string) => void
     setIsLyricsFolded: (folded: boolean) => void
     setIsImmersiveMode: (isImmersiveMode: boolean) => void
+    setLyricDisplayStyle: (style: LyricDisplayStyle) => void
 
     playNext: () => void
     playPrevious: () => void
@@ -100,6 +107,7 @@ export const usePlayerStore = create<PlayerState>()(
             desktopLyricStrokeColor: '#bababa',
             isLyricsFolded: false,
             isImmersiveMode: false,
+            lyricDisplayStyle: LyricDisplayStyle.Scroll,
 
             setCurrentTrack: (track) => {
                 const { currentTrack, history } = get()
@@ -162,6 +170,7 @@ export const usePlayerStore = create<PlayerState>()(
             setDesktopLyricStrokeColor: (desktopLyricStrokeColor) => set({ desktopLyricStrokeColor }),
             setIsLyricsFolded: (isLyricsFolded) => set({ isLyricsFolded }),
             setIsImmersiveMode: (isImmersiveMode) => set({ isImmersiveMode }),
+            setLyricDisplayStyle: (lyricDisplayStyle) => set({ lyricDisplayStyle }),
 
             playNext: () => {
                 const { queue, currentTrack, repeatMode } = get()
@@ -207,7 +216,8 @@ export const usePlayerStore = create<PlayerState>()(
                 desktopLyricColor: state.desktopLyricColor,
                 desktopLyricStrokeColor: state.desktopLyricStrokeColor,
                 isLyricsFolded: state.isLyricsFolded,
-                isImmersiveMode: state.isImmersiveMode
+                isImmersiveMode: state.isImmersiveMode,
+                lyricDisplayStyle: state.lyricDisplayStyle,
             }),
         }
     )

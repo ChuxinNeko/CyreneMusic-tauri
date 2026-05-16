@@ -20,7 +20,8 @@ export enum MusicSource {
     Kugou = 'kugou',
     Kuwo = 'kuwo',
     Apple = 'apple',
-    Spotify = 'spotify'
+    Spotify = 'spotify',
+    Local = 'local'
 }
 
 class AudioSourceService {

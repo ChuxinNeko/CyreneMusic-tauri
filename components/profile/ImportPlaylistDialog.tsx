@@ -62,7 +62,10 @@ export function ImportPlaylistDialog({ open, onOpenChange, onImportSuccess }: Im
             // First select/create a target playlist. For now, we create a new one named after the source.
             // In a full implementation, we might want to let the user select an existing one.
             const { playlistService } = await import("@/lib/services/playlistService")
-            const newPlaylist = await playlistService.createPlaylist(previewData.name)
+            const newPlaylist = await playlistService.createPlaylist(previewData.name, {
+                source: platform,
+                sourcePlaylistId: previewData.id
+            })
 
             if (!newPlaylist) {
                 toast.error("创建歌单失败")

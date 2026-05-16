@@ -9,6 +9,8 @@ use tauri::webview::Color;
 #[cfg(target_os = "windows")]
 mod thumbbar;
 
+mod local_music;
+
 lazy_static::lazy_static! {
     static ref SYS: Mutex<System> = Mutex::new(System::new_all());
 }
@@ -392,6 +394,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .invoke_handler({
             #[cfg(desktop)]
             {
@@ -408,7 +412,10 @@ pub fn run() {
                         get_system_info,
                         get_process_info,
                         set_status_bar_style,
-                        update_thumbbar_playing_state
+                        update_thumbbar_playing_state,
+                        local_music::scan_music_folder,
+                        local_music::get_audio_metadata,
+                        local_music::read_lrc_file
                     ]
                 }
                 #[cfg(not(target_os = "windows"))]
@@ -423,7 +430,10 @@ pub fn run() {
                         lx_http_request,
                         get_system_info,
                         get_process_info,
-                        set_status_bar_style
+                        set_status_bar_style,
+                        local_music::scan_music_folder,
+                        local_music::get_audio_metadata,
+                        local_music::read_lrc_file
                     ]
                 }
             }
@@ -439,7 +449,10 @@ pub fn run() {
                         get_process_info,
                         set_status_bar_style,
                         android_media_notification_update,
-                        android_media_notification_hide
+                        android_media_notification_hide,
+                        local_music::scan_music_folder,
+                        local_music::get_audio_metadata,
+                        local_music::read_lrc_file
                     ]
                 }
                 #[cfg(not(target_os = "android"))]
@@ -450,7 +463,10 @@ pub fn run() {
                         lx_http_request,
                         get_system_info,
                         get_process_info,
-                        set_status_bar_style
+                        set_status_bar_style,
+                        local_music::scan_music_folder,
+                        local_music::get_audio_metadata,
+                        local_music::read_lrc_file
                     ]
                 }
             }

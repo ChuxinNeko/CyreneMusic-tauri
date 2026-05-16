@@ -24,15 +24,17 @@ import {
     Heart,
     Repeat,
     Repeat1,
-    Shuffle
+    Shuffle,
+    Disc
 } from "lucide-react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { emit } from "@tauri-apps/api/event"
-import { usePlayerStore, RepeatMode } from "@/lib/store/usePlayerStore"
+import { usePlayerStore, RepeatMode, LyricDisplayStyle } from "@/lib/store/usePlayerStore"
 import { playerService } from "@/lib/services/playerService"
 import { audioAnalyser } from "@/lib/services/audioAnalyser"
 import { urlService } from "@/lib/services/urlService"
 import { LyricPlayer } from "./LyricPlayer"
+import { LyricPlayerRoulette } from "./LyricPlayerRoulette"
 import { SongInfoPanel } from "./song-info/SongInfoPanel"
 import { WebGLBackground } from "./WebGLBackground"
 import { EqualizerPanel } from "./EqualizerPanel"
@@ -90,6 +92,8 @@ export function FullscreenPlayer() {
         setIsLyricsFolded,
         isImmersiveMode,
         setIsImmersiveMode,
+        lyricDisplayStyle,
+        setLyricDisplayStyle,
         repeatMode,
         setRepeatMode,
     } = usePlayerStore()
@@ -469,6 +473,26 @@ export function FullscreenPlayer() {
                         <DropdownMenuSeparator className="bg-white/10" />
                         <div className="px-2 py-1.5">
                             <div className="flex items-center text-sm font-medium mb-2 opacity-80">
+                                <Disc className="mr-2 h-4 w-4" /> 歌词样式
+                            </div>
+                            <div className="flex gap-1">
+                                <button
+                                    onClick={() => setLyricDisplayStyle(LyricDisplayStyle.Scroll)}
+                                    className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.Scroll ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                                >
+                                    滚动
+                                </button>
+                                <button
+                                    onClick={() => setLyricDisplayStyle(LyricDisplayStyle.Roulette)}
+                                    className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.Roulette ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                                >
+                                    轮盘
+                                </button>
+                            </div>
+                        </div>
+                        <DropdownMenuSeparator className="bg-white/10" />
+                        <div className="px-2 py-1.5">
+                            <div className="flex items-center text-sm font-medium mb-2 opacity-80">
                                 <Type className="mr-2 h-4 w-4" /> 歌词字号
                             </div>
                             <Slider
@@ -567,6 +591,26 @@ export function FullscreenPlayer() {
                                     <Monitor className="mr-2 h-4 w-4" />
                                     沉浸模式
                                 </DropdownMenuCheckboxItem>
+                                <DropdownMenuSeparator className="bg-white/10" />
+                                <div className="px-2 py-1.5">
+                                    <div className="flex items-center text-sm font-medium mb-2 opacity-80">
+                                        <Disc className="mr-2 h-4 w-4" /> 歌词样式
+                                    </div>
+                                    <div className="flex gap-1">
+                                        <button
+                                            onClick={() => setLyricDisplayStyle(LyricDisplayStyle.Scroll)}
+                                            className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.Scroll ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                                        >
+                                            滚动
+                                        </button>
+                                        <button
+                                            onClick={() => setLyricDisplayStyle(LyricDisplayStyle.Roulette)}
+                                            className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.Roulette ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                                        >
+                                            轮盘
+                                        </button>
+                                    </div>
+                                </div>
                                 <DropdownMenuSeparator className="bg-white/10" />
                                 <div className="px-2 py-1.5">
                                     <div className="flex items-center text-sm font-medium mb-2 opacity-80">
@@ -736,7 +780,7 @@ export function FullscreenPlayer() {
                                     <ChevronDown size={28} className="rotate-90" />
                                 </button>
                                 <div className="absolute inset-0 w-full h-full animate-in fade-in zoom-in-95 duration-500">
-                                    {rightPanelMode === 'lyrics' ? <LyricPlayer /> : rightPanelMode === 'info' ? <SongInfoPanel /> : <EqualizerPanel />}
+                                    {rightPanelMode === 'lyrics' ? (lyricDisplayStyle === LyricDisplayStyle.Roulette ? <LyricPlayerRoulette /> : <LyricPlayer />) : rightPanelMode === 'info' ? <SongInfoPanel /> : <EqualizerPanel />}
                                 </div>
                             </div>
                         )}
@@ -849,7 +893,7 @@ export function FullscreenPlayer() {
                     <div className={`relative h-full overflow-hidden transition-all duration-700 ease-in-out ${isLyricsFolded ? 'opacity-0 translate-x-full pointer-events-none w-0' : 'opacity-100 translate-x-0'}`}>
                         <div className="absolute inset-0 w-full h-full animate-in fade-in zoom-in-95 duration-500">
                             {rightPanelMode === 'lyrics' ? (
-                                <LyricPlayer />
+                                lyricDisplayStyle === LyricDisplayStyle.Roulette ? <LyricPlayerRoulette /> : <LyricPlayer />
                             ) : rightPanelMode === 'info' ? (
                                 <SongInfoPanel />
                             ) : (
