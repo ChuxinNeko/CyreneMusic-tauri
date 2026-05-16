@@ -681,6 +681,7 @@ dependencies = [
  "tauri-plugin-process",
  "tauri-plugin-status-bar-color",
  "window-vibrancy 0.7.1",
+ "windows 0.58.0",
 ]
 
 [[package]]

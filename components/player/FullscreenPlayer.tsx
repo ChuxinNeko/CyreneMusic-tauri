@@ -903,7 +903,7 @@ export function FullscreenPlayer() {
                 <div className="relative z-[120] flex justify-center items-center gap-4 pb-6 px-8">
                     {/* Left Capsule: Minimize + Toggle Lyrics */}
                     <div
-                        className="relative flex items-center gap-2 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-4 py-2.5"
+                        className="relative flex items-center gap-2 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-4 py-2.5 backdrop-blur-md"
                     >
                         <LiquidGlass className="bg-white/10" />
                         <button
@@ -948,7 +948,7 @@ export function FullscreenPlayer() {
 
                     {/* Center Capsule: Song Info + Playback + Progress */}
                     <div
-                        className="relative flex items-center gap-5 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-5 py-2.5 flex-1 max-w-[900px]"
+                        className="relative flex items-center gap-5 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-5 py-2.5 flex-1 max-w-[900px] backdrop-blur-md"
                     >
                         <LiquidGlass className="bg-white/10" />
                         {/* Mini Cover + Info */}
@@ -1025,41 +1025,30 @@ export function FullscreenPlayer() {
                         </div>
                     </div>
 
-                    {/* Right Capsule: Volume Button */}
-                    <div className="relative group/volbtn">
-                        <button
-                            onClick={() => setShowVolumePopover(!showVolumePopover)}
-                            className="relative flex items-center justify-center w-12 h-12 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full text-white/70 hover:text-white transition-colors overflow-hidden"
-                            title="音量调节"
-                        >
-                            <LiquidGlass className="bg-white/10 group-hover/volbtn:bg-white/20 transition-colors" />
-                            <Volume2 size={20} className="relative z-10" />
-                        </button>
-                        {/* Volume Popover */}
-                        {showVolumePopover && (
-                            <>
-                                <div className="fixed inset-0 z-[119]" onClick={() => setShowVolumePopover(false)} />
-                                <div
-                                    className="absolute bottom-full mb-3 left-1/2 -translate-x-1/2 z-[120] border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-3 py-4 flex flex-col items-center gap-2"
-                                >
-                                    <LiquidGlass className="bg-white/10" />
-                                    <Volume2 size={14} className="text-white/60 shrink-0" />
-                                    <div className="h-[120px] w-3 flex items-center">
-                                        <Slider
-                                            value={[localVolume]}
-                                            max={1}
-                                            step={0.01}
-                                            onValueChange={handleVolumeChange}
-                                            onValueCommit={handleVolumeCommit}
-                                            orientation="vertical"
-                                            className="h-full"
-                                            variant="apple"
-                                        />
-                                    </div>
-                                    <Volume size={14} className="text-white/60 shrink-0" />
-                                </div>
-                            </>
-                        )}
+                    {/* Right Capsule: Volume (expands left on hover) */}
+                    <div
+                        className="relative group/volbtn flex items-center h-12 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full overflow-hidden transition-all duration-300 ease-in-out w-12 hover:w-[200px] backdrop-blur-md"
+                    >
+                        <LiquidGlass className="bg-white/10 group-hover/volbtn:bg-white/15 transition-colors" />
+                        {/* Slider (visible on hover) */}
+                        <div className="flex items-center gap-2 pl-3.5 pr-1 opacity-0 group-hover/volbtn:opacity-100 transition-opacity duration-300 absolute left-0 top-0 bottom-0 right-12 z-10">
+                            <Volume size={14} className="text-white/50 shrink-0" />
+                            <div className="flex-1 h-3 flex items-center">
+                                <Slider
+                                    value={[localVolume]}
+                                    max={1}
+                                    step={0.01}
+                                    onValueChange={handleVolumeChange}
+                                    onValueCommit={handleVolumeCommit}
+                                    className="w-full"
+                                    variant="apple"
+                                />
+                            </div>
+                        </div>
+                        {/* Icon (always visible, anchored right) */}
+                        <div className="absolute right-0 top-0 bottom-0 w-12 flex items-center justify-center z-10 text-white/70 group-hover/volbtn:text-white transition-colors">
+                            <Volume2 size={20} />
+                        </div>
                     </div>
                 </div>
             )}

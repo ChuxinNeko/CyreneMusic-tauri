@@ -13,6 +13,7 @@ import { lxMusicRuntimeService } from "./lxMusicRuntimeService"
 import { androidMediaNotificationService, isAndroidTauriRuntime } from "./androidMediaNotificationService"
 
 import { listen, emit as tauriEmit } from '@tauri-apps/api/event'
+import { invoke } from '@tauri-apps/api/core'
 
 const emit = async (event: string, payload?: any) => {
     try {
@@ -140,6 +141,7 @@ class PlayerService {
             this.startProgressTimer()
             this.broadcastState()
             this.syncAndroidMediaNotification(true)
+            this.syncThumbbarState(true)
             
             // 同步 MediaSession 状态
             if ('mediaSession' in navigator) {
@@ -156,6 +158,7 @@ class PlayerService {
             this.stopProgressTimer()
             this.broadcastState()
             this.syncAndroidMediaNotification(true)
+            this.syncThumbbarState(false)
 
             // 同步 MediaSession 状态
             if ('mediaSession' in navigator) {
@@ -760,6 +763,16 @@ class PlayerService {
             currentTrack: state.currentTrack,
             isPlaying: state.isPlaying
         })
+    }
+
+    private syncThumbbarState(isPlaying: boolean) {
+        try {
+            if (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) {
+                invoke('update_thumbbar_playing_state', { isPlaying })
+            }
+        } catch (e) {
+            // Ignore on non-Windows or non-Tauri environments
+        }
     }
 
     public cleanup() {

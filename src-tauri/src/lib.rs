@@ -6,6 +6,9 @@ use sysinfo::System;
 use tauri::Manager;
 use tauri::webview::Color;
 
+#[cfg(target_os = "windows")]
+mod thumbbar;
+
 lazy_static::lazy_static! {
     static ref SYS: Mutex<System> = Mutex::new(System::new_all());
 }
@@ -378,6 +381,12 @@ fn set_status_bar_style(_is_dark_text: bool) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(target_os = "windows")]
+#[tauri::command]
+fn update_thumbbar_playing_state(is_playing: bool) {
+    thumbbar::update_thumbbar_state(is_playing);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -386,18 +395,37 @@ pub fn run() {
         .invoke_handler({
             #[cfg(desktop)]
             {
-                tauri::generate_handler![
-                    greet,
-                    fetch_image,
-                    open_desktop_lyric,
-                    close_desktop_lyric,
-                    update_window_material,
-                    set_window_material,
-                    lx_http_request,
-                    get_system_info,
-                    get_process_info,
-                    set_status_bar_style
-                ]
+                #[cfg(target_os = "windows")]
+                {
+                    tauri::generate_handler![
+                        greet,
+                        fetch_image,
+                        open_desktop_lyric,
+                        close_desktop_lyric,
+                        update_window_material,
+                        set_window_material,
+                        lx_http_request,
+                        get_system_info,
+                        get_process_info,
+                        set_status_bar_style,
+                        update_thumbbar_playing_state
+                    ]
+                }
+                #[cfg(not(target_os = "windows"))]
+                {
+                    tauri::generate_handler![
+                        greet,
+                        fetch_image,
+                        open_desktop_lyric,
+                        close_desktop_lyric,
+                        update_window_material,
+                        set_window_material,
+                        lx_http_request,
+                        get_system_info,
+                        get_process_info,
+                        set_status_bar_style
+                    ]
+                }
             }
             #[cfg(mobile)]
             {
@@ -432,6 +460,23 @@ pub fn run() {
             {
                 // 不再固定 apply_mica，由前端通过 set_window_material 命令动态设置
                 let _ = app.get_webview_window("main");
+
+                // Windows: 初始化任务栏缩略图工具栏按钮
+                #[cfg(target_os = "windows")]
+                {
+                    if let Some(main_window) = app.get_webview_window("main") {
+                        use tauri::Emitter;
+                        let app_handle = app.handle().clone();
+                        if let Ok(hwnd) = main_window.hwnd() {
+                            thumbbar::init_thumbbar(
+                                hwnd.0 as isize,
+                                Box::new(move |cmd: &str| {
+                                    let _ = app_handle.emit("player:command", cmd.to_string());
+                                }),
+                            );
+                        }
+                    }
+                }
 
                 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 

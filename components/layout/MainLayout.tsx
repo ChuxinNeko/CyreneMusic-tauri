@@ -38,6 +38,13 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
         }
         document.addEventListener("contextmenu", handleContextMenu)
 
+        // 桌面歌词和托盘窗口不需要检查更新和初始化材质
+        if (isTray || isDesktopLyric) {
+            return () => {
+                document.removeEventListener("contextmenu", handleContextMenu)
+            }
+        }
+
         // 检查更新
         const checkUpdate = async () => {
             // 稍作延迟，避开首屏加载高峰

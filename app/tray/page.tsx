@@ -33,6 +33,9 @@ export default function TrayPage() {
         setCurrentTrack(state.currentTrack)
         setIsPlaying(state.isPlaying)
 
+        // Request current state from main window
+        emit('player:command', 'request-sync')
+
         // Listen for state changes from main window
         const unlisten = listen('player:state-change', (event: any) => {
             const payload = event.payload

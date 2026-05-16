@@ -7,6 +7,8 @@ interface LiquidGlassProps {
   intensity?: number
   blur?: number
   saturate?: number
+  edgeHighlight?: number
+  lightAngle?: number
 }
 
 function smoothStep(a: number, b: number, t: number) {
@@ -28,45 +30,56 @@ let glassIdCounter = 0;
 
 export function LiquidGlass({
   className = "",
-  intensity = 30, // max pixel displacement
+  intensity = 38,
   blur = 40,
-  saturate = 1.5
+  saturate = 1.6,
+  edgeHighlight = 0.9,
+  lightAngle = 135,
 }: LiquidGlassProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [filterId] = useState(() => `liquid-glass-${++glassIdCounter}-${Math.random().toString(36).substr(2, 9)}`)
   const [svgParams, setSvgParams] = useState<{ url: string, scale: number } | null>(null)
+  const [highlightUrl, setHighlightUrl] = useState<string | null>(null)
 
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
 
     const generateMap = () => {
-      // Use offsetWidth/offsetHeight for integer pixels, or getBoundingClientRect
       const rect = container.getBoundingClientRect()
-      // We calculate rounded corners from computed style
       const computedStyle = window.getComputedStyle(container)
       let radius = parseFloat(computedStyle.borderRadius)
-      if (isNaN(radius)) radius = 24 // default fallback
+      if (isNaN(radius)) radius = 24
 
       const w = Math.ceil(rect.width) || 100
       const h = Math.ceil(rect.height) || 100
       
       const canvas = document.createElement("canvas")
-      // Increase resolution slightly for better map detail
       const dpi = 1
       canvas.width = w * dpi
       canvas.height = h * dpi
       const ctx = canvas.getContext("2d")
       if (!ctx) return
 
+      // Highlight canvas for specular edge glow
+      const hlCanvas = document.createElement("canvas")
+      hlCanvas.width = w * dpi
+      hlCanvas.height = h * dpi
+      const hlCtx = hlCanvas.getContext("2d")
+
       const data = new Uint8ClampedArray(w * dpi * h * dpi * 4)
+      const hlData = hlCtx ? new Uint8ClampedArray(w * dpi * h * dpi * 4) : null
       let maxScale = 0
       const rawValues = new Float32Array(w * dpi * h * dpi * 2)
 
-      // The SDF needs to run in pixel space to maintain 1:1 aspect ratio on the corners
       const rectW = (w * dpi) / 2
       const rectH = (h * dpi) / 2
       const r = radius * dpi
+
+      // Light direction from lightAngle (degrees)
+      const lightRad = (lightAngle * Math.PI) / 180
+      const lightX = Math.cos(lightRad)
+      const lightY = Math.sin(lightRad)
 
       let idx = 0
       for (let y = 0; y < h * dpi; y++) {
@@ -74,14 +87,9 @@ export function LiquidGlass({
           const px = x - rectW
           const py = y - rectH
 
-          // Calculate distance to edge
           const distToEdge = roundedRectSDF(px, py, rectW, rectH, r)
           
-          // Inside the glass, distToEdge is <= 0.
-          // The edge refraction typically happens near the border.
-          // Let's create a displacement vector.
-          
-          // Compute gradient of SDF (which points outwards)
+          // Compute gradient of SDF (normal pointing outward)
           const step = 1
           const d1 = roundedRectSDF(px + step, py, rectW, rectH, r)
           const d2 = roundedRectSDF(px, py + step, rectW, rectH, r)
@@ -91,37 +99,47 @@ export function LiquidGlass({
           const len = Math.sqrt(nx*nx + ny*ny)
           if (len > 0) { nx /= len; ny /= len }
 
-          // Refraction magnitude.
-          // At the border (dist = 0), magnitude is high.
-          // As we go inwards (dist < 0), magnitude decreases.
-          // We define a thick edge.
-          const edgeThickness = 30 * dpi
+          // Edge refraction zone
+          const edgeThickness = 28 * dpi
           
           let distortion = 0
           if (distToEdge <= 0 && distToEdge > -edgeThickness) {
-            // scale 0 to 1 where 0 is inner boundary and 1 is outer edge
             const t = 1 - Math.abs(distToEdge) / edgeThickness
-            // Smooth curve
-            distortion = smoothStep(0, 1, t)
+            // Stronger curve with a sharper falloff for more pronounced edge bending
+            distortion = smoothStep(0, 1, t) * smoothStep(0.1, 0.9, t)
           }
 
-          // Offset direction. Light from background is bent.
-          // Displacing opposite to normal vector creates a convex magnification near the edge.
           const dx = -nx * distortion * intensity
           const dy = -ny * distortion * intensity
 
-          rawValues[idx++] = dx
-          rawValues[idx++] = dy
+          rawValues[idx] = dx
+          rawValues[idx + 1] = dy
           maxScale = Math.max(maxScale, Math.abs(dx), Math.abs(dy))
+
+          // Specular highlight: dot product of normal with light direction
+          if (hlData && distToEdge <= 0 && distToEdge > -edgeThickness) {
+            const t = 1 - Math.abs(distToEdge) / edgeThickness
+            const edgeFactor = smoothStep(0, 1, t)
+            // Fresnel-like: stronger at grazing angles
+            const dot = nx * lightX + ny * lightY
+            const specular = Math.pow(Math.max(0, dot), 2.5) * edgeFactor * edgeHighlight
+            // Chromatic: slight color shift for prismatic look
+            const pixIdx = (y * w * dpi + x) * 4
+            hlData[pixIdx] = Math.min(255, specular * 255 * 1.1)     // R - slightly warm
+            hlData[pixIdx + 1] = Math.min(255, specular * 255)       // G
+            hlData[pixIdx + 2] = Math.min(255, specular * 255 * 1.2) // B - slightly cool
+            hlData[pixIdx + 3] = Math.min(255, specular * 200)       // A
+          }
+
+          idx += 2
         }
       }
 
-      // Encode into RGBA where R=X map, G=Y map
+      // Encode displacement map
       idx = 0
       for (let i = 0; i < data.length; i += 4) {
         const dx = rawValues[idx++]
         const dy = rawValues[idx++]
-        // Convert to 0..1 then 0..255
         const rVal = maxScale > 0 ? (dx / (2 * maxScale)) + 0.5 : 0.5
         const gVal = maxScale > 0 ? (dy / (2 * maxScale)) + 0.5 : 0.5
         data[i] = rVal * 255
@@ -132,12 +150,16 @@ export function LiquidGlass({
 
       ctx.putImageData(new ImageData(data, w * dpi, h * dpi), 0, 0)
       setSvgParams({ url: canvas.toDataURL(), scale: maxScale * 2 / dpi })
+
+      // Generate highlight overlay
+      if (hlCtx && hlData) {
+        hlCtx.putImageData(new ImageData(hlData, w * dpi, h * dpi), 0, 0)
+        setHighlightUrl(hlCanvas.toDataURL())
+      }
     }
 
-    // Delay generation slightly to ensure computed styles (like radius) are loaded
     const timeoutMsg = setTimeout(generateMap, 50)
     
-    // Listen to resize
     const observer = new ResizeObserver(() => {
       generateMap()
     })
@@ -147,7 +169,7 @@ export function LiquidGlass({
       clearTimeout(timeoutMsg)
       observer.disconnect()
     }
-  }, [intensity])
+  }, [intensity, edgeHighlight, lightAngle])
 
   return (
     <div 
@@ -170,6 +192,24 @@ export function LiquidGlass({
             style={{ 
               backdropFilter: `url(#${filterId}) blur(${blur}px) saturate(${saturate}) brightness(1.05) contrast(1.1)`, 
               WebkitBackdropFilter: `url(#${filterId}) blur(${blur}px) saturate(${saturate}) brightness(1.05) contrast(1.1)` 
+            }}
+          />
+          {/* Specular edge highlight overlay */}
+          {highlightUrl && (
+            <div
+              className="absolute inset-0 w-full h-full rounded-[inherit] mix-blend-screen"
+              style={{
+                backgroundImage: `url(${highlightUrl})`,
+                backgroundSize: '100% 100%',
+                opacity: 1,
+              }}
+            />
+          )}
+          {/* Inner edge glow (top-left light source) */}
+          <div
+            className="absolute inset-0 w-full h-full rounded-[inherit]"
+            style={{
+              boxShadow: `inset 1px 1px 2px 0px rgba(255,255,255,0.25), inset -1px -1px 2px 0px rgba(255,255,255,0.05)`,
             }}
           />
         </>
