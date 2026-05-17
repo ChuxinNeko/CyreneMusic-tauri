@@ -10,6 +10,7 @@ import { FullscreenPlayer } from "../player/FullscreenPlayer"
 import { SetupWizard } from "../setup/SetupWizard"
 import { updateService, UpdateInfo } from "@/lib/services/updateService"
 import { UpdateDialog } from "../common/UpdateDialog"
+import { AnnouncementDialog } from "../common/AnnouncementDialog"
 import {
     useWindowMaterialStore,
     fetchSystemMaterialSupport,
@@ -114,6 +115,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
                 open={showUpdateDialog} 
                 onOpenChange={setShowUpdateDialog} 
             />
+            <AnnouncementDialog />
         </div>
     )
 }

@@ -57,7 +57,9 @@ export function parseLyrics(track: { id?: string | number; yrc?: string; lyric?:
                 const secs = parseInt(lrcMatch[2]);
                 const ms = parseInt(lrcMatch[3].padEnd(3, '0').slice(0, 3));
                 timeMs = (mins * 60 + secs) * 1000 + ms + INTRO_DELAY + globalOffset;
-                return { time: timeMs, startTime: timeMs, endTime: timeMs + 2000, words: [{ text: lrcMatch[4].trim(), startTime: timeMs, endTime: timeMs + 2000, duration: 2000 }], isVerbatim: false };
+                const text = lrcMatch[4].trim();
+                if (!text) return null;
+                return { time: timeMs, startTime: timeMs, endTime: timeMs + 2000, words: [{ text, startTime: timeMs, endTime: timeMs + 2000, duration: 2000 }], isVerbatim: false };
             }
 
             const yrcMatch = lineStr.match(yrcLineRegex);

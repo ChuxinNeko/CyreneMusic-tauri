@@ -351,9 +351,17 @@ export const LyricPlayer = React.memo(function LyricPlayer() {
         const firstStart = parsedLyrics[0].startTime
         if (firstStart > 2000 && time < firstStart) return { start: 0, end: firstStart, lineIndex: -1 }
         for (let i = 0; i < parsedLyrics.length - 1; i++) {
-            const end = parsedLyrics[i].endTime
             const nextStart = parsedLyrics[i + 1].startTime
-            if (nextStart - end > 4000 && time >= end && time < nextStart) return { start: end, end: nextStart, lineIndex: i }
+            let interludeStart: number
+            if (parsedLyrics[i].isVerbatim) {
+                interludeStart = parsedLyrics[i].endTime
+            } else {
+                // For non-verbatim lyrics, estimate singing duration as 60% of gap or max 3s
+                const lineDuration = nextStart - parsedLyrics[i].time
+                const estimatedSingEnd = parsedLyrics[i].time + Math.min(lineDuration * 0.6, 3000)
+                interludeStart = estimatedSingEnd
+            }
+            if (nextStart - interludeStart > 4000 && time >= interludeStart && time < nextStart) return { start: interludeStart, end: nextStart, lineIndex: i }
         }
         return null
     }, [parsedLyrics])

@@ -429,6 +429,8 @@ export function FullscreenPlayer() {
                 <div className="absolute inset-0 bg-black/20" />
             </div>
 
+
+
             {/* Top Bar / Close Button */}
             <div data-tauri-drag-region className="relative z-[110] flex justify-between items-center px-6 pb-4 lg:px-8 lg:pb-4 pt-14 lg:pt-4" style={isMobile ? { paddingTop: 'calc(env(safe-area-inset-top, 40px) + 24px)' } : {}}>
                 <button
@@ -677,24 +679,19 @@ export function FullscreenPlayer() {
                     {!isMobile && <div className="flex-[0.8] min-h-[2vh] shrink-0" />}
 
                     {/* Content Section: Cover/Info (+ Slides into Lyrics on Mobile) */}
-                    <div className={`relative w-full min-h-0 overflow-hidden ${isMobile ? 'flex-[1.5]' : 'flex-none'}`}>
+                    <div className={`relative w-full min-h-0 overflow-hidden ${isMobile ? 'flex-[2.5]' : 'flex-none'}`}>
                         <div className={`relative min-h-0 ${isMobile ? 'flex h-full w-[200%] transition-transform duration-700 ease-in-out' : 'w-full'} ${isMobile && showMobileLyrics ? '-translate-x-1/2' : 'translate-x-0'}`}>
                         {/* Part 1: Album Art & Info */}
-                        <div className={`flex flex-col items-center shrink-0 ${isMobile ? 'w-1/2 overflow-hidden' : 'w-full'} ${!isMobile ? 'justify-start' : 'justify-center'}`}>
-                            {isMobile && <div className="flex-[0.5] min-h-[1vh]" />}
+                        <div className={`flex flex-col items-center shrink-0 ${isMobile ? 'w-1/2 overflow-hidden' : 'w-full'} ${!isMobile ? 'justify-start' : (isImmersiveMode ? 'justify-end pb-4' : 'justify-center')}`}>
+                            {isMobile && <div className="flex-[0.05] min-h-0" />}
                             <div className={
                                 isImmersiveMode
-                                    ? (isMobile
-                                        ? 'fixed max-w-none rounded-none border-none shadow-none z-0 pointer-events-none transition-all duration-700 inset-x-0 top-[8vh] h-[55vh] w-full'
-                                        : 'hidden')
+                                    ? 'hidden'
                                     : "relative aspect-square w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink transition-all duration-700"
                             }
-                                style={isImmersiveMode && isMobile ? {
-                                    maskImage: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 30%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)',
-                                    WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 30%, rgba(0,0,0,1) 60%, rgba(0,0,0,0) 100%)'
-                                } : {}}
                             >
-                                <div className={isImmersiveMode ? "relative w-full h-full" : "relative w-full h-full rounded-[20px] overflow-hidden transition-transform duration-500 hover:scale-[1.02] bg-white/5 border border-white/10"}>
+                                <div className={isImmersiveMode ? "relative w-full h-full overflow-hidden" : "relative w-full h-full rounded-[20px] overflow-hidden transition-transform duration-500 hover:scale-[1.02] bg-white/5 border border-white/10"}
+                                >
                                     {currentTrack?.picUrl ? (
                                         <img src={currentTrack.picUrl} alt={currentTrack.name} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${dynamicCoverUrl && isVideoLoaded ? 'opacity-0' : 'opacity-100'}`} />
                                     ) : (
@@ -776,9 +773,6 @@ export function FullscreenPlayer() {
                         {/* Part 2: Panel Section (Mobile only, slides behind Info) */}
                         {isMobile && (
                             <div className="relative h-full overflow-hidden shrink-0 w-1/2">
-                                <button onClick={() => setShowMobileLyrics(false)} className="absolute top-4 left-6 z-[120] p-2 bg-white/10 hover:bg-white/20 rounded-full text-white/60 hover:text-white transition-all shadow-xl">
-                                    <ChevronDown size={28} className="rotate-90" />
-                                </button>
                                 <div className="absolute inset-0 w-full h-full animate-in fade-in zoom-in-95 duration-500">
                                     {rightPanelMode === 'lyrics' ? (lyricDisplayStyle === LyricDisplayStyle.Roulette ? <LyricPlayerRoulette /> : <LyricPlayer />) : rightPanelMode === 'info' ? <SongInfoPanel /> : <EqualizerPanel />}
                                 </div>
@@ -790,7 +784,7 @@ export function FullscreenPlayer() {
                     {/* Progress & Controls Section (Mobile only — Desktop uses bottom capsule bar) */}
                     {isMobile && (
                     <>
-                    <div className="h-[3vh] min-h-[16px] shrink-0" />
+                    <div className="h-[0.5vh] min-h-0 shrink-0" />
                     <div className="relative z-20 w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink-0 space-y-4 lg:space-y-6 pb-4">
                         {/* Progress */}
                         <div className="space-y-2 lg:space-y-3 group/progress">
@@ -836,18 +830,18 @@ export function FullscreenPlayer() {
                         {/* Playback Buttons */}
                         <div className="flex items-center justify-center gap-8 lg:gap-12 mt-2 lg:mt-4 mb-2 lg:mb-6">
                             <button onClick={handleSkipPrevious} className="text-white/90 hover:text-white transition-all active:scale-90 p-2">
-                                <img src="/icon/icon_rewind.svg" alt="Previous" className="w-10 h-10 lg:w-12 lg:h-12 invert brightness-200" style={{ filter: 'invert(1) brightness(100)' }} />
+                                <img src="/icon/icon_rewind.svg" alt="Previous" className="w-[60px] h-[60px] lg:w-[72px] lg:h-[72px] invert brightness-200" style={{ filter: 'invert(1) brightness(100)' }} />
                             </button>
                             <button onClick={handleTogglePlay} className="text-white hover:text-white/90 active:scale-95 transition-all p-2">
-                                {isPlaying ? <img src="/icon/icon_pause.svg" alt="Pause" className="w-12 h-12 lg:w-14 lg:h-14" style={{ filter: 'invert(1) brightness(100)' }} /> : <img src="/icon/icon_play.svg" alt="Play" className="w-12 h-12 lg:w-14 lg:h-14" style={{ filter: 'invert(1) brightness(100)' }} />}
+                                {isPlaying ? <img src="/icon/icon_pause.svg" alt="Pause" className="w-[72px] h-[72px] lg:w-[84px] lg:h-[84px]" style={{ filter: 'invert(1) brightness(100)' }} /> : <img src="/icon/icon_play.svg" alt="Play" className="w-[72px] h-[72px] lg:w-[84px] lg:h-[84px]" style={{ filter: 'invert(1) brightness(100)' }} />}
                             </button>
                             <button onClick={handleSkipNext} className="text-white/90 hover:text-white transition-all active:scale-90 p-2">
-                                <img src="/icon/icon_forward.svg" alt="Next" className="w-10 h-10 lg:w-12 lg:h-12 invert brightness-200" style={{ filter: 'invert(1) brightness(100)' }} />
+                                <img src="/icon/icon_forward.svg" alt="Next" className="w-[60px] h-[60px] lg:w-[72px] lg:h-[72px] invert brightness-200" style={{ filter: 'invert(1) brightness(100)' }} />
                             </button>
                         </div>
 
                         {/* Volume & Mobile Actions */}
-                        <div className="space-y-4 lg:space-y-6">
+                        <div className="space-y-4 lg:space-y-6 mt-4">
                             <div className="flex items-center justify-between gap-3 text-white/40 group/volume mt-1 lg:mt-2 w-full">
                                 <Volume size={16} className="shrink-0" />
                                 <div className="flex-1 h-3 flex items-center">
@@ -885,6 +879,7 @@ export function FullscreenPlayer() {
                     </div>
                     </>
                     )}
+                    {isMobile && <div className="flex-[0.15] min-h-0" />}
                     {!isMobile && <div className="flex-1 min-h-[1vh]" />}
                 </div>
 
@@ -905,6 +900,45 @@ export function FullscreenPlayer() {
                     </div>
                 )}
             </div>
+
+            {/* Mobile Immersive Cover (rendered outside grid to avoid overflow clipping) */}
+            {isMobile && isImmersiveMode && (
+                <div
+                    className="absolute inset-x-0 top-0 z-[1] pointer-events-none transition-all duration-700"
+                    style={{
+                        height: '65vh',
+                        maskImage: 'linear-gradient(to bottom, black 0%, black 40%, transparent 100%)',
+                        WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 40%, transparent 100%)',
+                    }}
+                >
+                    <div className="relative w-full h-full overflow-hidden">
+                        {currentTrack?.picUrl ? (
+                            <img src={currentTrack.picUrl} alt={currentTrack.name} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${dynamicCoverUrl && isVideoLoaded ? 'opacity-0' : 'opacity-100'}`} />
+                        ) : (
+                            <div className="absolute inset-0 w-full h-full flex items-center justify-center text-white/10 text-4xl font-bold">CYRENE</div>
+                        )}
+                        {dynamicCoverUrl && (
+                            <>
+                                <video
+                                    src={dynamicCoverUrl}
+                                    autoPlay={activeVideo === 0}
+                                    muted
+                                    playsInline
+                                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded && activeVideo === 0 ? 'opacity-100' : 'opacity-0'}`}
+                                />
+                                <video
+                                    src={dynamicCoverUrl}
+                                    muted
+                                    playsInline
+                                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded && activeVideo === 1 ? 'opacity-100' : 'opacity-0'}`}
+                                />
+                            </>
+                        )}
+                        {/* Dark gradient overlay for text readability */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/70" />
+                    </div>
+                </div>
+            )}
 
             {/* Desktop Immersive Cover (rendered outside grid to avoid overflow clipping) */}
             {!isMobile && isImmersiveMode && (
