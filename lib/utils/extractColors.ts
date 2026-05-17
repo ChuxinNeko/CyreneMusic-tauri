@@ -8,6 +8,7 @@
 
 // 缓存：避免同一封面重复提取
 const colorCache = new Map<string, string[]>()
+const brightnessCache = new Map<string, number>()
 
 export async function extractColorsFromImage(
     imageUrl: string,
@@ -136,4 +137,44 @@ function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
     else h = ((r - g) / d + 4) / 6
 
     return [h * 360, s, l]
+}
+
+/**
+ * 计算图片的感知亮度 (0~1)。
+ * 用于判断封面是否为浅色，以便动态调整 UI 对比度。
+ */
+export async function extractBrightnessFromImage(imageUrl: string): Promise<number> {
+    if (brightnessCache.has(imageUrl)) {
+        return brightnessCache.get(imageUrl)!
+    }
+
+    try {
+        const img = await loadImage(imageUrl)
+        const size = 32
+        const canvas = document.createElement('canvas')
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })
+        if (!ctx) return 0.5
+
+        ctx.drawImage(img, 0, 0, size, size)
+        const imageData = ctx.getImageData(0, 0, size, size)
+        const pixels = imageData.data
+
+        let totalLuminance = 0
+        const pixelCount = pixels.length / 4
+        for (let i = 0; i < pixels.length; i += 4) {
+            // 相对亮度公式 (sRGB)
+            const r = pixels[i] / 255
+            const g = pixels[i + 1] / 255
+            const b = pixels[i + 2] / 255
+            totalLuminance += 0.2126 * r + 0.7152 * g + 0.0722 * b
+        }
+
+        const brightness = totalLuminance / pixelCount
+        brightnessCache.set(imageUrl, brightness)
+        return brightness
+    } catch {
+        return 0.5
+    }
 }

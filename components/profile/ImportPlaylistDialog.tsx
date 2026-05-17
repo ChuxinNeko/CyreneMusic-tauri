@@ -128,7 +128,6 @@ export function ImportPlaylistDialog({ open, onOpenChange, onImportSuccess }: Im
                                         className="h-10 px-2"
                                         onClick={() => setPlatform(MusicPlatform[key])}
                                     >
-                                        <span className="mr-2">{PLATFORM_CONFIG[MusicPlatform[key]].icon}</span>
                                         <span className="text-xs">{PLATFORM_CONFIG[MusicPlatform[key]].name}</span>
                                     </Button>
                                 ))}

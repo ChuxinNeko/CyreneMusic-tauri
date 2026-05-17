@@ -35,13 +35,19 @@ export const LyricPlayerRoulette = React.memo(function LyricPlayerRoulette() {
     }, [parsedLyrics])
 
     useEffect(() => {
+        let frameCount = 0
+        const FRAME_SKIP = /Mobi|Android/i.test(navigator.userAgent) ? 3 : 1
+
         const loop = () => {
-            const realTime = playerService.getCurrentTime()
-            const loopTime = realTime * 1000 + INTRO_DELAY
-            const newIndex = getActiveIndex(loopTime)
-            if (newIndex !== currentIndexRef.current) {
-                currentIndexRef.current = newIndex
-                setActiveIndex(newIndex)
+            frameCount++
+            if (frameCount % FRAME_SKIP === 0) {
+                const realTime = playerService.getCurrentTime()
+                const loopTime = realTime * 1000 + INTRO_DELAY
+                const newIndex = getActiveIndex(loopTime)
+                if (newIndex !== currentIndexRef.current) {
+                    currentIndexRef.current = newIndex
+                    setActiveIndex(newIndex)
+                }
             }
             requestRef.current = requestAnimationFrame(loop)
         }

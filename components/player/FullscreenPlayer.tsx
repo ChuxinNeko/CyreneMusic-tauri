@@ -46,7 +46,7 @@ import { useAudioSourceStore, useActiveSource } from "@/lib/store/useAudioSource
 import { AudioQuality } from "@/lib/services/audioSourceService"
 import { lxMusicRuntimeService } from "@/lib/services/lxMusicRuntimeService"
 import { AudioSourceType } from "@/lib/models/audioSourceConfig"
-import { extractColorsFromImage } from "@/lib/utils/extractColors"
+import { extractColorsFromImage, extractBrightnessFromImage } from "@/lib/utils/extractColors"
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -61,42 +61,50 @@ import { toast } from "sonner"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useTheme } from "next-themes"
 import { LiquidGlass } from "@/components/ui/LiquidGlass"
+import { useRouter } from "next/navigation"
+import { artistService } from "@/lib/services/artistService"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
 
 export function FullscreenPlayer() {
     const isMobile = useIsMobile()
     const { resolvedTheme } = useTheme()
-    const {
-        currentTrack,
-        isPlaying,
-        progress,
-        currentTime,
-        duration,
-        volume,
-        isFullscreen,
-        setIsFullscreen,
-        showTranslation,
-        toggleTranslation,
-        audioVisualization,
-        toggleAudioVisualization,
-        lyricFontSize,
-        setLyricFontSize,
-        lyricBlurStrength,
-        setLyricBlurStrength,
-        desktopLyricFontSize,
-        desktopLyricColor,
-        desktopLyricStrokeColor,
-        setDesktopLyricFontSize,
-        setDesktopLyricColor,
-        setDesktopLyricStrokeColor,
-        isLyricsFolded,
-        setIsLyricsFolded,
-        isImmersiveMode,
-        setIsImmersiveMode,
-        lyricDisplayStyle,
-        setLyricDisplayStyle,
-        repeatMode,
-        setRepeatMode,
-    } = usePlayerStore()
+
+    // 细粒度 store 订阅：高频变化字段独立订阅，避免整组件重渲染
+    const currentTrack = usePlayerStore(s => s.currentTrack)
+    const isPlaying = usePlayerStore(s => s.isPlaying)
+    const progress = usePlayerStore(s => s.progress)
+    const currentTime = usePlayerStore(s => s.currentTime)
+    const duration = usePlayerStore(s => s.duration)
+    const volume = usePlayerStore(s => s.volume)
+    const isFullscreen = usePlayerStore(s => s.isFullscreen)
+    const setIsFullscreen = usePlayerStore(s => s.setIsFullscreen)
+    const showTranslation = usePlayerStore(s => s.showTranslation)
+    const toggleTranslation = usePlayerStore(s => s.toggleTranslation)
+    const audioVisualization = usePlayerStore(s => s.audioVisualization)
+    const toggleAudioVisualization = usePlayerStore(s => s.toggleAudioVisualization)
+    const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
+    const setLyricFontSize = usePlayerStore(s => s.setLyricFontSize)
+    const lyricBlurStrength = usePlayerStore(s => s.lyricBlurStrength)
+    const setLyricBlurStrength = usePlayerStore(s => s.setLyricBlurStrength)
+    const desktopLyricFontSize = usePlayerStore(s => s.desktopLyricFontSize)
+    const desktopLyricColor = usePlayerStore(s => s.desktopLyricColor)
+    const desktopLyricStrokeColor = usePlayerStore(s => s.desktopLyricStrokeColor)
+    const setDesktopLyricFontSize = usePlayerStore(s => s.setDesktopLyricFontSize)
+    const setDesktopLyricColor = usePlayerStore(s => s.setDesktopLyricColor)
+    const setDesktopLyricStrokeColor = usePlayerStore(s => s.setDesktopLyricStrokeColor)
+    const isLyricsFolded = usePlayerStore(s => s.isLyricsFolded)
+    const setIsLyricsFolded = usePlayerStore(s => s.setIsLyricsFolded)
+    const isImmersiveMode = usePlayerStore(s => s.isImmersiveMode)
+    const setIsImmersiveMode = usePlayerStore(s => s.setIsImmersiveMode)
+    const lyricDisplayStyle = usePlayerStore(s => s.lyricDisplayStyle)
+    const setLyricDisplayStyle = usePlayerStore(s => s.setLyricDisplayStyle)
+    const repeatMode = usePlayerStore(s => s.repeatMode)
+    const setRepeatMode = usePlayerStore(s => s.setRepeatMode)
 
     const [localProgress, setLocalProgress] = React.useState(0)
     const [localVolume, setLocalVolume] = React.useState(0)
@@ -116,8 +124,12 @@ export function FullscreenPlayer() {
     const [showMobileLyrics, setShowMobileLyrics] = React.useState(false)
     const [showVolumePopover, setShowVolumePopover] = React.useState(false)
     const [coverColors, setCoverColors] = React.useState<string[]>([])
+    const [isLightCover, setIsLightCover] = React.useState(false)
     const { quality, setQuality } = useAudioSourceStore()
     const activeSource = useActiveSource()
+    const router = useRouter()
+    const [showArtistPicker, setShowArtistPicker] = React.useState(false)
+    const [artistList, setArtistList] = React.useState<string[]>([])
 
     // 双视频无缝循环淡入淡出
     const video0Ref = React.useRef<HTMLVideoElement>(null)
@@ -128,28 +140,23 @@ export function FullscreenPlayer() {
 
     // 音频频率数据通过 ref 直接注入 WebGL，避免触发 React 重绘
     const bgRef = React.useRef<any>(null)
-    const rafRef = React.useRef<number>(0)
 
-    // 频率数据采集循环
+    // 频率数据采集循环（复用 WebGL 渲染器自身的 tick 节奏，不再独立开 rAF）
     React.useEffect(() => {
         if (!isVisible || !isPlaying || !audioVisualization) {
             bgRef.current?.bgRender?.setFrequencyData(0, 0, 0)
             return
         }
 
-        const updateFreq = () => {
+        // 使用 setInterval 以 ~30fps 注入频率数据，与 WebGL 渲染器的 tick 对齐
+        // 避免额外的 rAF 循环竞争主线程
+        const intervalId = setInterval(() => {
             const data = audioAnalyser.getFrequencyData()
-            // 直接操作渲染器内部状态，不触发 React 渲染周期
             bgRef.current?.bgRender?.setFrequencyData(data.bass, data.mid, data.treble)
-            rafRef.current = requestAnimationFrame(updateFreq)
-        }
-        rafRef.current = requestAnimationFrame(updateFreq)
+        }, 33)
 
         return () => {
-            if (rafRef.current) {
-                cancelAnimationFrame(rafRef.current)
-                rafRef.current = 0
-            }
+            clearInterval(intervalId)
         }
     }, [isVisible, isPlaying, audioVisualization])
 
@@ -212,13 +219,25 @@ export function FullscreenPlayer() {
                 })
                 .catch(err => console.error("Failed to fetch Netease dynamic cover:", err))
         }
-        // 提取封面主题色
+        // 提取封面主题色（延迟到空闲时执行，避免阻塞主线程）
         if (currentTrack?.picUrl) {
-            extractColorsFromImage(currentTrack.picUrl, 6)
-                .then(setCoverColors)
-                .catch(() => setCoverColors([]))
+            const picUrl = currentTrack.picUrl
+            const scheduleExtract = () => {
+                extractColorsFromImage(picUrl, 6)
+                    .then(setCoverColors)
+                    .catch(() => setCoverColors([]))
+                extractBrightnessFromImage(picUrl)
+                    .then(b => setIsLightCover(b > 0.6))
+                    .catch(() => setIsLightCover(false))
+            }
+            if (typeof requestIdleCallback !== 'undefined') {
+                requestIdleCallback(scheduleExtract, { timeout: 2000 })
+            } else {
+                setTimeout(scheduleExtract, 200)
+            }
         } else {
             setCoverColors([])
+            setIsLightCover(false)
         }
     }, [currentTrack])
 
@@ -344,6 +363,38 @@ export function FullscreenPlayer() {
         }
     }
 
+    const parseArtists = (artistsStr: string): string[] => {
+        return artistsStr
+            .split(/[,\/&、，]/)
+            .map(a => a.trim())
+            .filter(Boolean)
+    }
+
+    const handleArtistClick = async (artistName?: string) => {
+        if (!currentTrack || currentTrack.source !== 'netease') return
+
+        const artists = parseArtists(currentTrack.artists)
+        if (artists.length === 0) return
+
+        if (artists.length === 1 || artistName) {
+            const name = artistName || artists[0]
+            try {
+                const id = await artistService.resolveArtistIdByName(name)
+                if (id) {
+                    setIsFullscreen(false)
+                    router.push(`/artist?id=${id}`)
+                } else {
+                    toast.error("未找到该歌手")
+                }
+            } catch {
+                toast.error("跳转失败")
+            }
+        } else {
+            setArtistList(artists)
+            setShowArtistPicker(true)
+        }
+    }
+
     const getQualityLabel = (q: string) => {
         const labels: Record<string, string> = {
             [AudioQuality.Standard]: 'STANDARD',
@@ -432,7 +483,7 @@ export function FullscreenPlayer() {
 
 
             {/* Top Bar / Close Button */}
-            <div data-tauri-drag-region className="relative z-[110] flex justify-between items-center px-6 pb-4 lg:px-8 lg:pb-4 pt-14 lg:pt-4" style={isMobile ? { paddingTop: 'calc(env(safe-area-inset-top, 40px) + 24px)' } : {}}>
+            <div data-tauri-drag-region className={`relative z-[110] flex justify-between items-center px-6 pb-4 lg:px-8 lg:pb-4 pt-14 lg:pt-4 ${isImmersiveMode ? 'bg-gradient-to-b from-black/30 to-transparent' : ''}`} style={isMobile ? { paddingTop: 'calc(env(safe-area-inset-top, 40px) + 24px)' } : {}}>
                 <button
                     onClick={() => setIsFullscreen(false)}
                     className="text-white/30 hover:text-white/80 transition-colors p-2 hover:bg-white/5 rounded-full z-10"
@@ -762,7 +813,10 @@ export function FullscreenPlayer() {
                                         </button>
                                     )}
                                 </div>
-                                <p className="text-[clamp(1rem,2vh,1.3rem)] text-white/50 font-medium truncate w-full">
+                                <p
+                                    className={`text-[clamp(1rem,2vh,1.3rem)] font-medium truncate w-full ${currentTrack?.source === 'netease' ? 'text-white/50 hover:text-white/80 cursor-pointer transition-colors' : 'text-white/50'}`}
+                                    onClick={() => currentTrack?.source === 'netease' && handleArtistClick()}
+                                >
                                     {currentTrack?.artists || "未知歌手"}
                                 </p>
                             </div>
@@ -840,16 +894,8 @@ export function FullscreenPlayer() {
                             </button>
                         </div>
 
-                        {/* Volume & Mobile Actions */}
+                        {/* Mobile Actions */}
                         <div className="space-y-4 lg:space-y-6 mt-4">
-                            <div className="flex items-center justify-between gap-3 text-white/40 group/volume mt-1 lg:mt-2 w-full">
-                                <Volume size={16} className="shrink-0" />
-                                <div className="flex-1 h-3 flex items-center">
-                                    <Slider value={[localVolume]} max={1} step={0.01} onValueChange={handleVolumeChange} onValueCommit={handleVolumeCommit} className="w-full opacity-60 group-hover/volume:opacity-100 transition-opacity" variant="apple" />
-                                </div>
-                                <Volume2 size={20} className="shrink-0" />
-                            </div>
-
                             {/* Mobile Dynamic Buttons */}
                             <div className="flex items-center justify-center gap-8 py-2">
                                 <button onClick={() => { setRightPanelMode('lyrics'); setShowMobileLyrics(true); }} className={`flex flex-col items-center transition-all ${showMobileLyrics && rightPanelMode === 'lyrics' ? 'text-white' : 'text-white/30'}`}>
@@ -978,7 +1024,7 @@ export function FullscreenPlayer() {
 
             {/* Desktop Bottom Capsule Bar */}
             {!isMobile && (
-                <div className="relative z-[120] flex justify-center items-center gap-4 pb-6 px-8">
+                <div className={`relative z-[120] flex justify-center items-center gap-4 pb-6 px-8 transition-[filter] duration-500 ${isImmersiveMode && isLightCover ? '[&_button]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] [&_span]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] [&_img]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] [&_svg]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : ''}`}>
                     {/* Left Capsule: Minimize + Toggle Lyrics */}
                     <div
                         className="relative flex items-center gap-2 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-4 py-2.5 backdrop-blur-md"
@@ -1038,7 +1084,10 @@ export function FullscreenPlayer() {
                             )}
                             <div className="flex flex-col min-w-0">
                                 <span className="text-[13px] font-bold text-white truncate">{currentTrack?.name || '未在播放'}</span>
-                                <span className="text-[11px] text-white/50 truncate">{currentTrack?.artists || '未知歌手'}</span>
+                                <span
+                                    className={`text-[11px] truncate ${currentTrack?.source === 'netease' ? 'text-white/50 hover:text-white/80 cursor-pointer transition-colors' : 'text-white/50'}`}
+                                    onClick={() => currentTrack?.source === 'netease' && handleArtistClick()}
+                                >{currentTrack?.artists || '未知歌手'}</span>
                             </div>
                         </div>
 
@@ -1130,6 +1179,28 @@ export function FullscreenPlayer() {
                     </div>
                 </div>
             )}
+
+            <Dialog open={showArtistPicker} onOpenChange={setShowArtistPicker}>
+                <DialogContent className="bg-black/90 backdrop-blur-xl border-white/10 text-white max-w-sm">
+                    <DialogHeader>
+                        <DialogTitle>选择歌手</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex flex-col gap-2 mt-2">
+                        {artistList.map((name) => (
+                            <button
+                                key={name}
+                                className="w-full text-left px-4 py-3 rounded-lg bg-white/5 hover:bg-white/15 transition-colors text-sm font-medium"
+                                onClick={() => {
+                                    setShowArtistPicker(false)
+                                    handleArtistClick(name)
+                                }}
+                            >
+                                {name}
+                            </button>
+                        ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             <AddToPlaylistDialog
                 open={showAddToPlaylist}

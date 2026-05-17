@@ -24,21 +24,30 @@ export function AudioVisualizer({
 }: AudioVisualizerProps) {
     const barsRef = React.useRef<(HTMLDivElement | null)[]>([])
     const rafRef = React.useRef<number>(0)
+    const frameCountRef = React.useRef(0)
     // 用于暂停后归零的动画插值
     const displayValues = React.useRef<number[]>(new Array(BAR_COUNT).fill(0))
 
     React.useEffect(() => {
+        // 移动端每 2 帧更新一次，降低 CPU 开销
+        const isMobileDevice = /Mobi|Android/i.test(navigator.userAgent)
+        const FRAME_SKIP = isMobileDevice ? 2 : 1
+
         const update = () => {
+            frameCountRef.current++
+            if (frameCountRef.current % FRAME_SKIP !== 0) {
+                rafRef.current = requestAnimationFrame(update)
+                return
+            }
+
             let targets: number[]
 
             if (isPlaying) {
                 targets = audioAnalyser.getBarData(BAR_COUNT)
             } else {
-                // 暂停时目标值为零
                 targets = new Array(BAR_COUNT).fill(0)
             }
 
-            // 平滑插值——上升快、下降慢，保持视觉余韵
             for (let i = 0; i < BAR_COUNT; i++) {
                 const current = displayValues.current[i]
                 const target = targets[i]
@@ -46,7 +55,6 @@ export function AudioVisualizer({
                 displayValues.current[i] = current + (target - current) * factor
             }
 
-            // 直接操作 DOM，避免 React re-render
             for (let i = 0; i < BAR_COUNT; i++) {
                 const bar = barsRef.current[i]
                 if (!bar) continue
@@ -57,7 +65,6 @@ export function AudioVisualizer({
                 const height = minHeight + value * (maxHeight - minHeight)
 
                 bar.style.height = `${height}px`
-                // 添加微妙的发光效果随能量变化
                 bar.style.opacity = `${0.6 + value * 0.4}`
             }
 
