@@ -17,7 +17,6 @@ class MainActivity : TauriActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
-    requestNotificationPermission()
   }
 
   private fun requestNotificationPermission() {
@@ -45,6 +44,7 @@ class MainActivity : TauriActivity() {
   override fun onWebViewCreate(webView: WebView) {
     super.onWebViewCreate(webView)
     AndroidMediaNotificationManager.attach(this, webView)
+    requestNotificationPermission()
   }
 
   override fun onDestroy() {

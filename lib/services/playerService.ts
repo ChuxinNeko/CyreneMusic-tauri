@@ -149,8 +149,10 @@ class PlayerService {
                 this.updateMediaSessionPosition()
             }
 
-            // 连接音频分析器以获取实时频率数据
-            audioAnalyser.connectToHowl(howl)
+            // 连接音频分析器以获取实时频率数据（Android 端不连接，避免在后台时由于 WebAudio 降级导致播放卡顿）
+            if (!isAndroidTauriRuntime()) {
+                audioAnalyser.connectToHowl(howl)
+            }
         })
 
         howl.on('pause', () => {

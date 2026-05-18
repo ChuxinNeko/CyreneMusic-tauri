@@ -628,14 +628,7 @@ export function FullscreenPlayer() {
                             <DropdownMenuContent align="end" className="w-48 bg-black/80 backdrop-blur-xl border-white/10 text-white">
                                 <DropdownMenuLabel>播放器设置</DropdownMenuLabel>
                                 <DropdownMenuSeparator className="bg-white/10" />
-                                <DropdownMenuCheckboxItem
-                                    checked={audioVisualization}
-                                    onCheckedChange={toggleAudioVisualization}
-                                    className="focus:bg-white/10 focus:text-white data-[state=checked]:bg-white/5"
-                                >
-                                    <Activity className="mr-2 h-4 w-4" />
-                                    音频律动
-                                </DropdownMenuCheckboxItem>
+
                                 <DropdownMenuCheckboxItem
                                     checked={isImmersiveMode}
                                     onCheckedChange={setIsImmersiveMode}
@@ -908,11 +901,7 @@ export function FullscreenPlayer() {
                                         <Activity size={24} className={showMobileLyrics && rightPanelMode === 'info' ? 'opacity-100' : 'opacity-60'} />
                                     </div>
                                 </button>
-                                <button onClick={() => { setRightPanelMode('eq'); setShowMobileLyrics(true); }} className={`flex flex-col items-center transition-all ${showMobileLyrics && rightPanelMode === 'eq' ? 'text-white' : 'text-white/30'}`}>
-                                    <div className={`p-2.5 rounded-full transition-colors ${showMobileLyrics && rightPanelMode === 'eq' ? 'bg-white/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-transparent'}`}>
-                                        <SlidersHorizontal size={24} className={showMobileLyrics && rightPanelMode === 'eq' ? 'opacity-100' : 'opacity-60'} />
-                                    </div>
-                                </button>
+
                                 {hasTranslation && (
                                     <button onClick={toggleTranslation} className={`flex flex-col items-center transition-all ${showTranslation ? 'text-white' : 'text-white/30'}`}>
                                         <div className={`p-2.5 rounded-full transition-colors ${showTranslation ? 'bg-white/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-transparent'}`}>
@@ -952,9 +941,9 @@ export function FullscreenPlayer() {
                 <div
                     className="absolute inset-x-0 top-0 z-[1] pointer-events-none transition-all duration-700"
                     style={{
-                        height: '65vh',
-                        maskImage: 'linear-gradient(to bottom, black 0%, black 40%, transparent 100%)',
-                        WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 40%, transparent 100%)',
+                        height: '55vh',
+                        maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 35%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0) 100%)',
+                        WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 35%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0) 100%)',
                     }}
                 >
                     <div className="relative w-full h-full overflow-hidden">
@@ -989,10 +978,10 @@ export function FullscreenPlayer() {
             {/* Desktop Immersive Cover (rendered outside grid to avoid overflow clipping) */}
             {!isMobile && isImmersiveMode && (
                 <div
-                    className="absolute inset-y-0 left-0 w-[60vw] z-[1] pointer-events-none transition-all duration-700"
+                    className="absolute inset-y-0 left-0 w-[50vw] z-[1] pointer-events-none transition-all duration-700"
                     style={{
-                        maskImage: 'linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)',
-                        WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 100%)'
+                        maskImage: 'linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 30%, rgba(0,0,0,0.3) 65%, rgba(0,0,0,0) 100%)',
+                        WebkitMaskImage: 'linear-gradient(to right, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 30%, rgba(0,0,0,0.3) 65%, rgba(0,0,0,0) 100%)'
                     }}
                 >
                     <div className="relative w-full h-full">
