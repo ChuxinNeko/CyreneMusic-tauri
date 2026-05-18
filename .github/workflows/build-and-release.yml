@@ -199,6 +199,9 @@ jobs:
           linker = "$TOOLCHAIN/x86_64-linux-android35-clang"
           EOF
 
+      - name: Fix Gradle properties for CI
+        run: sed -i '/org.gradle.java.home/d' src-tauri/gen/android/gradle.properties
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
