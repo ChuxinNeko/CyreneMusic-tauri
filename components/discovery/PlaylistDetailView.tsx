@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Play, ChevronLeft, Loader2, Trash2 } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import { Play, ChevronLeft, Loader2, Trash2, Search, X } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { AsyncImage } from "@/components/common/AsyncImage"
@@ -34,7 +34,19 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [deleting, setDeleting] = useState(false)
+    const [searchKeyword, setSearchKeyword] = useState("")
     const { currentTrack, isPlaying } = usePlayerStore()
+
+    const filteredTracks = useMemo(() => {
+        if (!playlist) return []
+        if (!searchKeyword.trim()) return playlist.tracks
+        const kw = searchKeyword.trim().toLowerCase()
+        return playlist.tracks.filter(t =>
+            t.name.toLowerCase().includes(kw) ||
+            (t.artists && t.artists.toLowerCase().includes(kw)) ||
+            (t.album && t.album.toLowerCase().includes(kw))
+        )
+    }, [playlist, searchKeyword])
 
     useEffect(() => {
         const fetchDetail = async () => {
@@ -260,6 +272,26 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
             </div>
 
             <div className="space-y-1 pt-2 md:pt-4">
+                {/* 歌单内搜索 */}
+                <div className="relative px-1 md:px-0 pb-2">
+                    <Search className="absolute left-4 md:left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+                    <input
+                        type="text"
+                        value={searchKeyword}
+                        onChange={e => setSearchKeyword(e.target.value)}
+                        placeholder="搜索歌单内歌曲..."
+                        className="w-full h-10 pl-10 pr-9 md:pl-9 md:pr-9 rounded-xl bg-accent/40 border border-border/40 text-sm font-medium placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
+                    />
+                    {searchKeyword && (
+                        <button
+                            onClick={() => setSearchKeyword("")}
+                            className="absolute right-4 md:right-3 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center rounded-full hover:bg-muted-foreground/10 text-muted-foreground/60 transition-colors"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                        </button>
+                    )}
+                </div>
+
                 {/* 桌面端表头，移动端隐藏 */}
                 <div className="hidden md:flex items-center px-4 py-3 text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] border-t border-b border-border/40 mb-2">
                     <span className="w-12 text-center">#</span>
@@ -268,8 +300,15 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                     <span className="flex-1 px-4 hidden md:block">歌手</span>
                 </div>
 
+                {filteredTracks.length === 0 && searchKeyword.trim() && (
+                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground/60">
+                        <Search className="h-8 w-8 mb-3 opacity-40" />
+                        <p className="text-sm font-medium">未找到匹配的歌曲</p>
+                    </div>
+                )}
+
                 <div className="space-y-[1px]">
-                    {playlist.tracks.map((track, index) => {
+                    {filteredTracks.map((track, index) => {
                         const isCurrent = currentTrack?.id === track.id && currentTrack?.source === 'netease'
                         return (
                             <div
@@ -358,6 +397,18 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
 
 export function DailySongsDetailView({ songs, onBack }: { songs: any[], onBack: () => void }) {
     const { currentTrack, isPlaying } = usePlayerStore()
+    const [searchKeyword, setSearchKeyword] = useState("")
+
+    const filteredSongs = useMemo(() => {
+        if (!searchKeyword.trim()) return songs
+        const kw = searchKeyword.trim().toLowerCase()
+        return songs.filter(s => {
+            const t = discoveryService.convertToTrack(s)
+            return t.name.toLowerCase().includes(kw) ||
+                (t.artists && t.artists.toLowerCase().includes(kw)) ||
+                (t.album && t.album.toLowerCase().includes(kw))
+        })
+    }, [songs, searchKeyword])
 
     const handlePlayAll = () => {
         if (songs.length > 0) {
@@ -434,6 +485,26 @@ export function DailySongsDetailView({ songs, onBack }: { songs: any[], onBack: 
             </div>
 
             <div className="space-y-1 pt-2 md:pt-4">
+                {/* 歌单内搜索 */}
+                <div className="relative px-1 md:px-0 pb-2">
+                    <Search className="absolute left-4 md:left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+                    <input
+                        type="text"
+                        value={searchKeyword}
+                        onChange={e => setSearchKeyword(e.target.value)}
+                        placeholder="搜索歌单内歌曲..."
+                        className="w-full h-10 pl-10 pr-9 md:pl-9 md:pr-9 rounded-xl bg-accent/40 border border-border/40 text-sm font-medium placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
+                    />
+                    {searchKeyword && (
+                        <button
+                            onClick={() => setSearchKeyword("")}
+                            className="absolute right-4 md:right-3 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center rounded-full hover:bg-muted-foreground/10 text-muted-foreground/60 transition-colors"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                        </button>
+                    )}
+                </div>
+
                 {/* 桌面端表头，移动端隐藏 */}
                 <div className="hidden md:flex items-center px-4 py-3 text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] border-t border-b border-border/40 mb-2">
                     <span className="w-12 text-center">#</span>
@@ -442,8 +513,15 @@ export function DailySongsDetailView({ songs, onBack }: { songs: any[], onBack: 
                     <span className="flex-1 px-4 hidden md:block">歌手</span>
                 </div>
 
+                {filteredSongs.length === 0 && searchKeyword.trim() && (
+                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground/60">
+                        <Search className="h-8 w-8 mb-3 opacity-40" />
+                        <p className="text-sm font-medium">未找到匹配的歌曲</p>
+                    </div>
+                )}
+
                 <div className="space-y-[1px]">
-                    {songs.map((song, index) => {
+                    {filteredSongs.map((song, index) => {
                         const track = discoveryService.convertToTrack(song)
                         const isCurrent = currentTrack?.id === track.id && currentTrack?.source === track.source
                         return (
