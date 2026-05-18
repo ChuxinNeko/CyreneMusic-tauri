@@ -174,6 +174,31 @@ jobs:
       - name: Setup Android NDK
         run: sdkmanager "ndk;27.0.12077973"
 
+      - name: Configure Cargo for Android cross-compilation
+        run: |
+          NDK_PATH="$ANDROID_HOME/ndk/27.0.12077973"
+          TOOLCHAIN="$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          cat > src-tauri/.cargo/config.toml << EOF
+          [env]
+          NDK_HOME = "$NDK_PATH"
+          ANDROID_NDK_HOME = "$NDK_PATH"
+          ANDROID_HOME = "$ANDROID_HOME"
+          CC_aarch64-linux-android = "$TOOLCHAIN/aarch64-linux-android35-clang"
+          AR_aarch64-linux-android = "$TOOLCHAIN/llvm-ar"
+
+          [target.aarch64-linux-android]
+          linker = "$TOOLCHAIN/aarch64-linux-android35-clang"
+
+          [target.armv7-linux-androideabi]
+          linker = "$TOOLCHAIN/armv7a-linux-androideabi35-clang"
+
+          [target.i686-linux-android]
+          linker = "$TOOLCHAIN/i686-linux-android35-clang"
+
+          [target.x86_64-linux-android]
+          linker = "$TOOLCHAIN/x86_64-linux-android35-clang"
+          EOF
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
