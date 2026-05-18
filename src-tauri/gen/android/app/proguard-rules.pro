@@ -19,3 +19,14 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# Rust invokes these Android entry points through JNI by method name.
+-keep class com.cyrenemusic.app.MainActivity {
+    public void updateMediaNotification(java.lang.String);
+    public void hideMediaNotification();
+    public void setStatusBarDarkText(boolean);
+}
+
+-keep class com.cyrenemusic.app.AndroidMediaNotificationManager { *; }
+-keep class com.cyrenemusic.app.MediaPlaybackService { *; }
+-keep class com.cyrenemusic.app.MediaActionReceiver { *; }

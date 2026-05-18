@@ -17,6 +17,7 @@ class MainActivity : TauriActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
+    requestNotificationPermission()
   }
 
   private fun requestNotificationPermission() {
