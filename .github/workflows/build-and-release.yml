@@ -234,16 +234,24 @@ jobs:
           EOF
 
       - name: Build Android APK
-        run: bun run tauri android build --apk
+        run: bun run tauri android build --apk --split-per-abi
         env:
           NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973
+
+      - name: Rename APKs
+        run: |
+          mkdir -p android-apks
+          for apk in $(find src-tauri/gen/android/app/build/outputs/apk -name "app-*-release.apk"); do
+            filename=$(basename "$apk")
+            newname=$(echo "$filename" | sed -E 's/app-(.*)-release\.apk/CyreneMusicNext_${{ needs.check-version.outputs.version }}_\1.apk/')
+            mv "$apk" "android-apks/$newname"
+          done
 
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: |
-            src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          path: android-apks/*.apk
 
   release:
     needs: [check-version, build-windows, build-macos, build-linux, build-android]
