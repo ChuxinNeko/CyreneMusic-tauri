@@ -418,7 +418,7 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
                                     CyreneMusicNext
                                 </h1>
                                 <div className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium">
-                                    Version 1.0.0
+                                    Version {process.env.NEXT_PUBLIC_APP_VERSION}
                                 </div>
                             </div>
 
