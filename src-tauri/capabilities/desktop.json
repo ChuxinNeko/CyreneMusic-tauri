@@ -8,7 +8,5 @@
     "tray",
     "desktop-lyric"
   ],
-  "permissions": [
-    "media:default"
-  ]
+  "permissions": []
 }
