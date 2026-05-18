@@ -1,5 +1,4 @@
-import { Timer, Activity, Clock3, Play } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Timer, Activity, Play, Headphones } from "lucide-react"
 
 interface ProfileStatsProps {
     stats: any
@@ -7,6 +6,7 @@ interface ProfileStatsProps {
 
 export function ProfileStats({ stats }: ProfileStatsProps) {
     const formatListeningTime = (seconds: number) => {
+        if (!seconds) return '0分钟'
         if (seconds < 60) return `${seconds}秒`
         if (seconds < 3600) return `${Math.floor(seconds / 60)}分钟`
         const hours = Math.floor(seconds / 3600)
@@ -15,37 +15,30 @@ export function ProfileStats({ stats }: ProfileStatsProps) {
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-4">
-            <Card className="border border-border/40 bg-card/50 backdrop-blur-sm hover:bg-accent/10 transition-all shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                    <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">聆听时长</CardTitle>
-                    <Timer className="w-4 h-4 text-primary opacity-80" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-3xl font-black tracking-tighter">
-                        {formatListeningTime(stats?.totalListeningTime || 0)}
+        <div className="grid grid-cols-2 gap-4 mt-6">
+            <div className="flex flex-col p-5 rounded-3xl bg-card/30 hover:bg-card/50 backdrop-blur-md border border-border/40 transition-all group ring-1 ring-white/5">
+                <div className="flex items-center gap-2 text-muted-foreground mb-3">
+                    <div className="p-2 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                        <Headphones className="w-4 h-4 text-primary" />
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1">
-                        <Clock3 className="w-3 h-3" />
-                        伴你度过的每一个旋律时刻
-                    </p>
-                </CardContent>
-            </Card>
-            <Card className="border border-border/40 bg-card/50 backdrop-blur-sm hover:bg-accent/10 transition-all shadow-sm">
-                <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                    <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">播放次数</CardTitle>
-                    <Activity className="w-4 h-4 text-primary opacity-80" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-3xl font-black tracking-tighter">
-                        {stats?.totalPlayCount || 0} <span className="text-base font-bold text-muted-foreground/50">次</span>
+                    <span className="text-xs font-bold uppercase tracking-wider">聆听时长</span>
+                </div>
+                <div className="text-2xl md:text-3xl font-black tracking-tight">
+                    {formatListeningTime(stats?.totalListeningTime || 0)}
+                </div>
+            </div>
+            
+            <div className="flex flex-col p-5 rounded-3xl bg-card/30 hover:bg-card/50 backdrop-blur-md border border-border/40 transition-all group ring-1 ring-white/5">
+                <div className="flex items-center gap-2 text-muted-foreground mb-3">
+                    <div className="p-2 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                        <Play className="w-4 h-4 text-primary fill-primary/20" />
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-1.5 flex items-center gap-1">
-                        <Play className="w-3 h-3 fill-current" />
-                        开启音乐旅程的总频率
-                    </p>
-                </CardContent>
-            </Card>
+                    <span className="text-xs font-bold uppercase tracking-wider">播放次数</span>
+                </div>
+                <div className="text-2xl md:text-3xl font-black tracking-tight">
+                    {stats?.totalPlayCount || 0} <span className="text-lg font-bold text-muted-foreground/50">次</span>
+                </div>
+            </div>
         </div>
     )
 }

@@ -46,3 +46,4 @@ next-env.d.ts
 *.keystore
 *.jks
 keystore.properties
+/.cursor

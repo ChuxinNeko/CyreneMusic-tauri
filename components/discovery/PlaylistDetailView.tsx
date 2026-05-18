@@ -170,12 +170,12 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
             </div>
 
             {/* Action Bar / Back Button */}
-            <div className="flex items-center pt-2 md:pt-0 translate-y-[20px]">
+            <div className="flex items-center pt-2 md:pt-4 md:pb-6 translate-y-[20px] md:translate-y-0 relative z-20">
                 <Button
                     variant="ghost"
                     size="sm"
                     onClick={onBack}
-                    className="h-8 md:-ml-2 gap-1 md:text-muted-foreground md:hover:text-foreground md:hover:bg-transparent transition-colors md:bg-transparent bg-background/40 backdrop-blur-md text-foreground rounded-full px-3 md:rounded-md md:px-2 z-20"
+                    className="h-8 md:-ml-2 gap-1 md:text-muted-foreground md:hover:text-foreground md:hover:bg-transparent transition-colors md:bg-transparent bg-background/40 backdrop-blur-md text-foreground rounded-full px-3 md:rounded-md md:px-2"
                 >
                     <ChevronLeft className="h-5 w-5" />
                     <span className="text-sm font-medium">返回</span>
@@ -439,12 +439,13 @@ export function DailySongsDetailView({ songs, onBack }: { songs: any[], onBack: 
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/60 to-background" />
             </div>
 
-            <div className="flex items-center pt-2 md:pt-0 translate-y-[20px]">
+            {/* Action Bar / Back Button */}
+            <div className="flex items-center pt-2 md:pt-4 md:pb-6 translate-y-[20px] md:translate-y-0 relative z-20">
                 <Button
                     variant="ghost"
                     size="sm"
                     onClick={onBack}
-                    className="h-8 md:-ml-2 gap-1 md:text-muted-foreground md:hover:text-foreground md:hover:bg-transparent transition-colors md:bg-transparent bg-background/40 backdrop-blur-md text-foreground rounded-full px-3 md:rounded-md md:px-2 z-20"
+                    className="h-8 md:-ml-2 gap-1 md:text-muted-foreground md:hover:text-foreground md:hover:bg-transparent transition-colors md:bg-transparent bg-background/40 backdrop-blur-md text-foreground rounded-full px-3 md:rounded-md md:px-2"
                 >
                     <ChevronLeft className="h-5 w-5" />
                     <span className="text-sm font-medium">返回</span>
