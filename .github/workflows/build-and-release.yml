@@ -305,11 +305,10 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
             ENTITLEMENTS_REQUIRED=NO \
-            clean build \
-            CONFIGURATION_BUILD_DIR=$(pwd)/build
+            clean archive -archivePath $(pwd)/build/App.xcarchive
           
           mkdir -p Payload
-          mv build/*.app Payload/
+          cp -R $(pwd)/build/App.xcarchive/Products/Applications/*.app Payload/
           zip -r CyreneMusicNext.ipa Payload
 
       - name: Rename IPA
