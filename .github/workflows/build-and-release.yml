@@ -306,10 +306,11 @@ jobs:
             PROVISIONING_PROFILE_SPECIFIER="" \
             ENTITLEMENTS_REQUIRED=NO \
             CONFIGURATION=Release \
-            clean archive -archivePath $(pwd)/build/App.xcarchive
+            clean build \
+            CONFIGURATION_BUILD_DIR=$(pwd)/build
           
           mkdir -p Payload
-          cp -R $(pwd)/build/App.xcarchive/Products/Applications/*.app Payload/
+          cp -R build/*.app Payload/
           zip -r CyreneMusicNext.ipa Payload
 
       - name: Rename IPA
