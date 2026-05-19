@@ -267,6 +267,9 @@ jobs:
         with:
           targets: aarch64-apple-ios,x86_64-apple-ios,aarch64-apple-ios-sim
 
+      - name: Symlink bun for Xcode
+        run: sudo ln -s $(which bun) /usr/local/bin/bun
+
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
@@ -278,7 +281,6 @@ jobs:
       - name: Build iOS unsigned
         run: |
           bun run tauri ios init || true
-          bun run tauri ios build || true
           
           cd src-tauri/gen/apple
           
@@ -302,6 +304,7 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
+            ENTITLEMENTS_REQUIRED=NO \
             clean build \
             CONFIGURATION_BUILD_DIR=$(pwd)/build
           
