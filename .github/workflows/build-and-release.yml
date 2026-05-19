@@ -283,11 +283,11 @@ jobs:
           cd src-tauri/gen/apple
           
           # Find the actual workspace or project
-          if [ -n "$(ls -A *.xcworkspace 2>/dev/null)" ]; then
-            WORKSPACE_FILE=$(ls *.xcworkspace | head -n 1)
+          WORKSPACE_FILE=$(find . -maxdepth 1 -name "*.xcworkspace" | head -n 1)
+          if [ -n "$WORKSPACE_FILE" ]; then
             XCODE_TARGET="-workspace $WORKSPACE_FILE"
           else
-            PROJECT_FILE=$(ls *.xcodeproj | head -n 1)
+            PROJECT_FILE=$(find . -maxdepth 1 -name "*.xcodeproj" | head -n 1)
             XCODE_TARGET="-project $PROJECT_FILE"
           fi
           
