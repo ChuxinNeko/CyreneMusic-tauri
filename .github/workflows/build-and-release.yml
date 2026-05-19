@@ -281,10 +281,14 @@ jobs:
           bun run tauri ios build || true
           
           cd src-tauri/gen/apple
-          if [ -d "CyreneMusicNext.xcworkspace" ]; then
-            XCODE_TARGET="-workspace CyreneMusicNext.xcworkspace"
+          
+          # Find the actual workspace or project
+          if [ -n "$(ls -A *.xcworkspace 2>/dev/null)" ]; then
+            WORKSPACE_FILE=$(ls *.xcworkspace | head -n 1)
+            XCODE_TARGET="-workspace $WORKSPACE_FILE"
           else
-            XCODE_TARGET="-project CyreneMusicNext.xcodeproj"
+            PROJECT_FILE=$(ls *.xcodeproj | head -n 1)
+            XCODE_TARGET="-project $PROJECT_FILE"
           fi
           
           SCHEME=$(xcodebuild -list $XCODE_TARGET | grep -A 1 'Schemes:' | tail -n 1 | awk '{$1=$1;print}')
