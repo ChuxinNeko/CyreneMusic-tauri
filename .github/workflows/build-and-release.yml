@@ -305,6 +305,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
             ENTITLEMENTS_REQUIRED=NO \
+            CONFIGURATION=Release \
             clean archive -archivePath $(pwd)/build/App.xcarchive
           
           mkdir -p Payload
