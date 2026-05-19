@@ -253,8 +253,69 @@ jobs:
           name: android-apk
           path: android-apks/*.apk
 
+  build-ios:
+    needs: check-version
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios,x86_64-apple-ios,aarch64-apple-ios-sim
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install frontend dependencies
+        run: bun install
+
+      - name: Build iOS unsigned
+        run: |
+          bun run tauri ios init || true
+          bun run tauri ios build || true
+          
+          cd src-tauri/gen/apple
+          if [ -d "CyreneMusicNext.xcworkspace" ]; then
+            XCODE_TARGET="-workspace CyreneMusicNext.xcworkspace"
+          else
+            XCODE_TARGET="-project CyreneMusicNext.xcodeproj"
+          fi
+          
+          SCHEME=$(xcodebuild -list $XCODE_TARGET | grep -A 1 'Schemes:' | tail -n 1 | awk '{$1=$1;print}')
+          
+          xcodebuild $XCODE_TARGET \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            clean build \
+            CONFIGURATION_BUILD_DIR=$(pwd)/build
+          
+          mkdir -p Payload
+          mv build/*.app Payload/
+          zip -r CyreneMusicNext.ipa Payload
+
+      - name: Rename IPA
+        run: |
+          mkdir -p ios-ipa
+          mv src-tauri/gen/apple/CyreneMusicNext.ipa ios-ipa/CyreneMusicNext_${{ needs.check-version.outputs.version }}.ipa
+
+      - name: Upload iOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: ios-ipa/*.ipa
+
   release:
-    needs: [check-version, build-windows, build-macos, build-linux, build-android]
+    needs: [check-version, build-windows, build-macos, build-linux, build-android, build-ios]
     if: needs.check-version.outputs.changed == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -278,3 +339,4 @@ jobs:
             artifacts/macos-installers-*/**/*
             artifacts/linux-installers/**/*
             artifacts/android-apk/**/*
+            artifacts/ios-ipa/**/*

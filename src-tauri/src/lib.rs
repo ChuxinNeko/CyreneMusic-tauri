@@ -1,10 +1,13 @@
 use base64::Engine;
 use serde::Deserialize;
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::Write;
+use std::path::PathBuf;
 use std::sync::Mutex;
 use sysinfo::System;
-use tauri::Manager;
 use tauri::webview::Color;
+use tauri::{Emitter, Manager};
 
 #[cfg(target_os = "windows")]
 mod thumbbar;
@@ -23,6 +26,131 @@ fn greet(name: &str) -> String {
 
 /// 通过 Rust 原生 HTTP 下载图片，绕过 WebView CORS 限制
 /// 返回 data URL (data:image/xxx;base64,...)
+#[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct UpdateDownloadProgress {
+    download_id: String,
+    downloaded: u64,
+    total: Option<u64>,
+    percent: Option<f64>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateDownloadResult {
+    path: String,
+    file_name: String,
+}
+
+fn sanitize_download_file_name(file_name: &str) -> String {
+    let sanitized: String = file_name
+        .chars()
+        .map(|ch| match ch {
+            '<' | '>' | ':' | '"' | '/' | '\\' | '|' | '?' | '*' | '\0' => '_',
+            _ => ch,
+        })
+        .collect();
+
+    let trimmed = sanitized.trim().trim_matches('.');
+    if trimmed.is_empty() {
+        "CyreneMusicNext-update".to_string()
+    } else {
+        trimmed.to_string()
+    }
+}
+
+fn resolve_update_download_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    #[cfg(any(target_os = "android", target_os = "ios"))]
+    {
+        app.path()
+            .app_cache_dir()
+            .map(|path| path.join("updates"))
+            .map_err(|e| format!("Resolve app cache dir failed: {}", e))
+    }
+
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    {
+        app.path()
+            .download_dir()
+            .map_err(|e| format!("Resolve downloads dir failed: {}", e))
+    }
+}
+
+#[tauri::command]
+async fn download_update(
+    app: tauri::AppHandle,
+    url: String,
+    file_name: String,
+    download_id: String,
+) -> Result<UpdateDownloadResult, String> {
+    let file_name = sanitize_download_file_name(&file_name);
+    let download_dir = resolve_update_download_dir(&app)?;
+    std::fs::create_dir_all(&download_dir)
+        .map_err(|e| format!("Create download dir failed: {}", e))?;
+
+    let file_path = download_dir.join(&file_name);
+    let partial_path = download_dir.join(format!("{}.download", file_name));
+
+    let client = reqwest::Client::builder()
+        .user_agent("CyreneMusicNext updater")
+        .build()
+        .map_err(|e| format!("Create HTTP client failed: {}", e))?;
+
+    let mut response = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("Download request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("Download request failed with status {}", response.status()));
+    }
+
+    let total = response.content_length();
+    let mut file = File::create(&partial_path)
+        .map_err(|e| format!("Create download file failed: {}", e))?;
+    let mut downloaded = 0_u64;
+
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|e| format!("Read download chunk failed: {}", e))?
+    {
+        file.write_all(&chunk)
+            .map_err(|e| format!("Write download file failed: {}", e))?;
+        downloaded += chunk.len() as u64;
+
+        let percent = total
+            .filter(|value| *value > 0)
+            .map(|value| downloaded as f64 / value as f64 * 100.0);
+        let _ = app.emit(
+            "update:download-progress",
+            UpdateDownloadProgress {
+                download_id: download_id.clone(),
+                downloaded,
+                total,
+                percent,
+            },
+        );
+    }
+
+    file.flush()
+        .map_err(|e| format!("Flush download file failed: {}", e))?;
+    drop(file);
+
+    if file_path.exists() {
+        std::fs::remove_file(&file_path)
+            .map_err(|e| format!("Remove existing update file failed: {}", e))?;
+    }
+    std::fs::rename(&partial_path, &file_path)
+        .map_err(|e| format!("Finalize download file failed: {}", e))?;
+
+    Ok(UpdateDownloadResult {
+        path: file_path.to_string_lossy().to_string(),
+        file_name,
+    })
+}
+
 #[tauri::command]
 async fn fetch_image(url: String) -> Result<String, String> {
     let response = reqwest::get(&url)
@@ -403,6 +531,7 @@ pub fn run() {
                     tauri::generate_handler![
                         greet,
                         fetch_image,
+                        download_update,
                         open_desktop_lyric,
                         close_desktop_lyric,
                         update_window_material,
@@ -422,6 +551,7 @@ pub fn run() {
                     tauri::generate_handler![
                         greet,
                         fetch_image,
+                        download_update,
                         open_desktop_lyric,
                         close_desktop_lyric,
                         update_window_material,
@@ -443,6 +573,7 @@ pub fn run() {
                     tauri::generate_handler![
                         greet,
                         fetch_image,
+                        download_update,
                         lx_http_request,
                         get_system_info,
                         get_process_info,
@@ -459,6 +590,7 @@ pub fn run() {
                     tauri::generate_handler![
                         greet,
                         fetch_image,
+                        download_update,
                         lx_http_request,
                         get_system_info,
                         get_process_info,

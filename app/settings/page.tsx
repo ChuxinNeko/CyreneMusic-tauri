@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { ChevronRight, Server, ChevronLeft, User, Music, KeyRound, Info, FileText, Settings2, Palette } from "lucide-react"
+import { ChevronRight, Server, ChevronLeft, User, Music, KeyRound, Info, FileText, Settings2, Palette, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -26,6 +26,8 @@ import { Suspense } from "react"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import { UserAgreementContent } from "@/components/common/UserAgreementContent"
+import { updateService, UpdateInfo } from "@/lib/services/updateService"
+import { UpdateDialog } from "@/components/common/UpdateDialog"
 
 type SettingsView = "main" | "backend-source" | "audio-source" | "account-binding" | "appearance" | "about" | "user-agreement"
 
@@ -49,6 +51,10 @@ function SettingsPageContent() {
     const { user, isLoggedIn, logout } = useAuthStore()
     const [authDialogOpen, setAuthDialogOpen] = useState(false)
     const [qualityDialogOpen, setQualityDialogOpen] = useState(false)
+    const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
+    const [showUpdateDialog, setShowUpdateDialog] = useState(false)
+    const [checkingUpdate, setCheckingUpdate] = useState(false)
+    const [updateCheckResult, setUpdateCheckResult] = useState<"latest" | "found" | null>(null)
     const activeSource = useActiveSource()
     const { quality } = useAudioSourceStore()
     const { theme } = useTheme()
@@ -76,6 +82,25 @@ function SettingsPageContent() {
         const url = e.target.value
         setCustomUrl(url)
         urlService.setCustomBaseUrl(url)
+    }
+
+    const handleCheckUpdate = async () => {
+        setCheckingUpdate(true)
+        setUpdateCheckResult(null)
+        try {
+            const info = await updateService.checkUpdate()
+            if (info) {
+                setUpdateInfo(info)
+                setShowUpdateDialog(true)
+                setUpdateCheckResult("found")
+            } else {
+                setUpdateCheckResult("latest")
+            }
+        } catch {
+            setUpdateCheckResult("latest")
+        } finally {
+            setCheckingUpdate(false)
+        }
     }
 
     // Breadcrumb logic
@@ -422,7 +447,19 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
                                 </div>
                             </div>
 
+                            <Button
+                                variant="outline"
+                                className="gap-2 rounded-xl"
+                                onClick={handleCheckUpdate}
+                                disabled={checkingUpdate}
+                            >
+                                <RefreshCw className={`h-4 w-4 ${checkingUpdate ? "animate-spin" : ""}`} />
+                                {checkingUpdate ? "检查中..." : "检查更新"}
+                            </Button>
 
+                            {updateCheckResult === "latest" && (
+                                <p className="text-sm text-muted-foreground">当前已是最新版本</p>
+                            )}
 
                             <div className="flex flex-col items-center space-y-1 !mt-2">
                                 <Button
@@ -481,6 +518,7 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
 
             <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
             <QualitySettingsDialog open={qualityDialogOpen} onOpenChange={setQualityDialogOpen} />
+            <UpdateDialog updateInfo={updateInfo} open={showUpdateDialog} onOpenChange={setShowUpdateDialog} />
         </div>
     )
 }

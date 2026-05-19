@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { version } from "./package.json";
+import { version } from "./src-tauri/tauri.conf.json";
 
 const isProd = process.env.NODE_ENV === 'production';
 

@@ -1,15 +1,24 @@
 
-import { urlService } from "./urlService";
+const GITHUB_API = "https://api.github.com/repos/ChuxinNeko/CyreneMusic-tauri/releases/latest";
 
 export interface UpdateInfo {
     version: string;
     changelog: string;
     force_update: boolean;
+    /** 主下载链接（exe） */
+    download_url?: string;
+    /** 各平台下载链接 */
+    platform_downloads?: Record<string, string>;
+}
+
+interface GitHubAsset {
+    name: string;
+    browser_download_url: string;
 }
 
 class UpdateService {
     private static instance: UpdateService;
-    public readonly CURRENT_VERSION = "1.0.0";
+    public readonly CURRENT_VERSION = process.env.NEXT_PUBLIC_APP_VERSION || "0.0.0";
 
     private constructor() {}
 
@@ -21,24 +30,57 @@ class UpdateService {
     }
 
     /**
-     * 检查是否有新版本
+     * 从 GitHub Releases 获取最新版本信息
      * @returns 如果有新版本则返回更新信息，否则返回 null
      */
     public async checkUpdate(): Promise<UpdateInfo | null> {
         try {
-            const response = await fetch(urlService.latestNextVersionUrl);
-            const result = await response.json();
-            
-            if (result.status === 200 && result.data) {
-                const latestVersion = result.data.version;
-                if (this.compareVersions(latestVersion, this.CURRENT_VERSION) > 0) {
-                    return result.data;
-                }
+            const response = await fetch(GITHUB_API);
+            if (!response.ok) return null;
+
+            const release = await response.json();
+            const latestVersion = String(release.tag_name || "").replace(/^v/i, "");
+
+            if (!latestVersion || this.compareVersions(latestVersion, this.CURRENT_VERSION) <= 0) {
+                return null;
             }
+
+            const assets: GitHubAsset[] = release.assets || [];
+            const downloads = this.resolvePlatformDownloads(assets);
+
+            return {
+                version: latestVersion,
+                changelog: release.body || "暂无更新说明",
+                force_update: false,
+                download_url: release.html_url,
+                platform_downloads: downloads,
+            };
         } catch (error) {
             console.error("[UpdateService] 检查更新失败:", error);
         }
         return null;
+    }
+
+    /**
+     * 根据 release assets 生成各平台下载链接
+     */
+    private resolvePlatformDownloads(assets: GitHubAsset[]): Record<string, string> {
+        const map: Record<string, string> = {};
+
+        for (const asset of assets) {
+            const name = asset.name.toLowerCase();
+            if (name.endsWith(".exe") || name.endsWith(".msi")) {
+                map.windows = asset.browser_download_url;
+            } else if (name.endsWith(".dmg") || name.endsWith(".app.tar.gz")) {
+                map.macos = asset.browser_download_url;
+            } else if (name.endsWith(".deb") || name.endsWith(".appimage") || name.endsWith(".rpm")) {
+                map.linux = asset.browser_download_url;
+            } else if (name.endsWith(".apk")) {
+                map.android = asset.browser_download_url;
+            }
+        }
+
+        return map;
     }
 
     /**
