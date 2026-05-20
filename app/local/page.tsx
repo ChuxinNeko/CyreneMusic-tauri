@@ -11,6 +11,13 @@ import { localMusicService, LocalTrackEntry } from "@/lib/services/localMusicSer
 import { playerService } from "@/lib/services/playerService"
 import { usePlayerStore } from "@/lib/store/usePlayerStore"
 import { toast } from "sonner"
+import { invoke } from "@tauri-apps/api/core"
+
+const isMobilePlatform = () => {
+    if (typeof window === 'undefined') return false
+    const ua = navigator.userAgent.toLowerCase()
+    return /android|iphone|ipad|ipod/.test(ua)
+}
 
 export default function LocalPage() {
     const [tracks, setTracks] = useState<LocalTrackEntry[]>([])
@@ -41,6 +48,10 @@ export default function LocalPage() {
     }, [fetchData])
 
     const handleScanFolder = async () => {
+        if (isMobilePlatform()) {
+            toast.info("移动端系统暂不支持扫描任意文件夹，请使用“导入单曲”功能")
+            return
+        }
         try {
             const { open } = await import("@tauri-apps/plugin-dialog")
             const selected = await open({ directory: true, multiple: false })
@@ -59,6 +70,10 @@ export default function LocalPage() {
     }
 
     const handleImportFiles = async () => {
+        if (isMobilePlatform()) {
+            document.getElementById("mobile-audio-import")?.click()
+            return
+        }
         try {
             const { open } = await import("@tauri-apps/plugin-dialog")
             const selected = await open({
@@ -73,10 +88,49 @@ export default function LocalPage() {
             toast.success(`成功导入 ${count} 首歌曲`)
             await fetchData()
         } catch (error) {
+            console.warn("桌面端原生文件选择器打开失败，已切换至备用文件选择器：", error)
+            document.getElementById("mobile-audio-import")?.click()
+        } finally {
+            setScanning(false)
+        }
+    }
+
+    const handleMobileFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files
+        if (!files || files.length === 0) return
+
+        setScanning(true)
+        let count = 0
+        try {
+            const filePaths: string[] = []
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i]
+                try {
+                    const arrayBuffer = await file.arrayBuffer()
+                    const dataArray = new Uint8Array(arrayBuffer)
+                    const savedPath: string = await invoke("local_music::save_mobile_local_music", {
+                        fileName: file.name,
+                        data: dataArray
+                    })
+                    filePaths.push(savedPath)
+                } catch (fileErr) {
+                    console.error(`保存文件 ${file.name} 失败:`, fileErr)
+                }
+            }
+
+            if (filePaths.length > 0) {
+                count = await localMusicService.importFiles(filePaths)
+                toast.success(`成功导入 ${count} 首歌曲`)
+                await fetchData()
+            } else {
+                toast.error("没有成功导入的歌曲")
+            }
+        } catch (error) {
             toast.error("导入文件失败")
             console.error(error)
         } finally {
             setScanning(false)
+            e.target.value = ""
         }
     }
 
@@ -143,6 +197,14 @@ export default function LocalPage() {
 
     return (
         <ScrollArea className="h-full">
+            <input
+                type="file"
+                id="mobile-audio-import"
+                multiple
+                accept="audio/*"
+                onChange={handleMobileFileChange}
+                className="hidden"
+            />
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}

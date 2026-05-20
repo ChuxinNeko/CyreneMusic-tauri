@@ -357,26 +357,7 @@ jobs:
           name: CyreneMusicNext v${{ needs.check-version.outputs.version }}
           generate_release_notes: true
           body: |
-            ### 📱 iOS 安装与自签名指南 (iOS Sideloading Guide)
             
-            由于官方 iOS 开发者证书费用高昂，本项目目前仅提供**未签名的 iOS IPA 软件包**。您可以根据您的系统和设备版本，选择以下几种主流方法进行免费自签名安装：
-            
-            #### 1. 使用 TrollStore (无需越狱 / 永久巨魔安装，推荐 🌟)
-            - **适用环境**：iOS 14.0 - 17.0 (以及部分特定高版本设备)
-            - **优势**：一次导入安装，永久运行，绝无证书过期/掉签的烦恼。
-            - **步骤**：直接将下载的 `CyreneMusicNext.ipa` 导入已安装的 TrollStore 即可一键自动安装。
-            
-            #### 2. 使用 AltStore 或 Sideloadly (免费个人证书自签 ⏳)
-            - **适用环境**：所有 iOS 系统版本，需准备一台 Windows 或 macOS 电脑辅助。
-            - **限制**：使用免费个人 Apple ID 签名，每次签名可运行 7 天，到期需在同一网络下刷新签名。
-            - **安装步骤**：
-              1. 电脑端下载并运行 [AltStore](https://altstore.io/) 或 [Sideloadly](https://sideloadly.io/)。
-              2. 使用 USB 数据线连接您的 iPhone 与电脑。
-              3. 将下载的 `CyreneMusicNext.ipa` 拖拽进签名软件中。
-              4. 输入您的 Apple ID 和密码（建议使用临时注册的备用 Apple ID 以保安全）并点击“开始签名”。
-              5. 签名安装完成后，在您的 iPhone 上进入 `设置 -> 通用 -> VPN 与设备管理`，找到您的 Apple ID 并点击“信任”即可顺利启动应用。
-            
-            希望您使用愉快！如遇到打包或运行问题，欢迎随时提交 Issue。
           files: |
             artifacts/windows-installers/**/*
             artifacts/macos-installers-*/**/*

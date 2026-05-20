@@ -3,6 +3,7 @@ use lofty::prelude::*;
 use lofty::probe::Probe;
 use serde::Serialize;
 use std::path::Path;
+use tauri::Manager;
 use walkdir::WalkDir;
 
 const SUPPORTED_EXTENSIONS: &[&str] = &["mp3", "flac", "wav", "ogg", "m4a", "aac", "wma", "opus"];
@@ -134,4 +135,26 @@ pub async fn read_lrc_file(audio_path: String) -> Result<Option<String>, String>
     } else {
         Ok(None)
     }
+}
+
+#[tauri::command]
+pub async fn save_mobile_local_music(
+    app: tauri::AppHandle,
+    file_name: String,
+    data: Vec<u8>,
+) -> Result<String, String> {
+    let base_dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| format!("无法获取 App 数据目录: {}", e))?
+        .join("local_music");
+
+    std::fs::create_dir_all(&base_dir)
+        .map_err(|e| format!("创建 local_music 目录失败: {}", e))?;
+
+    let dest_path = base_dir.join(&file_name);
+    std::fs::write(&dest_path, data)
+        .map_err(|e| format!("写入音乐文件失败: {}", e))?;
+
+    Ok(dest_path.to_string_lossy().to_string())
 }

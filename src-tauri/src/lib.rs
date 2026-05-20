@@ -543,7 +543,8 @@ pub fn run() {
                         update_thumbbar_playing_state,
                         local_music::scan_music_folder,
                         local_music::get_audio_metadata,
-                        local_music::read_lrc_file
+                        local_music::read_lrc_file,
+                        local_music::save_mobile_local_music
                     ]
                 }
                 #[cfg(not(target_os = "windows"))]
@@ -562,7 +563,8 @@ pub fn run() {
                         set_status_bar_style,
                         local_music::scan_music_folder,
                         local_music::get_audio_metadata,
-                        local_music::read_lrc_file
+                        local_music::read_lrc_file,
+                        local_music::save_mobile_local_music
                     ]
                 }
             }
@@ -582,7 +584,8 @@ pub fn run() {
                         android_media_notification_hide,
                         local_music::scan_music_folder,
                         local_music::get_audio_metadata,
-                        local_music::read_lrc_file
+                        local_music::read_lrc_file,
+                        local_music::save_mobile_local_music
                     ]
                 }
                 #[cfg(not(target_os = "android"))]
@@ -597,7 +600,8 @@ pub fn run() {
                         set_status_bar_style,
                         local_music::scan_music_folder,
                         local_music::get_audio_metadata,
-                        local_music::read_lrc_file
+                        local_music::read_lrc_file,
+                        local_music::save_mobile_local_music
                     ]
                 }
             }

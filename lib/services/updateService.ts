@@ -77,6 +77,8 @@ class UpdateService {
                 map.linux = asset.browser_download_url;
             } else if (name.endsWith(".apk")) {
                 map.android = asset.browser_download_url;
+            } else if (name.endsWith(".ipa")) {
+                map.ios = asset.browser_download_url;
             }
         }
 
