@@ -301,7 +301,7 @@ export function AudioSourceManager() {
                             ref={fileInputRef}
                             onChange={handleFileImport}
                             className="hidden"
-                            accept={formData.type === AudioSourceType.OmniParse ? ".cyrene" : formData.type === AudioSourceType.LxMusic ? ".js" : ".cyrene,.js"}
+                            accept={formData.type === AudioSourceType.OmniParse ? ".cyrene" : formData.type === AudioSourceType.LxMusic ? ".js,.txt,*/*" : ".cyrene,.js"}
                         />
                         <div className="space-y-3">
                             <Label>解析类型</Label>

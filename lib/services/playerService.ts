@@ -10,7 +10,7 @@ import { useAudioSourceStore } from "../store/useAudioSourceStore"
 import { Track } from "../models/track"
 import { historyService } from "./historyService"
 import { lxMusicRuntimeService } from "./lxMusicRuntimeService"
-import { androidMediaNotificationService, isAndroidTauriRuntime } from "./androidMediaNotificationService"
+import { androidMediaNotificationService, isAndroidTauriRuntime } from './androidMediaNotificationService'
 
 import { listen, emit as tauriEmit } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
