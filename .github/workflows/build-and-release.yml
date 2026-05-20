@@ -307,7 +307,8 @@ jobs:
             ENTITLEMENTS_REQUIRED=NO \
             CONFIGURATION=Release \
             clean build \
-            CONFIGURATION_BUILD_DIR=$(pwd)/build
+            CONFIGURATION_BUILD_DIR=$(pwd)/build \
+            GCC_PREPROCESSOR_DEFINITIONS=""
           
           mkdir -p Payload
           cp -R build/*.app Payload/
