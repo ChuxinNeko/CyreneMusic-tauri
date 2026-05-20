@@ -283,44 +283,47 @@ jobs:
           # 1. 构建前端静态资源 (Next.js 导出到 out 目录)
           bun run build
           
-          # 2. 预先向系统临时目录写入虚拟的开发服务器地址文件，绕过 tauri-cli xcode-script 的判定 bug
-          bun -e "require('fs').writeFileSync(require('path').join(require('os').tmpdir(), 'com.cyrenemusic.app-server-addr'), 'http://localhost:3456')"
-          
-          # 3. 初始化 iOS 项目模板
+          # 2. 初始化 iOS 项目模板
           bun run tauri ios init || true
           
+          # 3. 使用 Bun 脚本禁用 Xcode 项目中的签名限制，强制配置为 Manual / No Sign
+          bun -e "
+          const fs = require('fs');
+          const path = require('path');
+          const genAppleDir = path.join(process.cwd(), 'src-tauri', 'gen', 'apple');
+          const projectDir = fs.readdirSync(genAppleDir).find(f => f.endsWith('.xcodeproj'));
+          if (!projectDir) throw new Error('No .xcodeproj found');
+          const pbxprojPath = path.join(genAppleDir, projectDir, 'project.pbxproj');
+          let content = fs.readFileSync(pbxprojPath, 'utf8');
+          const settingsToInject = '\n\t\t\t\tCODE_SIGNING_ALLOWED = NO;\n\t\t\t\tCODE_SIGNING_REQUIRED = NO;\n\t\t\t\tCODE_SIGN_IDENTITY = \"\";\n\t\t\t\tPROVISIONING_PROFILE_SPECIFIER = \"\";\n\t\t\t\tCODE_SIGN_STYLE = Manual;\n\t\t\t\tENTITLEMENTS_REQUIRED = NO;';
+          content = content.replace(/buildSettings = \{/g, 'buildSettings = {' + settingsToInject);
+          fs.writeFileSync(pbxprojPath, content, 'utf8');
+          console.log('Successfully disabled code signing in pbxproj!');
+          "
+          
+          # 4. 运行官方 tauri ios build 编译。由于禁用了签名，底层编译能完美通过。
+          # 加上 || true 确保即使在最终的 ipa 导出打包阶段遇到证书警告报错，也不会导致 CI 崩溃。
+          bun run tauri ios build || true
+          
+          # 5. 进入构建工程目录，提取生成的 .app 并打包为未签名的 .ipa 格式
           cd src-tauri/gen/apple
           
-          # Find the actual workspace or project
-          WORKSPACE_FILE=$(find . -maxdepth 1 -name "*.xcworkspace" | head -n 1)
-          if [ -n "$WORKSPACE_FILE" ]; then
-            XCODE_TARGET="-workspace $WORKSPACE_FILE"
-          else
-            PROJECT_FILE=$(find . -maxdepth 1 -name "*.xcodeproj" | head -n 1)
-            XCODE_TARGET="-project $PROJECT_FILE"
+          # 递归搜寻刚刚编译生成的 Release-iphoneos 目录下的 .app 文件
+          APP_PATH=$(find . -name "*.app" -path "*/Release-iphoneos/*" | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            # 备用方案：如果在 Release-iphoneos 中没找到，就搜寻任意的 .app
+            APP_PATH=$(find . -name "*.app" | head -n 1)
           fi
           
-          SCHEME=$(xcodebuild -list $XCODE_TARGET | grep -A 1 'Schemes:' | tail -n 1 | awk '{$1=$1;print}')
-          
-          # 4. 绕过签名机制，直接编译打包 Release iOS 程序
-          xcodebuild $XCODE_TARGET \
-            -scheme "$SCHEME" \
-            -configuration Release \
-            -destination 'generic/platform=iOS' \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            PROVISIONING_PROFILE_SPECIFIER="" \
-            ENTITLEMENTS_REQUIRED=NO \
-            CONFIGURATION=Release \
-            clean build \
-            CONFIGURATION_BUILD_DIR=$(pwd)/build \
-            GCC_PREPROCESSOR_DEFINITIONS=""
-          
-          mkdir -p Payload
-          cp -R build/*.app Payload/
-          zip -r CyreneMusicNext.ipa Payload
+          if [ -n "$APP_PATH" ]; then
+            echo "Found compiled app at: $APP_PATH"
+            mkdir -p Payload
+            cp -R "$APP_PATH" Payload/
+            zip -r CyreneMusicNext.ipa Payload
+          else
+            echo "Error: No compiled .app found! Build might have failed."
+            exit 1
+          fi
 
       - name: Rename IPA
         run: |
