@@ -98,7 +98,7 @@ class SearchService {
 
         // 获取当前支持的平台
         const sourceStore = useAudioSourceStore.getState();
-        const activeSource = sourceStore.sources.find(s => s.id === sourceStore.activeSourceId);
+        const activeSource = sourceStore.sources.length > 0 ? sourceStore.sources[0] : null;
 
         let supportedPlatforms: string[] = [];
         if (activeSource) {

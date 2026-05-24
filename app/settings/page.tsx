@@ -56,7 +56,7 @@ function SettingsPageContent() {
     const [checkingUpdate, setCheckingUpdate] = useState(false)
     const [updateCheckResult, setUpdateCheckResult] = useState<"latest" | "found" | null>(null)
     const activeSource = useActiveSource()
-    const { quality } = useAudioSourceStore()
+    const { quality, sources } = useAudioSourceStore()
     const { theme } = useTheme()
 
     useEffect(() => {
@@ -286,7 +286,7 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
                                 <SettingsItem
                                     icon={Music}
                                     title="音源设置"
-                                    description={activeSource ? `当前使用: ${activeSource.name}` : "未配置音源，歌曲可能无法播放"}
+                                    description={activeSource ? `${sources.length} 个音源 · 优先: ${activeSource.name}` : "未配置音源，歌曲可能无法播放"}
                                     onClick={() => setView("audio-source")}
                                 />
                                 <SettingsItem

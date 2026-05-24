@@ -4,7 +4,6 @@ import { AudioSourceConfig, AudioSourceType } from '../models/audioSourceConfig'
 
 interface AudioSourceState {
     sources: AudioSourceConfig[]
-    activeSourceId: string
     quality: string
     isInitialized: boolean
 
@@ -12,73 +11,67 @@ interface AudioSourceState {
     addSource: (source: AudioSourceConfig) => void
     updateSource: (source: AudioSourceConfig) => void
     removeSource: (id: string) => void
-    setActiveSource: (id: string) => void
     setQuality: (quality: string) => void
     setInitialized: (initialized: boolean) => void
-    getActiveSource: () => AudioSourceConfig | null
     setSources: (sources: AudioSourceConfig[]) => void
+    reorderSources: (fromIndex: number, toIndex: number) => void
 }
 
 export const useAudioSourceStore = create<AudioSourceState>()(
     persist(
         (set, get) => ({
             sources: [],
-            activeSourceId: '',
             quality: 'exhigh',
             isInitialized: false,
 
-            addSource: (source) => set((state) => {
-                const newSources = [...state.sources, source];
-                // If it's the first source, set it as active
-                const activeId = state.sources.length === 0 ? source.id : state.activeSourceId;
-                return { sources: newSources, activeSourceId: activeId };
-            }),
+            addSource: (source) => set((state) => ({
+                sources: [...state.sources, source],
+            })),
 
             updateSource: (source) => set((state) => ({
                 sources: state.sources.map((s) => (s.id === source.id ? source : s)),
             })),
 
-            removeSource: (id) => set((state) => {
-                const newSources = state.sources.filter((s) => s.id !== id);
-                let newActiveId = state.activeSourceId;
-                if (state.activeSourceId === id) {
-                    newActiveId = newSources.length > 0 ? newSources[0].id : '';
-                }
-                return { sources: newSources, activeSourceId: newActiveId };
-            }),
-
-            setActiveSource: (id) => set((state) => {
-                const source = state.sources.find((s) => s.id === id);
-                if (!source) return {};
-                const otherSources = state.sources.filter((s) => s.id !== id);
-                return { 
-                    sources: [source, ...otherSources],
-                    activeSourceId: id 
-                };
-            }),
+            removeSource: (id) => set((state) => ({
+                sources: state.sources.filter((s) => s.id !== id),
+            })),
 
             setQuality: (quality) => set({ quality }),
 
             setInitialized: (initialized) => set({ isInitialized: initialized }),
 
-            getActiveSource: () => {
-                const state = get()
-                return state.sources.find((s) => s.id === state.activeSourceId) || null
-            },
+            setSources: (sources) => set({ sources }),
 
-            setSources: (sources) => set({
-                sources,
-                activeSourceId: sources.length > 0 ? sources[0].id : ''
-            })
+            reorderSources: (fromIndex, toIndex) => set((state) => {
+                if (fromIndex === toIndex) return {}
+                const newSources = [...state.sources]
+                const [moved] = newSources.splice(fromIndex, 1)
+                newSources.splice(toIndex, 0, moved)
+                return { sources: newSources }
+            }),
         }),
         {
             name: 'audio-source-storage',
             storage: createJSONStorage(() => localStorage),
+            // 迁移：旧版本 store 中可能包含 activeSourceId，读取时自动忽略
+            partialize: (state) => ({
+                sources: state.sources,
+                quality: state.quality,
+                isInitialized: state.isInitialized,
+            }),
         }
     )
 )
 
-export const useActiveSource = () => {
-    const { sources, activeSourceId } = useAudioSourceStore();
-    return sources.find((s) => s.id === activeSourceId) || null;
+/**
+ * 获取最高优先级音源（即 sources[0]）
+ */
+export const usePrimarySource = () => {
+    const { sources } = useAudioSourceStore();
+    return sources.length > 0 ? sources[0] : null;
 }
+
+/**
+ * 兼容别名：等价于 usePrimarySource
+ */
+export const useActiveSource = usePrimarySource;

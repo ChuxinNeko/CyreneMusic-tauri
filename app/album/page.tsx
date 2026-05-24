@@ -95,7 +95,7 @@ export default function AlbumDetailPage() {
         <div className="space-y-4 animate-in fade-in duration-500 pb-20 max-w-6xl mx-auto px-4 sm:px-0 relative pt-[env(safe-area-inset-top)] isolate">
             {/* 移动端全宽顶部封面渐变背景 */}
             <div className="md:hidden absolute top-0 left-1/2 -translate-x-1/2 w-screen aspect-square sm:max-h-[500px] -z-10 pointer-events-none overflow-hidden origin-top">
-                <AsyncImage src={coverUrl} className="w-full h-full object-cover scale-105" />
+                <AsyncImage src={coverUrl} className="w-full h-full object-cover scale-105" lazy={false} />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-background/60 to-background" />
             </div>
 
@@ -116,7 +116,7 @@ export default function AlbumDetailPage() {
             <div className="flex flex-col md:flex-row gap-6 md:gap-8 lg:gap-12 items-center md:items-start text-center md:text-left relative z-10">
                 {/* 桌面端封面图区域 (移动端隐藏) */}
                 <div className="hidden md:block relative md:w-44 lg:w-56 aspect-square md:rounded-2xl overflow-hidden md:shadow-[0_20px_50px_-15px_rgba(0,0,0,0.2)] flex-shrink-0 bg-muted transition-all duration-300">
-                    <AsyncImage src={coverUrl} className="w-full h-full object-cover scale-105" />
+                    <AsyncImage src={coverUrl} className="w-full h-full object-cover scale-105" lazy={false} />
                 </div>
 
                 <div className="flex-1 min-w-0 space-y-4 md:space-y-3 pt-[55vw] sm:pt-[250px] md:pt-1 flex flex-col items-center md:items-start w-full px-4 md:px-0">

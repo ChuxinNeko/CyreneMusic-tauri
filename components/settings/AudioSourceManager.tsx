@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react'
-import { Plus, Trash2, Edit2, Check, ExternalLink, ShieldCheck, FileCode, Layers, Music, FileUp, AlertCircle, Link, Download } from 'lucide-react'
+import React, { useState, useRef } from 'react'
+import { Plus, Trash2, Edit2, Check, ExternalLink, ShieldCheck, FileCode, Layers, Music, FileUp, AlertCircle, Link, Download, GripVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -24,12 +24,74 @@ import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export function AudioSourceManager() {
-    const { sources, activeSourceId, addSource, updateSource, removeSource, setActiveSource } = useAudioSourceStore()
+    const { sources, addSource, updateSource, removeSource, reorderSources } = useAudioSourceStore()
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const [editingSource, setEditingSource] = useState<AudioSourceConfig | null>(null)
     const fileInputRef = React.useRef<HTMLInputElement>(null)
     const [lxUrl, setLxUrl] = useState('')
     const [isFetching, setIsFetching] = useState(false)
+
+    // --- 指针拖拽排序状态 ---
+    const [draggedId, setDraggedId] = useState<string | null>(null)
+
+    // --- 指针拖拽排序事件处理 ---
+    const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>, sourceId: string) => {
+        if (e.button !== 0) return // 只允许鼠标左键
+        const target = e.currentTarget
+        target.setPointerCapture(e.pointerId)
+        setDraggedId(sourceId)
+        e.preventDefault() // 阻止默认行为以防拖动时选中文本
+    }
+
+    const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>, sourceId: string) => {
+        if (draggedId !== sourceId) return
+
+        const currentY = e.clientY
+
+        // 获取列表容器中所有带有 data-drag-card 属性的 DOM 元素
+        const container = e.currentTarget.closest('.audio-sources-list') as HTMLElement
+        if (!container) return
+
+        const cards = Array.from(container.querySelectorAll('[data-drag-card]')) as HTMLElement[]
+
+        // 找到当前拖动卡片的 index
+        const currentIndex = cards.findIndex(card => card.getAttribute('data-drag-card') === sourceId)
+        if (currentIndex === -1) return
+
+        // 检查鼠标 clientY 跨过了哪个卡片的中点，从而进行实时交换
+        for (let i = 0; i < cards.length; i++) {
+            if (i === currentIndex) continue
+
+            const otherCard = cards[i]
+            const rect = otherCard.getBoundingClientRect()
+            const midY = rect.top + rect.height / 2
+
+            // 向上拖动：如果鼠标在当前卡片上方的卡片中点之上
+            if (i < currentIndex && currentY < midY) {
+                reorderSources(currentIndex, i)
+                break
+            }
+            // 向下拖动：如果鼠标在当前卡片下方的卡片中点之下
+            if (i > currentIndex && currentY > midY) {
+                reorderSources(currentIndex, i)
+                break
+            }
+        }
+    }
+
+    const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>, sourceId: string) => {
+        if (draggedId === sourceId) {
+            e.currentTarget.releasePointerCapture(e.pointerId)
+            setDraggedId(null)
+        }
+    }
+
+    const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>, sourceId: string) => {
+        if (draggedId === sourceId) {
+            e.currentTarget.releasePointerCapture(e.pointerId)
+            setDraggedId(null)
+        }
+    }
 
     const [formData, setFormData] = useState<Partial<AudioSourceConfig>>({
         type: AudioSourceType.OmniParse,
@@ -199,7 +261,7 @@ export function AudioSourceManager() {
                 <div className="space-y-1">
                     <h2 className="text-lg font-semibold tracking-tight">已配置音源</h2>
                     <p className="text-sm text-muted-foreground">
-                        选择并管理您的音频解析服务
+                        拖拽调整优先级，播放时将按顺序尝试各音源
                     </p>
                 </div>
                 <Button onClick={handleOpenAddDialog} size="sm" className="gap-2">
@@ -208,7 +270,7 @@ export function AudioSourceManager() {
                 </Button>
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-2 audio-sources-list">
                 {sources.length === 0 ? (
                     <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-2xl bg-muted/30 text-center space-y-4">
                         <div className="p-4 bg-background rounded-full shadow-sm">
@@ -225,30 +287,51 @@ export function AudioSourceManager() {
                         </Button>
                     </div>
                 ) : (
-                    sources.map((source) => (
+                    sources.map((source, index) => (
                         <Card
                             key={source.id}
+                            data-drag-card={source.id}
                             className={cn(
-                                "relative overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer group",
-                                activeSourceId === source.id ? "ring-2 ring-primary border-primary/20 bg-primary/5" : "hover:border-primary/20"
+                                "relative overflow-hidden transition-all duration-300 group select-none",
+                                source.id === draggedId
+                                    ? "ring-2 ring-primary/60 border-primary/30 bg-primary/5 shadow-lg scale-[1.01] opacity-90 z-10 cursor-grabbing"
+                                    : index === 0
+                                        ? "ring-2 ring-primary border-primary/20 bg-primary/5 hover:shadow-md"
+                                        : "hover:border-primary/20 hover:shadow-md"
                             )}
-                            onClick={() => setActiveSource(source.id)}
                         >
                             <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
                                 <div className="flex items-center gap-3">
+                                    {/* 拖拽手柄 */}
+                                    <div
+                                        onPointerDown={(e) => handlePointerDown(e, source.id)}
+                                        onPointerMove={(e) => handlePointerMove(e, source.id)}
+                                        onPointerUp={(e) => handlePointerUp(e, source.id)}
+                                        onPointerCancel={(e) => handlePointerCancel(e, source.id)}
+                                        className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground transition-colors p-1.5 rounded hover:bg-muted/50 touch-none"
+                                    >
+                                        <GripVertical className="h-5 w-5" />
+                                    </div>
+                                    {/* 优先级序号 */}
+                                    <div className={cn(
+                                        "flex items-center justify-center h-6 w-6 rounded-full text-xs font-bold shrink-0 transition-colors",
+                                        index === 0 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                                    )}>
+                                        {index + 1}
+                                    </div>
                                     <div className={cn(
                                         "p-2 rounded-lg transition-colors",
-                                        activeSourceId === source.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                                        index === 0 ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
                                     )}>
                                         {getSourceIcon(source.type)}
                                     </div>
                                     <div className="space-y-0.5">
                                         <div className="flex items-center gap-2">
                                             <CardTitle className="text-base">{source.name}</CardTitle>
-                                            {activeSourceId === source.id && (
+                                            {index === 0 && (
                                                 <div className="bg-primary/20 text-primary text-[10px] uppercase font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
                                                     <Check className="h-3 w-3" />
-                                                    活跃
+                                                    最高优先
                                                 </div>
                                             )}
                                         </div>

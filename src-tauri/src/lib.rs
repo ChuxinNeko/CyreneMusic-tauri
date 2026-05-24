@@ -382,6 +382,33 @@ fn android_media_notification_hide() -> Result<(), String> {
     })
 }
 
+#[cfg(target_os = "android")]
+#[tauri::command]
+fn android_install_apk(file_path: String) -> Result<(), String> {
+    with_android_activity(|env, activity| {
+        let path_arg = env
+            .new_string(&file_path)
+            .map_err(|e| format!("Create path string fail: {}", e))?;
+        let path_obj = jni::objects::JObject::from(path_arg);
+
+        env.call_method(
+            &activity,
+            "installApk",
+            "(Ljava/lang/String;)V",
+            &[jni::objects::JValue::Object(&path_obj)],
+        )
+        .map_err(|e| format!("Call installApk fail: {:?}", e))?;
+
+        Ok(())
+    })
+}
+
+#[cfg(not(target_os = "android"))]
+#[tauri::command]
+fn android_install_apk(_file_path: String) -> Result<(), String> {
+    Err("Not supported on this platform".to_string())
+}
+
 #[derive(serde::Serialize)]
 struct SystemInfo {
     name: String,
@@ -532,6 +559,7 @@ pub fn run() {
                         greet,
                         fetch_image,
                         download_update,
+                        android_install_apk,
                         open_desktop_lyric,
                         close_desktop_lyric,
                         update_window_material,
@@ -553,6 +581,7 @@ pub fn run() {
                         greet,
                         fetch_image,
                         download_update,
+                        android_install_apk,
                         open_desktop_lyric,
                         close_desktop_lyric,
                         update_window_material,
@@ -576,6 +605,7 @@ pub fn run() {
                         greet,
                         fetch_image,
                         download_update,
+                        android_install_apk,
                         lx_http_request,
                         get_system_info,
                         get_process_info,
@@ -594,6 +624,7 @@ pub fn run() {
                         greet,
                         fetch_image,
                         download_update,
+                        android_install_apk,
                         lx_http_request,
                         get_system_info,
                         get_process_info,

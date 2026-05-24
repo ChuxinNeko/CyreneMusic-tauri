@@ -491,29 +491,29 @@ class PlayerService {
                 return;
             }
 
-            const activeConfigSource = useAudioSourceStore.getState().getActiveSource()
-            if (!activeConfigSource) {
-                throw new Error("No active audio source configured")
+            const allSources = useAudioSourceStore.getState().sources
+            if (allSources.length === 0) {
+                throw new Error("未配置任何音源，请在设置中添加音源")
             }
 
             const quality = useAudioSourceStore.getState().quality as AudioQuality
 
-            // --- 预解析拦截 (Prefetch HIT) 逻辑开始 ---
+            // --- 预解析拦截 (Prefetch HIT) 逻辑：仅对最高优先级音源生效 ---
             if (track.source !== 'local') {
-                const prefetchKey = this.getPrefetchKey(track, activeConfigSource.id, quality)
+                const primarySource = allSources[0]
+                const prefetchKey = this.getPrefetchKey(track, primarySource.id, quality)
                 const prefetchPromise = this.prefetchPromises.get(prefetchKey)
                 if (prefetchPromise) {
                     try {
                         console.log(`[PlayerService] 🎯 Prefetch HIT for track: "${track.name}"`);
                         const prefetchResult = await prefetchPromise
 
-                        // 异步挂起返回后，验证本轮请求是否已过期
                         if (this.currentPlayRequestId !== requestId) {
                             console.log(`[PlayerService] 🛑 Cancelled prefetch HIT playback for obsolete track: ${track.name}`);
                             return;
                         }
 
-                        this.prefetchPromises.delete(prefetchKey) // 一次性使用，避免链接过期
+                        this.prefetchPromises.delete(prefetchKey)
 
                         if (prefetchResult && prefetchResult.url) {
                             this.fallbackQualityUrl = prefetchResult.fallbackUrl
@@ -524,365 +524,273 @@ class PlayerService {
                             console.log(`[PlayerService] ⚡ Playing via prefetch: ${prefetchResult.url}`);
                             this.initHowl(prefetchResult.url, track)
 
-                            // 成功起播，后台发起下一轮预解析
                             this.triggerPrefetch()
                             return
                         }
                     } catch (e) {
-                        console.warn(`[PlayerService] ⚠️ Prefetch hit but resolved with error, falling back to normal parser:`, e)
+                        console.warn(`[PlayerService] ⚠️ Prefetch hit but resolved with error, falling back to normal resolve:`, e)
                     }
                 }
             }
             // --- 预解析拦截 (Prefetch HIT) 逻辑结束 ---
 
-            let url = audioSourceService.buildPlaybackUrl(
-                activeConfigSource,
-                track.source as any,
-                track.id,
-                quality
-            )
-
-            if (!url) {
-                throw new Error(`Failed to build playback URL for source: ${track.source}`)
-            }
-
-            if (activeConfigSource.type === AudioSourceType.LxMusic) {
-                console.log("[PlayerService] Using LxMusic Runtime for URL fetching");
-
-                // 确保运行时已加载当前脚本
-                await lxMusicRuntimeService.loadScript({
-                    name: activeConfigSource.name,
-                    version: activeConfigSource.version,
-                    script: activeConfigSource.scriptContent
-                });
+            // --- 按优先级遍历所有音源，依次尝试解析 URL ---
+            let lastError: Error | null = null
+            for (let i = 0; i < allSources.length; i++) {
+                const configSource = allSources[i]
 
                 if (this.currentPlayRequestId !== requestId) {
-                    console.log(`[PlayerService] 🛑 Cancelled Lx loadScript for obsolete track: ${track.name}`);
+                    console.log(`[PlayerService] 🛑 Cancelled source iteration for obsolete track: ${track.name}`);
                     return;
                 }
 
-                const lxSourceMap: Record<string, string> = {
-                    'netease': 'wy',
-                    'qq': 'tx',
-                    'kugou': 'kg',
-                    'kuwo': 'kw'
-                };
-                const lxSource = lxSourceMap[track.source] || track.source;
-
                 try {
-                    const realUrl = await lxMusicRuntimeService.getMusicUrl(lxSource, track.id, audioSourceService.getLxQuality(quality));
+                    console.log(`[PlayerService] 🔄 Trying source #${i + 1}: "${configSource.name}" (${configSource.type})`)
+                    const result = await this.resolveUrlFromSource(track, configSource, quality, requestId)
 
                     if (this.currentPlayRequestId !== requestId) {
-                        console.log(`[PlayerService] 🛑 Cancelled Lx getMusicUrl for obsolete track: ${track.name}`);
+                        console.log(`[PlayerService] 🛑 Cancelled after resolve for obsolete track: ${track.name}`);
                         return;
                     }
 
-                    if (realUrl) {
-                        url = realUrl;
-                        console.log(`[PlayerService] Using real URL from LxMusic: ${url}`);
-
-                        // 并行请求网易云歌词接口 /lyrics/netease?id=xxx
-                        if (track.source === 'netease') {
-                            const lyricUrl = `${urlService.baseUrl}/lyrics/netease?id=${track.id}`;
-                            fetch(lyricUrl)
-                                .then(res => res.json())
-                                .then(lyricResult => {
-                                    console.log('[PlayerService] /lyrics/netease Response:', lyricResult);
-                                    const lyricData = lyricResult?.data || lyricResult;
-                                    if (lyricData?.lyric || lyricData?.yrc) {
-                                        const currentTrack = usePlayerStore.getState().currentTrack;
-                                        if (currentTrack && currentTrack.id === track.id) {
-                                            usePlayerStore.getState().updateTrackLyrics({
-                                                lyric: lyricData.lyric || '',
-                                                tlyric: lyricData.tlyric || '',
-                                                yrc: lyricData.yrc || '',
-                                                ytlrc: lyricData.ytlrc || '',
-                                            });
-                                        }
-                                    }
-                                })
-                                .catch(e => console.warn('[PlayerService] Failed to fetch Netease lyrics:', e));
-                        } else if (track.source === 'qq') {
-                            const lyricUrl = `${urlService.baseUrl}/lyrics/qq?id=${track.id}`;
-                            fetch(lyricUrl)
-                                .then(res => res.json())
-                                .then(lyricResult => {
-                                    console.log('[PlayerService] /lyrics/qq Response:', lyricResult);
-                                    const lyricData = lyricResult?.data || lyricResult;
-                                    if (lyricData?.lyric || lyricData?.qrc) {
-                                        const currentTrack = usePlayerStore.getState().currentTrack;
-                                        if (currentTrack && currentTrack.id === track.id) {
-                                            usePlayerStore.getState().updateTrackLyrics({
-                                                lyric: lyricData.lyric || '',
-                                                tlyric: lyricData.tlyric || '',
-                                                yrc: lyricData.qrc || '',
-                                                ytlrc: lyricData.qrcTrans || '',
-                                            });
-                                        }
-                                    }
-                                })
-                                .catch(e => console.warn('[PlayerService] Failed to fetch QQ lyrics:', e));
-                        } else if (track.source === 'kugou') {
-                            const hash = String(track.id).split(':')[0];
-                            if (hash) {
-                                const lyricUrl = `${urlService.baseUrl}/lyrics/kugou?hash=${hash}`;
-                                fetch(lyricUrl)
-                                    .then(res => res.json())
-                                    .then(lyricResult => {
-                                        console.log('[PlayerService] /lyrics/kugou Response:', lyricResult);
-                                        const lyricData = lyricResult?.data || lyricResult;
-                                        if (lyricData?.lyric) {
-                                            const currentTrack = usePlayerStore.getState().currentTrack;
-                                            if (currentTrack && currentTrack.id === track.id) {
-                                                usePlayerStore.getState().updateTrackLyrics({
-                                                    lyric: lyricData.lyric || '',
-                                                    tlyric: lyricData.tlyric || '',
-                                                });
-                                            }
-                                        }
-                                    })
-                                    .catch(e => console.warn('[PlayerService] Failed to fetch Kugou lyrics:', e));
-                            }
+                    if (result) {
+                        this.fallbackQualityUrl = result.fallbackUrl
+                        if (result.lyrics) {
+                            usePlayerStore.getState().updateTrackLyrics(result.lyrics)
                         }
-                    } else {
-                        throw new Error("LxMusic Runtime returned empty URL");
+
+                        let finalUrl = result.url
+                        // 对酷狗资源的 https URL 强制降级为 http
+                        if (track.source === 'kugou' && finalUrl.startsWith('https://')) {
+                            finalUrl = finalUrl.replace('https://', 'http://')
+                            console.log(`[PlayerService] 酷狗音频自动降级为 HTTP:`, finalUrl)
+                        }
+
+                        console.log(`[PlayerService] ✅ Source #${i + 1} "${configSource.name}" success. Playing: ${track.name}`)
+                        this.initHowl(finalUrl, track)
+
+                        this.triggerPrefetch()
+                        return
                     }
                 } catch (e: any) {
-                    console.error("[PlayerService] LxMusic Runtime failed:", e);
-                    throw new Error(`洛雪音源插件获取 URL 失败: ${e.message}`);
+                    lastError = e
+                    console.warn(`[PlayerService] ❌ Source #${i + 1} "${configSource.name}" failed:`, e.message)
+                    // 告知用户当前音源失败，正在尝试下一个
+                    if (i < allSources.length - 1) {
+                        toast.warning(`音源"${configSource.name}"请求失败，正在尝试下一个音源...`)
+                    }
                 }
             }
 
-            if (activeConfigSource.type === AudioSourceType.OmniParse && track.source === 'netease') {
-                const baseUrl = activeConfigSource.url.replace(/\/$/, '')
-                const apiUrl = `${baseUrl}/song`
-
-                const neteaseQualityMap: Record<string, string> = {
-                    '128k': 'standard',
-                    '320k': 'exhigh',
-                    'flac': 'lossless',
-                    'flac24bit': 'hires',
-                    'standard': 'standard',
-                    'exhigh': 'exhigh',
-                    'lossless': 'lossless',
-                    'hires': 'hires',
-                    'jyeffect': 'jyeffect',
-                    'sky': 'sky',
-                    'jymaster': 'jymaster'
-                };
-                const mappedQuality = neteaseQualityMap[quality] || quality;
-
-                const formData = new URLSearchParams()
-                formData.append('ids', track.id.toString())
-                formData.append('url', '')
-                formData.append('level', mappedQuality)
-                formData.append('type', 'json')
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-API-Key': activeConfigSource.apiKey || ''
-                    },
-                    body: formData.toString()
-                })
-
-                if (this.currentPlayRequestId !== requestId) {
-                    console.log(`[PlayerService] 🛑 Cancelled Omni Netease fetch for obsolete track: ${track.name}`);
-                    return;
-                }
-
-                if (!response.ok) {
-                    const resText = await response.text().catch(() => "")
-                    let errorDesc = resText.slice(0, 80) || response.statusText
-                    try {
-                        const parsed = JSON.parse(resText)
-                        const parts: string[] = []
-                        Object.entries(parsed).forEach(([key, val]) => {
-                            if (val !== null && val !== undefined && val !== "") {
-                                const strVal = typeof val === 'object' ? JSON.stringify(val) : String(val)
-                                parts.push(`${key}: ${strVal}`)
-                            }
-                        })
-                        errorDesc = `{ ${parts.join(', ')} }`
-                    } catch (e) {
-                        // 保持原文本
-                    }
-                    throw new Error(`网易云音源响应异常 (HTTP ${response.status}): ${errorDesc}`)
-                }
-
-                const result = await response.json()
-
-                if (this.currentPlayRequestId !== requestId) {
-                    console.log(`[PlayerService] 🛑 Cancelled Omni Netease json parse for obsolete track: ${track.name}`);
-                    return;
-                }
-
-                console.log("[PlayerService] /song Response:", result)
-                if (result.status === 200 && result.url) {
-                    url = result.url
-                    if (result.lyric || result.yrc) {
-                        const updatedTrack = { ...track, lyric: result.lyric, yrc: result.yrc, tlyric: result.tlyric, ytlrc: result.ytlrc }
-                        usePlayerStore.getState().setCurrentTrack(updatedTrack)
-                    }
-                } else {
-                    throw new Error(`Failed to fetch Netease real URL: ${result.msg || 'Unknown error'}`)
-                }
-            }
-
-            // QQ / 酷狗 / 酷我等 OmniParse GET 类音源，同样需要携带 API Key
-            const omniParseGetSources = ['qq', 'kugou', 'kuwo'] as const
-            if (activeConfigSource.type === AudioSourceType.OmniParse && (omniParseGetSources as readonly string[]).includes(track.source)) {
-                const response = await fetch(url, {
-                    headers: {
-                        'X-API-Key': activeConfigSource.apiKey || ''
-                    }
-                })
-
-                if (this.currentPlayRequestId !== requestId) {
-                    console.log(`[PlayerService] 🛑 Cancelled Omni GET fetch for obsolete track: ${track.name}`);
-                    return;
-                }
-
-                if (!response.ok) {
-                    const resText = await response.text().catch(() => "")
-                    let errorDesc = resText.slice(0, 80) || response.statusText
-                    try {
-                        const parsed = JSON.parse(resText)
-                        const parts: string[] = []
-                        Object.entries(parsed).forEach(([key, val]) => {
-                            if (val !== null && val !== undefined && val !== "") {
-                                const strVal = typeof val === 'object' ? JSON.stringify(val) : String(val)
-                                parts.push(`${key}: ${strVal}`)
-                            }
-                        })
-                        errorDesc = `{ ${parts.join(', ')} }`
-                    } catch (e) {
-                        // 保持原文本
-                    }
-                    throw new Error(`音源服务器解析失败 (HTTP ${response.status}): ${errorDesc}`)
-                }
-
-                const result = await response.json()
-
-                if (this.currentPlayRequestId !== requestId) {
-                    console.log(`[PlayerService] 🛑 Cancelled Omni GET json parse for obsolete track: ${track.name}`);
-                    return;
-                }
-
-                console.log(`[PlayerService] /${track.source}/song Response:`, result)
-
-                if (result.status === 200) {
-                    let extractedUrl = ''
-
-                    if (track.source === 'qq') {
-                        // QQ 返回 { status, song, music_urls: { "128": { url }, "320": { url }, "flac": { url } } }
-                        const musicUrls = result.music_urls || {}
-                        extractedUrl = musicUrls.flac?.url || musicUrls['320']?.url || musicUrls['128']?.url || ''
-
-                        // 准备 320k 备选 URL (如果当前选中的已经不是 320k/128k 的话)
-                        const backupUrl = musicUrls['320']?.url || musicUrls['128']?.url || ''
-                        if (backupUrl && backupUrl !== extractedUrl) {
-                            this.fallbackQualityUrl = backupUrl
-                        }
-
-                        console.log(`[PlayerService] QQ 选定 URL: ${extractedUrl}`)
-                        console.log(`[PlayerService] QQ 备选 320k 状态: ${this.fallbackQualityUrl ? '已就绪' : '无备选'}`)
-
-                        // 并行请求专门的歌词路由 /lyrics/qq?id=xxx
-                        const lyricUrl = `${urlService.baseUrl}/lyrics/qq?id=${track.id}`
-                        fetch(lyricUrl)
-                            .then(res => res.json())
-                            .then(lyricResult => {
-                                console.log('[PlayerService] /lyrics/qq Response:', lyricResult)
-                                const lyricData = lyricResult?.data || lyricResult
-                                const lyricText = lyricData?.lyric || ''
-                                const tlyricText = lyricData?.tlyric || ''
-                                // QRC 逐字歌词 → 存入 yrc 字段；QRC 翻译 → 存入 ytlrc 字段
-                                const qrcText = lyricData?.qrc || ''
-                                const qrcTransText = lyricData?.qrcTrans || ''
-                                if (lyricText || qrcText) {
-                                    const currentTrack = usePlayerStore.getState().currentTrack
-                                    if (currentTrack && currentTrack.id === track.id) {
-                                        usePlayerStore.getState().updateTrackLyrics({
-                                            lyric: lyricText,
-                                            tlyric: tlyricText,
-                                            yrc: qrcText,
-                                            ytlrc: qrcTransText,
-                                        })
-                                    }
-                                }
-                            })
-                            .catch(e => console.warn('[PlayerService] Failed to fetch QQ lyrics:', e))
-                    } else if (track.source === 'kugou') {
-                        // 酷狗返回 { status, song: { url, ... } }
-                        const songData = result.song || result
-                        extractedUrl = songData.url || ''
-
-                        // 并行请求酷狗歌词 /lyrics/kugou?hash=xxx
-                        // track.id 格式为 "hash:albumId"，提取 hash 部分
-                        const kugouHash = String(track.id).split(':')[0]
-                        if (kugouHash) {
-                            const lyricUrl = `${urlService.baseUrl}/lyrics/kugou?hash=${kugouHash}`
-                            fetch(lyricUrl)
-                                .then(res => res.json())
-                                .then(lyricResult => {
-                                    console.log('[PlayerService] /lyrics/kugou Response:', lyricResult)
-                                    const lyricData = lyricResult?.data || lyricResult
-                                    const lyricText = lyricData?.lyric || ''
-                                    const tlyricText = lyricData?.tlyric || ''
-                                    if (lyricText) {
-                                        const currentTrack = usePlayerStore.getState().currentTrack
-                                        if (currentTrack && currentTrack.id === track.id) {
-                                            usePlayerStore.getState().updateTrackLyrics({
-                                                lyric: lyricText,
-                                                tlyric: tlyricText,
-                                            })
-                                        }
-                                    }
-                                })
-                                .catch(e => console.warn('[PlayerService] Failed to fetch Kugou lyrics:', e))
-                        }
-                    } else {
-                        // 酷我返回 { status, song: { url, ... } }
-                        const songData = result.song || result
-                        extractedUrl = songData.url || ''
-                    }
-
-                    if (extractedUrl) {
-                        url = extractedUrl
-                    } else {
-                        throw new Error(`Failed to fetch ${track.source} real URL: no playback URL found`)
-                    }
-                } else {
-                    throw new Error(`Failed to fetch ${track.source} real URL: ${result.msg || 'Unknown error'}`)
-                }
-            }
-
-            // 对酷狗资源的 https URL 强制降级为 http，解决证书校验和部分 CDN 403 阻断
-            if (track.source === 'kugou' && url.startsWith('https://')) {
-                url = url.replace('https://', 'http://')
-                console.log(`[PlayerService] 酷狗音频自动降级为 HTTP 以规避 403 / 证书错误:`, url)
-            }
-
-            if (this.currentPlayRequestId !== requestId) {
-                console.log(`[PlayerService] 🛑 Cancelled final initHowl for obsolete track: ${track.name}`);
-                return;
-            }
-
-            console.log(`[PlayerService] Playing via Howler: ${track.name}`)
-            // 验证：模拟首个 URL 失败以触发降级
-            // url = "http://invalid-url-for-test.mp3" 
-            this.initHowl(url, track)
-
-            // 播放顺利启动后，在后台并发预载接下来的歌曲，以时间换空间
-            this.triggerPrefetch()
+            // 所有音源均失败
+            const errorMsg = lastError?.message || "所有音源均无法解析此歌曲"
+            throw new Error(`所有音源均请求失败: ${errorMsg}`)
         } catch (error: any) {
             console.error("[PlayerService] Play error:", error)
             const errorMsg = error?.message || "解析音频链接失败"
             usePlayerStore.getState().setPlayError(errorMsg)
             toast.error(`播放失败: ${errorMsg}`)
             usePlayerStore.getState().setIsLoading(false)
+        }
+    }
+
+    /**
+     * 对单个音源尝试解析播放 URL，成功则返回 { url, fallbackUrl, lyrics }，失败则抛异常
+     */
+    private async resolveUrlFromSource(
+        track: Track,
+        configSource: import('../models/audioSourceConfig').AudioSourceConfig,
+        quality: AudioQuality,
+        requestId: string
+    ): Promise<{ url: string; fallbackUrl: string | null; lyrics?: any }> {
+        let url = audioSourceService.buildPlaybackUrl(
+            configSource,
+            track.source as any,
+            track.id,
+            quality
+        )
+
+        if (!url) {
+            throw new Error(`无法为 ${track.source} 构建播放 URL`)
+        }
+
+        let fallbackQualityUrl: string | null = null
+        let lyricData: any = null
+
+        // ─── LxMusic 音源 ───
+        if (configSource.type === AudioSourceType.LxMusic) {
+            await lxMusicRuntimeService.loadScript({
+                name: configSource.name,
+                version: configSource.version,
+                script: configSource.scriptContent
+            });
+
+            if (this.currentPlayRequestId !== requestId) throw new Error('请求已过期')
+
+            const lxSourceMap: Record<string, string> = {
+                'netease': 'wy', 'qq': 'tx', 'kugou': 'kg', 'kuwo': 'kw'
+            };
+            const lxSource = lxSourceMap[track.source] || track.source;
+
+            const realUrl = await lxMusicRuntimeService.getMusicUrl(lxSource, track.id, audioSourceService.getLxQuality(quality));
+            if (this.currentPlayRequestId !== requestId) throw new Error('请求已过期')
+
+            if (!realUrl) throw new Error('LxMusic Runtime 返回空 URL')
+            url = realUrl
+
+            // 异步并行加载歌词（不阻塞主流程）
+            this.fetchAndApplyLyrics(track)
+
+            return { url, fallbackUrl: null, lyrics: null }
+        }
+
+        // ─── OmniParse 网易云 (POST) ───
+        if (configSource.type === AudioSourceType.OmniParse && track.source === 'netease') {
+            const baseUrl = configSource.url.replace(/\/$/, '')
+            const apiUrl = `${baseUrl}/song`
+
+            const neteaseQualityMap: Record<string, string> = {
+                '128k': 'standard', '320k': 'exhigh', 'flac': 'lossless', 'flac24bit': 'hires',
+                'standard': 'standard', 'exhigh': 'exhigh', 'lossless': 'lossless', 'hires': 'hires',
+                'jyeffect': 'jyeffect', 'sky': 'sky', 'jymaster': 'jymaster'
+            };
+            const mappedQuality = neteaseQualityMap[quality] || quality;
+
+            const formData = new URLSearchParams()
+            formData.append('ids', track.id.toString())
+            formData.append('url', '')
+            formData.append('level', mappedQuality)
+            formData.append('type', 'json')
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-API-Key': configSource.apiKey || ''
+                },
+                body: formData.toString()
+            })
+
+            if (this.currentPlayRequestId !== requestId) throw new Error('请求已过期')
+
+            if (!response.ok) {
+                const resText = await response.text().catch(() => "")
+                throw new Error(`网易云音源响应异常 (HTTP ${response.status}): ${resText.slice(0, 80) || response.statusText}`)
+            }
+
+            const result = await response.json()
+            if (this.currentPlayRequestId !== requestId) throw new Error('请求已过期')
+
+            if (result.status === 200 && result.url) {
+                url = result.url
+                if (result.lyric || result.yrc) {
+                    lyricData = {
+                        lyric: result.lyric || '', tlyric: result.tlyric || '',
+                        yrc: result.yrc || '', ytlrc: result.ytlrc || ''
+                    }
+                }
+            } else {
+                throw new Error(`网易云解析失败: ${result.msg || 'Unknown error'}`)
+            }
+
+            return { url, fallbackUrl: null, lyrics: lyricData }
+        }
+
+        // ─── OmniParse GET (QQ / 酷狗 / 酷我) ───
+        const omniParseGetSources = ['qq', 'kugou', 'kuwo'] as const
+        if (configSource.type === AudioSourceType.OmniParse && (omniParseGetSources as readonly string[]).includes(track.source)) {
+            const response = await fetch(url, {
+                headers: { 'X-API-Key': configSource.apiKey || '' }
+            })
+
+            if (this.currentPlayRequestId !== requestId) throw new Error('请求已过期')
+            if (!response.ok) {
+                const resText = await response.text().catch(() => "")
+                throw new Error(`音源服务器解析失败 (HTTP ${response.status}): ${resText.slice(0, 80) || response.statusText}`)
+            }
+
+            const result = await response.json()
+            if (this.currentPlayRequestId !== requestId) throw new Error('请求已过期')
+
+            if (result.status === 200) {
+                let extractedUrl = ''
+
+                if (track.source === 'qq') {
+                    const musicUrls = result.music_urls || {}
+                    extractedUrl = musicUrls.flac?.url || musicUrls['320']?.url || musicUrls['128']?.url || ''
+                    const backupUrl = musicUrls['320']?.url || musicUrls['128']?.url || ''
+                    if (backupUrl && backupUrl !== extractedUrl) {
+                        fallbackQualityUrl = backupUrl
+                    }
+                } else {
+                    const songData = result.song || result
+                    extractedUrl = songData.url || ''
+                }
+
+                if (!extractedUrl) throw new Error(`${track.source} 解析成功但未返回播放链接`)
+                url = extractedUrl
+
+                // 异步并行加载歌词
+                this.fetchAndApplyLyrics(track)
+
+                return { url, fallbackUrl: fallbackQualityUrl, lyrics: null }
+            } else {
+                throw new Error(`${track.source} 解析失败: ${result.msg || 'Unknown error'}`)
+            }
+        }
+
+        // ─── TuneHub 或其他类型：直接使用构建的 URL ───
+        return { url, fallbackUrl: null, lyrics: null }
+    }
+
+    /**
+     * 异步并行加载歌词并应用到当前曲目（不阻塞播放流程）
+     */
+    private fetchAndApplyLyrics(track: Track) {
+        if (track.source === 'netease') {
+            const lyricUrl = `${urlService.baseUrl}/lyrics/netease?id=${track.id}`;
+            fetch(lyricUrl).then(res => res.json()).then(lyricResult => {
+                const lyricData = lyricResult?.data || lyricResult;
+                if (lyricData?.lyric || lyricData?.yrc) {
+                    const currentTrack = usePlayerStore.getState().currentTrack;
+                    if (currentTrack && currentTrack.id === track.id) {
+                        usePlayerStore.getState().updateTrackLyrics({
+                            lyric: lyricData.lyric || '', tlyric: lyricData.tlyric || '',
+                            yrc: lyricData.yrc || '', ytlrc: lyricData.ytlrc || '',
+                        });
+                    }
+                }
+            }).catch(e => console.warn('[PlayerService] Failed to fetch Netease lyrics:', e));
+        } else if (track.source === 'qq') {
+            const lyricUrl = `${urlService.baseUrl}/lyrics/qq?id=${track.id}`;
+            fetch(lyricUrl).then(res => res.json()).then(lyricResult => {
+                const lyricData = lyricResult?.data || lyricResult;
+                if (lyricData?.lyric || lyricData?.qrc) {
+                    const currentTrack = usePlayerStore.getState().currentTrack;
+                    if (currentTrack && currentTrack.id === track.id) {
+                        usePlayerStore.getState().updateTrackLyrics({
+                            lyric: lyricData.lyric || '', tlyric: lyricData.tlyric || '',
+                            yrc: lyricData.qrc || '', ytlrc: lyricData.qrcTrans || '',
+                        });
+                    }
+                }
+            }).catch(e => console.warn('[PlayerService] Failed to fetch QQ lyrics:', e));
+        } else if (track.source === 'kugou') {
+            const hash = String(track.id).split(':')[0];
+            if (hash) {
+                const lyricUrl = `${urlService.baseUrl}/lyrics/kugou?hash=${hash}`;
+                fetch(lyricUrl).then(res => res.json()).then(lyricResult => {
+                    const lyricData = lyricResult?.data || lyricResult;
+                    if (lyricData?.lyric) {
+                        const currentTrack = usePlayerStore.getState().currentTrack;
+                        if (currentTrack && currentTrack.id === track.id) {
+                            usePlayerStore.getState().updateTrackLyrics({
+                                lyric: lyricData.lyric || '', tlyric: lyricData.tlyric || '',
+                            });
+                        }
+                    }
+                }).catch(e => console.warn('[PlayerService] Failed to fetch Kugou lyrics:', e));
+            }
         }
     }
 
@@ -1274,7 +1182,8 @@ class PlayerService {
             const { queue, currentTrack, repeatMode } = store;
             if (queue.length === 0 || !currentTrack) return;
 
-            const activeConfigSource = useAudioSourceStore.getState().getActiveSource();
+            const allSources = useAudioSourceStore.getState().sources;
+            const activeConfigSource = allSources.length > 0 ? allSources[0] : null;
             if (!activeConfigSource) return;
             const quality = useAudioSourceStore.getState().quality as AudioQuality;
 

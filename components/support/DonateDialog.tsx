@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +11,7 @@ import { sponsorService } from "@/lib/services/sponsorService"
 import { useAuthStore } from "@/lib/store/useAuthStore"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { QRCodeSVG } from "qrcode.react"
+import { openUrl } from "@tauri-apps/plugin-opener"
 
 interface DonateDialogProps {
     open: boolean
@@ -30,6 +31,7 @@ const PAYMENT_METHODS = [
         color: "text-blue-500",
         bgColor: "bg-blue-500/10",
         borderColor: "border-blue-500",
+        icon: AlipayIcon,
     },
     {
         id: "wxpay" as const,
@@ -37,6 +39,7 @@ const PAYMENT_METHODS = [
         color: "text-green-500",
         bgColor: "bg-green-500/10",
         borderColor: "border-green-500",
+        icon: WechatPayIcon,
     },
 ]
 
@@ -184,8 +187,13 @@ export function DonateDialog({ open, onOpenChange }: DonateDialogProps) {
             }
 
             if (isMobile) {
-                // 移动端：新标签页打开支付链接
-                window.open(payInfo, "_blank")
+                // 移动端：调用原生 API 打开支付链接，能完美唤醒支付宝/微信客户端
+                try {
+                    await openUrl(payInfo)
+                } catch (error) {
+                    console.error("[DonateDialog] 无法调用原生打开链接，尝试退回 window.open:", error)
+                    window.open(payInfo, "_blank")
+                }
                 setStep("paying")
                 startPolling(tradeNo)
             } else {
@@ -268,6 +276,7 @@ export function DonateDialog({ open, onOpenChange }: DonateDialogProps) {
                             <div className="grid grid-cols-2 gap-3">
                                 {PAYMENT_METHODS.map((method) => {
                                     const isSelected = paymentMethod === method.id
+                                    const Icon = method.icon
                                     return (
                                         <button
                                             key={method.id}
@@ -279,7 +288,7 @@ export function DonateDialog({ open, onOpenChange }: DonateDialogProps) {
                                             )}
                                             onClick={() => setPaymentMethod(method.id)}
                                         >
-                                            <CreditCard className={cn("h-4 w-4", method.color)} />
+                                            <Icon className={cn("h-4 w-4", method.color)} />
                                             <span className="font-medium text-sm">{method.name}</span>
                                         </button>
                                     )
@@ -380,5 +389,32 @@ export function DonateDialog({ open, onOpenChange }: DonateDialogProps) {
                 )}
             </DialogContent>
         </Dialog>
+    )
+}
+
+function AlipayIcon(props: React.SVGProps<SVGSVGElement>) {
+    return (
+        <svg
+            {...props}
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+        >
+            <path d="M2.541 0H13.5a2.55 2.55 0 0 1 2.54 2.563v8.297c-.006 0-.531-.046-2.978-.813c-.412-.14-.916-.327-1.479-.536q-.456-.17-.957-.353a13 13 0 0 0 1.325-3.373H8.822V4.649h3.831v-.634h-3.83V2.121H7.26c-.274 0-.274.273-.274.273v1.621H3.11v.634h3.875v1.136h-3.2v.634H9.99c-.227.789-.532 1.53-.894 2.202c-2.013-.67-4.161-1.212-5.51-.878c-.864.214-1.42.597-1.746.998c-1.499 1.84-.424 4.633 2.741 4.633c1.872 0 3.675-1.053 5.072-2.787c2.08 1.008 6.37 2.738 6.387 2.745v.105A2.55 2.55 0 0 1 13.5 16H2.541A2.55 2.55 0 0 1 0 13.437V2.563A2.55 2.55 0 0 1 2.541 0"/>
+            <path d="M2.309 9.27c-1.22 1.073-.49 3.034 1.978 3.034c1.434 0 2.868-.925 3.994-2.406c-1.602-.789-2.959-1.353-4.425-1.207c-.397.04-1.14.217-1.547.58Z"/>
+        </svg>
+    )
+}
+
+function WechatPayIcon(props: React.SVGProps<SVGSVGElement>) {
+    return (
+        <svg
+            {...props}
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+        >
+            <path d="M12 20.947c6.075 0 11-4.241 11-9.473a8.36 8.36 0 0 0-1.048-4.04l-12.434 7.09a1.045 1.045 0 0 1-1.457-.452L5.545 8.93l3.883 1.854l11.28-5.1C18.696 3.444 15.544 2 12 2C5.925 2 1 6.242 1 11.474c0 2.806 1.416 5.326 3.667 7.061L4.143 22l4.009-1.649c1.197.386 2.494.596 3.848.596"/>
+        </svg>
     )
 }
