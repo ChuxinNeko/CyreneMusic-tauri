@@ -12,6 +12,14 @@ export enum RepeatMode {
 export enum LyricDisplayStyle {
     Scroll = 'scroll',
     Roulette = 'roulette',
+    SingleLine = 'singleLine',
+}
+
+export enum SingleLineAnimation {
+    SlideUp = 'slideUp',
+    Fade = 'fade',
+    Zoom = 'zoom',
+    Blur = 'blur'
 }
 
 interface PlayerState {
@@ -51,6 +59,7 @@ interface PlayerState {
     isLyricsFolded: boolean
     isImmersiveMode: boolean
     lyricDisplayStyle: LyricDisplayStyle
+    singleLineAnimation: SingleLineAnimation
     playError: string | null
 
     // Actions
@@ -80,6 +89,7 @@ interface PlayerState {
     setIsLyricsFolded: (folded: boolean) => void
     setIsImmersiveMode: (isImmersiveMode: boolean) => void
     setLyricDisplayStyle: (style: LyricDisplayStyle) => void
+    setSingleLineAnimation: (animation: SingleLineAnimation) => void
     setPlayError: (error: string | null) => void
 
     playNext: () => void
@@ -110,6 +120,7 @@ export const usePlayerStore = create<PlayerState>()(
             isLyricsFolded: false,
             isImmersiveMode: false,
             lyricDisplayStyle: LyricDisplayStyle.Scroll,
+            singleLineAnimation: SingleLineAnimation.SlideUp,
             playError: null,
 
             setCurrentTrack: (track) => {
@@ -175,6 +186,7 @@ export const usePlayerStore = create<PlayerState>()(
             setIsLyricsFolded: (isLyricsFolded) => set({ isLyricsFolded }),
             setIsImmersiveMode: (isImmersiveMode) => set({ isImmersiveMode }),
             setLyricDisplayStyle: (lyricDisplayStyle) => set({ lyricDisplayStyle }),
+            setSingleLineAnimation: (singleLineAnimation) => set({ singleLineAnimation }),
             setPlayError: (playError) => set({ playError }),
 
             playNext: () => {
@@ -223,6 +235,7 @@ export const usePlayerStore = create<PlayerState>()(
                 isLyricsFolded: state.isLyricsFolded,
                 isImmersiveMode: state.isImmersiveMode,
                 lyricDisplayStyle: state.lyricDisplayStyle,
+                singleLineAnimation: state.singleLineAnimation,
             }),
         }
     )

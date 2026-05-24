@@ -30,12 +30,13 @@ import {
 } from "lucide-react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { emit } from "@tauri-apps/api/event"
-import { usePlayerStore, RepeatMode, LyricDisplayStyle } from "@/lib/store/usePlayerStore"
+import { usePlayerStore, RepeatMode, LyricDisplayStyle, SingleLineAnimation } from "@/lib/store/usePlayerStore"
 import { playerService } from "@/lib/services/playerService"
 import { audioAnalyser } from "@/lib/services/audioAnalyser"
 import { urlService } from "@/lib/services/urlService"
 import { LyricPlayer } from "./LyricPlayer"
 import { LyricPlayerRoulette } from "./LyricPlayerRoulette"
+import { LyricPlayerSingleLine } from "./LyricPlayerSingleLine"
 import { SongInfoPanel } from "./song-info/SongInfoPanel"
 import { WebGLBackground } from "./WebGLBackground"
 import { EqualizerPanel } from "./EqualizerPanel"
@@ -104,6 +105,8 @@ export function FullscreenPlayer() {
     const setIsImmersiveMode = usePlayerStore(s => s.setIsImmersiveMode)
     const lyricDisplayStyle = usePlayerStore(s => s.lyricDisplayStyle)
     const setLyricDisplayStyle = usePlayerStore(s => s.setLyricDisplayStyle)
+    const singleLineAnimation = usePlayerStore(s => s.singleLineAnimation)
+    const setSingleLineAnimation = usePlayerStore(s => s.setSingleLineAnimation)
     const repeatMode = usePlayerStore(s => s.repeatMode)
     const setRepeatMode = usePlayerStore(s => s.setRepeatMode)
 
@@ -292,11 +295,28 @@ export function FullscreenPlayer() {
         if (isVisible) {
             invoke("set_status_bar_style", { isDarkText: false })
                 .catch(e => console.error("Failed to set status bar text color:", e))
-        } else if (resolvedTheme) {
-            invoke("set_status_bar_style", { isDarkText: resolvedTheme === "light" })
-                .catch(e => console.error("Failed to set status bar text color:", e))
+            
+            // Apply landscape orientation if SingleLine is selected and it's visible
+            if (lyricDisplayStyle === LyricDisplayStyle.SingleLine) {
+                if (screen.orientation && screen.orientation.lock) {
+                    screen.orientation.lock('landscape').catch(e => console.error('Failed to lock orientation:', e))
+                }
+            } else {
+                if (screen.orientation && screen.orientation.unlock) {
+                    screen.orientation.unlock()
+                }
+            }
+        } else {
+            if (resolvedTheme) {
+                invoke("set_status_bar_style", { isDarkText: resolvedTheme === "light" })
+                    .catch(e => console.error("Failed to set status bar text color:", e))
+            }
+            // Unlock orientation when exiting fullscreen
+            if (screen.orientation && screen.orientation.unlock) {
+                screen.orientation.unlock()
+            }
         }
-    }, [isVisible, resolvedTheme, isMobile])
+    }, [isVisible, resolvedTheme, isMobile, lyricDisplayStyle])
 
     if (!isVisible) return null
 
@@ -542,7 +562,41 @@ export function FullscreenPlayer() {
                                 >
                                     轮盘
                                 </button>
+                                <button
+                                    onClick={() => setLyricDisplayStyle(LyricDisplayStyle.SingleLine)}
+                                    className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.SingleLine ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                                >
+                                    单行
+                                </button>
                             </div>
+                            {lyricDisplayStyle === LyricDisplayStyle.SingleLine && (
+                                <div className="flex gap-1 mt-2">
+                                    <button
+                                        onClick={() => setSingleLineAnimation(SingleLineAnimation.SlideUp)}
+                                        className={`flex-1 text-xs py-1 px-1 rounded transition-colors ${singleLineAnimation === SingleLineAnimation.SlideUp ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                                    >
+                                        上推
+                                    </button>
+                                    <button
+                                        onClick={() => setSingleLineAnimation(SingleLineAnimation.Fade)}
+                                        className={`flex-1 text-xs py-1 px-1 rounded transition-colors ${singleLineAnimation === SingleLineAnimation.Fade ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                                    >
+                                        渐变
+                                    </button>
+                                    <button
+                                        onClick={() => setSingleLineAnimation(SingleLineAnimation.Zoom)}
+                                        className={`flex-1 text-xs py-1 px-1 rounded transition-colors ${singleLineAnimation === SingleLineAnimation.Zoom ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                                    >
+                                        缩放
+                                    </button>
+                                    <button
+                                        onClick={() => setSingleLineAnimation(SingleLineAnimation.Blur)}
+                                        className={`flex-1 text-xs py-1 px-1 rounded transition-colors ${singleLineAnimation === SingleLineAnimation.Blur ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                                    >
+                                        模糊
+                                    </button>
+                                </div>
+                            )}
                         </div>
                         <DropdownMenuSeparator className="bg-white/10" />
                         <div className="px-2 py-1.5">
@@ -656,7 +710,41 @@ export function FullscreenPlayer() {
                                         >
                                             轮盘
                                         </button>
+                                        <button
+                                            onClick={() => setLyricDisplayStyle(LyricDisplayStyle.SingleLine)}
+                                            className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.SingleLine ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                                        >
+                                            单行
+                                        </button>
                                     </div>
+                                    {lyricDisplayStyle === LyricDisplayStyle.SingleLine && (
+                                        <div className="flex gap-1 mt-2">
+                                            <button
+                                                onClick={() => setSingleLineAnimation(SingleLineAnimation.SlideUp)}
+                                                className={`flex-1 text-xs py-1 px-1 rounded transition-colors ${singleLineAnimation === SingleLineAnimation.SlideUp ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                                            >
+                                                上推
+                                            </button>
+                                            <button
+                                                onClick={() => setSingleLineAnimation(SingleLineAnimation.Fade)}
+                                                className={`flex-1 text-xs py-1 px-1 rounded transition-colors ${singleLineAnimation === SingleLineAnimation.Fade ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                                            >
+                                                渐变
+                                            </button>
+                                            <button
+                                                onClick={() => setSingleLineAnimation(SingleLineAnimation.Zoom)}
+                                                className={`flex-1 text-xs py-1 px-1 rounded transition-colors ${singleLineAnimation === SingleLineAnimation.Zoom ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                                            >
+                                                缩放
+                                            </button>
+                                            <button
+                                                onClick={() => setSingleLineAnimation(SingleLineAnimation.Blur)}
+                                                className={`flex-1 text-xs py-1 px-1 rounded transition-colors ${singleLineAnimation === SingleLineAnimation.Blur ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                                            >
+                                                模糊
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                                 <DropdownMenuSeparator className="bg-white/10" />
                                 <div className="px-2 py-1.5">
@@ -716,10 +804,10 @@ export function FullscreenPlayer() {
             </div>
 
             {/* Main Content Layout (45/55 Grid for Desktop, Single Col for Mobile) */}
-            <div className={`relative z-10 grid flex-1 min-h-0 w-full max-w-[1700px] mx-auto overflow-hidden transition-all duration-700 ease-in-out ${isLyricsFolded ? 'grid-cols-1 max-w-[800px]' : 'grid-cols-1 lg:grid-cols-[45%_55%]'}`}>
+            <div className={`relative z-10 grid flex-1 min-h-0 w-full max-w-[1700px] mx-auto overflow-hidden transition-all duration-700 ease-in-out ${isLyricsFolded ? 'grid-cols-1 max-w-[800px]' : (lyricDisplayStyle === LyricDisplayStyle.SingleLine && !isMobile ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[45%_55%]')}`}>
 
                 {/* Left Column (Desktop & Mobile) */}
-                <div className={`flex flex-col items-center h-full min-h-0 overflow-hidden w-full transition-all duration-700 ease-in-out ${isLyricsFolded ? 'px-4' : 'px-[4vw] lg:px-[6vw]'}`}>
+                <div className={`flex flex-col items-center h-full min-h-0 overflow-hidden w-full transition-all duration-700 ease-in-out ${isLyricsFolded ? 'px-4' : 'px-[4vw] lg:px-[6vw]'} ${!isMobile && lyricDisplayStyle === LyricDisplayStyle.SingleLine ? 'hidden' : ''}`}>
                     {/* Top flexible spacer to balance vertical position */}
                     {!isMobile && <div className="flex-[0.8] min-h-[2vh] shrink-0" />}
 
@@ -822,7 +910,11 @@ export function FullscreenPlayer() {
                         {isMobile && (
                             <div className="relative h-full overflow-hidden shrink-0 w-1/2">
                                 <div className="absolute inset-0 w-full h-full animate-in fade-in zoom-in-95 duration-500">
-                                    {rightPanelMode === 'lyrics' ? (lyricDisplayStyle === LyricDisplayStyle.Roulette ? <LyricPlayerRoulette /> : <LyricPlayer />) : rightPanelMode === 'info' ? <SongInfoPanel /> : <EqualizerPanel />}
+                                    {rightPanelMode === 'lyrics' ? (
+                                        lyricDisplayStyle === LyricDisplayStyle.Roulette ? <LyricPlayerRoulette /> :
+                                        lyricDisplayStyle === LyricDisplayStyle.SingleLine ? <LyricPlayerSingleLine /> :
+                                        <LyricPlayer />
+                                    ) : rightPanelMode === 'info' ? <SongInfoPanel /> : <EqualizerPanel />}
                                 </div>
                             </div>
                         )}
@@ -924,7 +1016,9 @@ export function FullscreenPlayer() {
                     <div className={`relative h-full overflow-hidden transition-all duration-700 ease-in-out ${isLyricsFolded ? 'opacity-0 translate-x-full pointer-events-none w-0' : 'opacity-100 translate-x-0'}`}>
                         <div className="absolute inset-0 w-full h-full animate-in fade-in zoom-in-95 duration-500">
                             {rightPanelMode === 'lyrics' ? (
-                                lyricDisplayStyle === LyricDisplayStyle.Roulette ? <LyricPlayerRoulette /> : <LyricPlayer />
+                                lyricDisplayStyle === LyricDisplayStyle.Roulette ? <LyricPlayerRoulette /> :
+                                lyricDisplayStyle === LyricDisplayStyle.SingleLine ? <LyricPlayerSingleLine /> :
+                                <LyricPlayer />
                             ) : rightPanelMode === 'info' ? (
                                 <SongInfoPanel />
                             ) : (

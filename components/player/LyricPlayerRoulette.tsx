@@ -113,7 +113,7 @@ export const LyricPlayerRoulette = React.memo(function LyricPlayerRoulette() {
                                 top: `${y}%`,
                                 transform: `translateY(-50%) rotate(${angle}deg) scale(${scale})`,
                                 opacity,
-                                transition: "all 800ms cubic-bezier(0.22, 0.61, 0.36, 1)",
+                                transition: "all 1000ms cubic-bezier(0.16, 1, 0.3, 1)",
                                 transformOrigin: "left center",
                                 maxWidth: "55%",
                             }}

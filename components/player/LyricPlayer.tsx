@@ -25,7 +25,7 @@ interface LyricLineHelper {
 const ALIGN_POSITION = 0.5
 // 增加淡入跑马灯的光晕平滑宽度
 const WORD_FADE_WIDTH = 1.0
-const LYRIC_TRANSITION = "1000ms cubic-bezier(0.22, 0.61, 0.36, 1)"
+const LYRIC_TRANSITION = "1000ms cubic-bezier(0.16, 1, 0.3, 1)"
 
 // Helper component for Interlude dots
 function InterludeDots({ interludeRef }: { interludeRef: React.RefObject<{ start: number, end: number, lineIndex: number } | null> }) {
@@ -148,7 +148,7 @@ export const LyricPlayer = React.memo(function LyricPlayer() {
     const linesHelperRef = useRef<LyricLineHelper[]>([])
     const currentScrollIndexRef = useRef(-1)
     const requestRef = useRef<number>(0)
-    const lastFrameTimeRef = useRef<number>(0)
+    const lastLoopTimeRef = useRef<number>(0)
     const interludeContainerRef = useRef<HTMLDivElement>(null)
 
     const [parsedLyrics, setParsedLyrics] = useState<LyricLineData[]>([])
@@ -165,6 +165,12 @@ export const LyricPlayer = React.memo(function LyricPlayer() {
 
         const playerEl = containerRef.current.querySelector('.lyric-content') as HTMLDivElement
         if (!playerEl) return
+
+        // 清理旧动画避免内存泄漏与重绘冲突
+        linesHelperRef.current.forEach(l => l.wordEls.forEach(w => {
+            if (w.maskAnim) w.maskAnim.cancel()
+            if (w.floatAnim) w.floatAnim.cancel()
+        }))
 
         const lineEls = Array.from(playerEl.querySelectorAll('.lyricLine')) as HTMLDivElement[]
         linesHelperRef.current = parsedLyrics.map((data, index) => {
@@ -297,20 +303,21 @@ export const LyricPlayer = React.memo(function LyricPlayer() {
             }
             if (l.el.style.display === 'none') l.el.style.display = 'block';
 
-            const targetOpacity = diff === 0 ? 1.0 : (absDiff > 5 ? 0.0 : 0.4)
-            const targetBlur = diff === 0 ? 0.0 : (absDiff === 1 ? currentBlurStrength * 0.25 : currentBlurStrength)
-            const targetY = linesY[i] + offsetToCenter + Math.sin(diff * 0.8) * 12.0
+            const targetOpacity = diff === 0 ? 1.0 : (absDiff > 5 ? 0.0 : 0.5)
+            const targetBlur = diff === 0 ? 0.0 : (absDiff === 1 ? currentBlurStrength * 0.3 : currentBlurStrength)
+            const targetScale = diff === 0 ? 1.0 : 0.9
+            const targetY = linesY[i] + offsetToCenter
 
             if (immediate) {
                 l.el.style.transition = 'none'
             } else {
-                const delayMs = absDiff * 60
-                l.el.style.transition = `transform ${LYRIC_TRANSITION} ${delayMs}ms, opacity 600ms ease-out, filter 600ms ease-out ${delayMs + 100}ms`
+                l.el.style.transition = `transform ${LYRIC_TRANSITION}, opacity 1000ms cubic-bezier(0.16, 1, 0.3, 1), filter 1000ms cubic-bezier(0.16, 1, 0.3, 1)`
             }
 
-            l.el.style.transform = `translateY(${targetY.toFixed(1)}px)`
+            l.el.style.transform = `translateY(${targetY.toFixed(1)}px) scale(${targetScale})`
+            l.el.style.transformOrigin = 'left center'
             l.el.style.opacity = targetOpacity.toFixed(3)
-            l.el.style.filter = `blur(${targetBlur}px)${diff === 0 ? ' drop-shadow(0 0 12px rgba(255,255,255,0.35))' : ''}`
+            l.el.style.filter = targetBlur > 0 ? `blur(${targetBlur}px)` : 'none'
             l.el.style.setProperty('--lyric-color', diff === 0 ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.4)')
             l.el.style.setProperty('--trans-color', diff === 0 ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.2)')
         })
@@ -379,6 +386,13 @@ export const LyricPlayer = React.memo(function LyricPlayer() {
     const loop = (_timestamp: number) => {
         const realTime = playerService.getCurrentTime()
         const loopTime = realTime * 1000 + INTRO_DELAY
+
+        // 检测由于用户拖动进度条或切歌导致的时间跳变，重置所有逐字动画以避免状态错乱
+        if (Math.abs(loopTime - lastLoopTimeRef.current) > 1000) {
+            resetAnimations(true)
+        }
+        lastLoopTimeRef.current = loopTime
+
         const currentInterlude = getActiveInterlude(loopTime)
 
         let activeIndex = 0
@@ -465,7 +479,7 @@ export const LyricPlayer = React.memo(function LyricPlayer() {
                     >
                         <div className="lyricMainLine flex flex-wrap">
                             {line.words.map((word, wIndex) => (
-                                <span key={wIndex} className="lyricWord inline-block font-bold leading-tight whitespace-pre-wrap" style={{ paddingLeft: '0.1em', paddingRight: '0.1em', marginLeft: '-0.1em', marginRight: '-0.1em', fontFamily: 'MiSans, sans-serif', color: 'var(--lyric-color, rgba(255,255,255,0.4))', transition: 'var(--lyric-color-transition, color 800ms linear)', fontSize: `clamp(${lyricFontSize * 0.6}px, 2.8vw, ${lyricFontSize}px)` }}>
+                                <span key={wIndex} className="lyricWord inline-block font-bold leading-tight whitespace-pre-wrap" style={{ paddingLeft: '0.1em', paddingRight: '0.1em', marginLeft: '-0.1em', marginRight: '-0.1em', fontFamily: 'MiSans, sans-serif', color: 'var(--lyric-color, rgba(255,255,255,0.4))', transition: 'var(--lyric-color-transition, color 800ms linear)', fontSize: `clamp(${lyricFontSize * 0.6}px, 2.8vw, ${lyricFontSize}px)`, willChange: 'mask-position, transform', transform: 'translateZ(0)' }}>
                                     {word.text}
                                 </span>
                             ))}
