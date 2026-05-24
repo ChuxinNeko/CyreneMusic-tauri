@@ -51,6 +51,7 @@ interface PlayerState {
     isLyricsFolded: boolean
     isImmersiveMode: boolean
     lyricDisplayStyle: LyricDisplayStyle
+    playError: string | null
 
     // Actions
     setCurrentTrack: (track: Track | null) => void
@@ -79,6 +80,7 @@ interface PlayerState {
     setIsLyricsFolded: (folded: boolean) => void
     setIsImmersiveMode: (isImmersiveMode: boolean) => void
     setLyricDisplayStyle: (style: LyricDisplayStyle) => void
+    setPlayError: (error: string | null) => void
 
     playNext: () => void
     playPrevious: () => void
@@ -108,6 +110,7 @@ export const usePlayerStore = create<PlayerState>()(
             isLyricsFolded: false,
             isImmersiveMode: false,
             lyricDisplayStyle: LyricDisplayStyle.Scroll,
+            playError: null,
 
             setCurrentTrack: (track) => {
                 const { currentTrack, history } = get()
@@ -118,7 +121,8 @@ export const usePlayerStore = create<PlayerState>()(
                     isPlaying: !!track,
                     progress: 0,
                     currentTime: 0,
-                    isLoading: !!track
+                    isLoading: !!track,
+                    playError: null
                 })
 
                 if (track) {
@@ -171,6 +175,7 @@ export const usePlayerStore = create<PlayerState>()(
             setIsLyricsFolded: (isLyricsFolded) => set({ isLyricsFolded }),
             setIsImmersiveMode: (isImmersiveMode) => set({ isImmersiveMode }),
             setLyricDisplayStyle: (lyricDisplayStyle) => set({ lyricDisplayStyle }),
+            setPlayError: (playError) => set({ playError }),
 
             playNext: () => {
                 const { queue, currentTrack, repeatMode } = get()

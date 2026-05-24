@@ -288,14 +288,14 @@ export function AudioSourceManager() {
             </div>
 
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
+                <DialogContent className="sm:max-w-[440px] max-h-[85vh] flex flex-col p-0 overflow-hidden">
+                    <DialogHeader className="p-6 pb-2 shrink-0">
                         <DialogTitle>{editingSource ? '编辑音源' : '添加新音源'}</DialogTitle>
                         <DialogDescription>
                             配置音频解析服务的详细信息。
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 py-4">
+                    <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4">
                         <input
                             type="file"
                             ref={fileInputRef}
@@ -466,7 +466,7 @@ export function AudioSourceManager() {
                             </div>
                         )}
                     </div>
-                    <DialogFooter>
+                    <DialogFooter className="p-6 pt-4 shrink-0 border-t bg-muted/30">
                         <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>取消</Button>
                         <Button onClick={handleSave} disabled={!formData.name || !formData.url}>
                             保存配置

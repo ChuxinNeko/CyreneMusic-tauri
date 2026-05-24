@@ -12,7 +12,8 @@ import {
     Repeat,
     Repeat1,
     Shuffle,
-    ListMusic
+    ListMusic,
+    AlertCircle
 } from "lucide-react"
 import { usePlayerStore, RepeatMode } from "@/lib/store/usePlayerStore"
 import { playerService } from "@/lib/services/playerService"
@@ -32,6 +33,7 @@ export function PlayerBar() {
         duration,
         volume,
         repeatMode,
+        playError,
         setVolume,
         setRepeatMode,
         setIsFullscreen
@@ -147,7 +149,7 @@ export function PlayerBar() {
                             <Maximize2 className="h-4 w-4 text-white" />
                         </div>
                     </div>
-                    <div className="flex flex-col min-w-0">
+                    <div className="flex flex-col min-w-0 flex-1">
                         <div className="flex items-center gap-2 overflow-hidden">
                             <span className="font-medium text-sm truncate">
                                 {currentTrack?.name || "未在播放"}
@@ -158,9 +160,16 @@ export function PlayerBar() {
                                 </Badge>
                             )}
                         </div>
-                        <span className="text-xs text-muted-foreground truncate italic">
-                            {currentTrack?.artists || "享受音乐之旅"}
-                        </span>
+                        {playError ? (
+                            <span className="text-xs text-destructive font-medium flex items-center gap-1 cursor-help truncate mt-0.5" title={playError}>
+                                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                                播放失败: {playError}
+                            </span>
+                        ) : (
+                            <span className="text-xs text-muted-foreground truncate italic">
+                                {currentTrack?.artists || "享受音乐之旅"}
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -317,14 +326,21 @@ export function PlayerBar() {
                     </div>
                     {/* Artists with Marquee if long */}
                     <div className="w-full overflow-hidden whitespace-nowrap mask-fade mt-0.5">
-                        <div className={cn("inline-flex items-center gap-8", currentTrack?.artists && currentTrack.artists.length > 20 ? "animate-marquee" : "")}>
-                            <span className="text-xs text-muted-foreground">
-                                {currentTrack?.artists || "享受音乐之旅"}
+                        {playError ? (
+                            <span className="text-xs text-destructive font-medium flex items-center gap-1 truncate" title={playError}>
+                                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                                播放失败: {playError}
                             </span>
-                            {currentTrack?.artists && currentTrack.artists.length > 20 && (
-                                <span className="text-xs text-muted-foreground">{currentTrack.artists}</span>
-                            )}
-                        </div>
+                        ) : (
+                            <div className={cn("inline-flex items-center gap-8", currentTrack?.artists && currentTrack.artists.length > 20 ? "animate-marquee" : "")}>
+                                <span className="text-xs text-muted-foreground">
+                                    {currentTrack?.artists || "享受音乐之旅"}
+                                </span>
+                                {currentTrack?.artists && currentTrack.artists.length > 20 && (
+                                    <span className="text-xs text-muted-foreground">{currentTrack.artists}</span>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 

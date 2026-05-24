@@ -16,6 +16,7 @@ import {
     fetchSystemMaterialSupport,
     applyWindowMaterial,
 } from "@/lib/store/useWindowMaterialStore"
+import { LiquidGlassOverlay } from "./LiquidGlassOverlay"
 
 export function MainLayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
@@ -116,6 +117,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
                 onOpenChange={setShowUpdateDialog} 
             />
             <AnnouncementDialog />
+            <LiquidGlassOverlay />
         </div>
     )
 }

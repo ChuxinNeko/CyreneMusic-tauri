@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
-import { Cpu, HardDrive, TerminalSquare, Trash2 } from "lucide-react"
+import { Cpu, HardDrive, TerminalSquare, Trash2, Sparkles } from "lucide-react"
+import { useLayoutStore } from "@/lib/store/useLayoutStore"
 
 interface SystemInfo {
     name: string
@@ -199,6 +200,8 @@ function DesktopDevLayout({
     clearLogs: () => void
     logsEndRef: RefObject<HTMLDivElement | null>
 }) {
+    const showLiquidGlass = useLayoutStore((state) => state.showLiquidGlass)
+
     return (
         <div className="flex flex-col h-full space-y-4 p-4">
             <div className="flex justify-between items-center mb-2 gap-4">
@@ -206,7 +209,13 @@ function DesktopDevLayout({
                     <TerminalSquare className="w-6 h-6 shrink-0" />
                     <span className="truncate">开发者工具</span>
                 </h1>
-                <RefreshControl autoRefresh={autoRefresh} onChange={setAutoRefresh} />
+                <div className="flex items-center gap-2">
+                    <Button variant="secondary" onClick={showLiquidGlass} className="gap-2">
+                        <Sparkles className="h-4 w-4" />
+                        显示液态玻璃
+                    </Button>
+                    <RefreshControl autoRefresh={autoRefresh} onChange={setAutoRefresh} />
+                </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -236,6 +245,8 @@ function MobilePortraitDevLayout({
     clearLogs: () => void
     logsEndRef: RefObject<HTMLDivElement | null>
 }) {
+    const showLiquidGlass = useLayoutStore((state) => state.showLiquidGlass)
+
     return (
         <div className="flex min-h-full flex-col gap-3 px-3 pt-3 pb-[calc(140px+env(safe-area-inset-bottom))]">
             <Card className="border-border/50 bg-card/50 shadow-sm backdrop-blur">
@@ -249,7 +260,13 @@ function MobilePortraitDevLayout({
                             竖屏下使用移动端专属布局，便于查看系统状态与运行日志。
                         </p>
                     </div>
-                    <RefreshControl autoRefresh={autoRefresh} onChange={setAutoRefresh} mobile />
+                    <div className="flex flex-wrap gap-2">
+                        <Button variant="secondary" onClick={showLiquidGlass} className="gap-2">
+                            <Sparkles className="h-4 w-4" />
+                            显示液态玻璃
+                        </Button>
+                        <RefreshControl autoRefresh={autoRefresh} onChange={setAutoRefresh} mobile />
+                    </div>
                 </CardHeader>
             </Card>
 

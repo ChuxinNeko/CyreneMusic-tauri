@@ -16,6 +16,7 @@ interface AudioSourceState {
     setQuality: (quality: string) => void
     setInitialized: (initialized: boolean) => void
     getActiveSource: () => AudioSourceConfig | null
+    setSources: (sources: AudioSourceConfig[]) => void
 }
 
 export const useAudioSourceStore = create<AudioSourceState>()(
@@ -46,7 +47,15 @@ export const useAudioSourceStore = create<AudioSourceState>()(
                 return { sources: newSources, activeSourceId: newActiveId };
             }),
 
-            setActiveSource: (id) => set({ activeSourceId: id }),
+            setActiveSource: (id) => set((state) => {
+                const source = state.sources.find((s) => s.id === id);
+                if (!source) return {};
+                const otherSources = state.sources.filter((s) => s.id !== id);
+                return { 
+                    sources: [source, ...otherSources],
+                    activeSourceId: id 
+                };
+            }),
 
             setQuality: (quality) => set({ quality }),
 
@@ -55,7 +64,12 @@ export const useAudioSourceStore = create<AudioSourceState>()(
             getActiveSource: () => {
                 const state = get()
                 return state.sources.find((s) => s.id === state.activeSourceId) || null
-            }
+            },
+
+            setSources: (sources) => set({
+                sources,
+                activeSourceId: sources.length > 0 ? sources[0].id : ''
+            })
         }),
         {
             name: 'audio-source-storage',

@@ -4,11 +4,14 @@ import { persist } from 'zustand/middleware'
 interface LayoutState {
     isSidebarCollapsed: boolean
     devModeUnlocked: boolean
+    isLiquidGlassVisible: boolean
     _settingsClickCount: number
     _lastSettingsClickTime: number
     toggleSidebar: () => void
     setSidebarCollapsed: (collapsed: boolean) => void
     handleSettingsClick: () => void
+    showLiquidGlass: () => void
+    hideLiquidGlass: () => void
 }
 
 export const useLayoutStore = create<LayoutState>()(
@@ -16,6 +19,7 @@ export const useLayoutStore = create<LayoutState>()(
         (set, get) => ({
             isSidebarCollapsed: false,
             devModeUnlocked: false,
+            isLiquidGlassVisible: false,
             _settingsClickCount: 0,
             _lastSettingsClickTime: 0,
             toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
@@ -35,6 +39,8 @@ export const useLayoutStore = create<LayoutState>()(
                     }
                 }
             },
+            showLiquidGlass: () => set({ isLiquidGlassVisible: true }),
+            hideLiquidGlass: () => set({ isLiquidGlassVisible: false }),
         }),
         {
             name: 'cyrene-layout-store',
