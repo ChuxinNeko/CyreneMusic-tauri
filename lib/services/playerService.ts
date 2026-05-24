@@ -26,6 +26,21 @@ const emit = async (event: string, payload?: any) => {
     }
 }
 
+class AudioSourceError extends Error {
+    rawJson?: any;
+    rawText?: string;
+    status?: number;
+
+    constructor(message: string, options?: { rawJson?: any; rawText?: string; status?: number }) {
+        super(message);
+        this.name = 'AudioSourceError';
+        this.rawJson = options?.rawJson;
+        this.rawText = options?.rawText;
+        this.status = options?.status;
+        Object.setPrototypeOf(this, AudioSourceError.prototype);
+    }
+}
+
 class PlayerService {
     private static instance: PlayerService
     private howl: Howl | null = null
@@ -575,6 +590,36 @@ class PlayerService {
                 } catch (e: any) {
                     lastError = e
                     console.warn(`[PlayerService] ❌ Source #${i + 1} "${configSource.name}" failed:`, e.message)
+                    
+                    let errorDetail = e.message
+                    let rawJsonStr = ''
+                    
+                    if (e && typeof e === 'object') {
+                        if (e.rawJson) {
+                            try {
+                                rawJsonStr = JSON.stringify(e.rawJson, null, 2)
+                            } catch (_) {
+                                rawJsonStr = String(e.rawJson)
+                            }
+                        } else if (e.rawText) {
+                            rawJsonStr = e.rawText
+                        }
+                    }
+                    
+                    const displayMsg = rawJsonStr 
+                        ? `音源"${configSource.name}"解析失败: ${errorDetail}\n\n原始响应:\n${rawJsonStr}`
+                        : `音源"${configSource.name}"解析失败: ${errorDetail}`
+
+                    // 额外使用 toast 告知用户为什么播放不了，展示具体报错原因与原始 JSON
+                    toast.error(displayMsg, {
+                        duration: 8000,
+                        style: {
+                            whiteSpace: 'pre-wrap',
+                            maxHeight: '400px',
+                            overflowY: 'auto'
+                        }
+                    })
+
                     // 告知用户当前音源失败，正在尝试下一个
                     if (i < allSources.length - 1) {
                         toast.warning(`音源"${configSource.name}"请求失败，正在尝试下一个音源...`)
@@ -675,7 +720,15 @@ class PlayerService {
 
             if (!response.ok) {
                 const resText = await response.text().catch(() => "")
-                throw new Error(`网易云音源响应异常 (HTTP ${response.status}): ${resText.slice(0, 80) || response.statusText}`)
+                let rawJson: any = null
+                try {
+                    rawJson = JSON.parse(resText)
+                } catch (_) {}
+                throw new AudioSourceError(`网易云音源响应异常 (HTTP ${response.status}): ${resText.slice(0, 80) || response.statusText}`, {
+                    status: response.status,
+                    rawText: resText,
+                    rawJson: rawJson || undefined
+                })
             }
 
             const result = await response.json()
@@ -690,7 +743,9 @@ class PlayerService {
                     }
                 }
             } else {
-                throw new Error(`网易云解析失败: ${result.msg || 'Unknown error'}`)
+                throw new AudioSourceError(`网易云解析失败: ${result.msg || 'Unknown error'}`, {
+                    rawJson: result
+                })
             }
 
             return { url, fallbackUrl: null, lyrics: lyricData }
@@ -706,7 +761,15 @@ class PlayerService {
             if (this.currentPlayRequestId !== requestId) throw new Error('请求已过期')
             if (!response.ok) {
                 const resText = await response.text().catch(() => "")
-                throw new Error(`音源服务器解析失败 (HTTP ${response.status}): ${resText.slice(0, 80) || response.statusText}`)
+                let rawJson: any = null
+                try {
+                    rawJson = JSON.parse(resText)
+                } catch (_) {}
+                throw new AudioSourceError(`音源服务器解析失败 (HTTP ${response.status}): ${resText.slice(0, 80) || response.statusText}`, {
+                    status: response.status,
+                    rawText: resText,
+                    rawJson: rawJson || undefined
+                })
             }
 
             const result = await response.json()
@@ -727,7 +790,11 @@ class PlayerService {
                     extractedUrl = songData.url || ''
                 }
 
-                if (!extractedUrl) throw new Error(`${track.source} 解析成功但未返回播放链接`)
+                if (!extractedUrl) {
+                    throw new AudioSourceError(`${track.source} 解析成功但未返回播放链接`, {
+                        rawJson: result
+                    })
+                }
                 url = extractedUrl
 
                 // 异步并行加载歌词
@@ -735,7 +802,9 @@ class PlayerService {
 
                 return { url, fallbackUrl: fallbackQualityUrl, lyrics: null }
             } else {
-                throw new Error(`${track.source} 解析失败: ${result.msg || 'Unknown error'}`)
+                throw new AudioSourceError(`${track.source} 解析失败: ${result.msg || 'Unknown error'}`, {
+                    rawJson: result
+                })
             }
         }
 

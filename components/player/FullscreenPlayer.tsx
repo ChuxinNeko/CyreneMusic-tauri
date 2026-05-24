@@ -15,6 +15,7 @@ import {
     X,
     MoreHorizontal,
     Activity,
+    Info,
     Type,
     Droplets,
     Monitor,
@@ -891,21 +892,21 @@ export function FullscreenPlayer() {
                         <div className="space-y-4 lg:space-y-6 mt-4">
                             {/* Mobile Dynamic Buttons */}
                             <div className="flex items-center justify-center gap-8 py-2">
-                                <button onClick={() => { setRightPanelMode('lyrics'); setShowMobileLyrics(true); }} className={`flex flex-col items-center transition-all ${showMobileLyrics && rightPanelMode === 'lyrics' ? 'text-white' : 'text-white/30'}`}>
+                                <button onClick={() => { if (showMobileLyrics && rightPanelMode === 'lyrics') { setShowMobileLyrics(false); } else { setRightPanelMode('lyrics'); setShowMobileLyrics(true); } }} className={`flex flex-col items-center transition-all ${showMobileLyrics && rightPanelMode === 'lyrics' ? 'text-white opacity-100' : 'text-white opacity-30'}`}>
                                     <div className={`p-2.5 rounded-full transition-colors ${showMobileLyrics && rightPanelMode === 'lyrics' ? 'bg-white/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-transparent'}`}>
-                                        <img src="/icon/icon_lyrics.svg" alt="Lyrics" className="w-6 h-6 invert brightness-200" style={{ opacity: showMobileLyrics && rightPanelMode === 'lyrics' ? 1 : 0.6 }} />
+                                        <img src="/icon/icon_lyrics.svg" alt="Lyrics" className="w-6 h-6 invert brightness-200" />
                                     </div>
                                 </button>
-                                <button onClick={() => { setRightPanelMode('info'); setShowMobileLyrics(true); }} className={`flex flex-col items-center transition-all ${showMobileLyrics && rightPanelMode === 'info' ? 'text-white' : 'text-white/30'}`}>
+                                <button onClick={() => { if (showMobileLyrics && rightPanelMode === 'info') { setShowMobileLyrics(false); } else { setRightPanelMode('info'); setShowMobileLyrics(true); } }} className={`flex flex-col items-center transition-all ${showMobileLyrics && rightPanelMode === 'info' ? 'text-white opacity-100' : 'text-white opacity-30'}`}>
                                     <div className={`p-2.5 rounded-full transition-colors ${showMobileLyrics && rightPanelMode === 'info' ? 'bg-white/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-transparent'}`}>
-                                        <Activity size={24} className={showMobileLyrics && rightPanelMode === 'info' ? 'opacity-100' : 'opacity-60'} />
+                                        <Info size={24} className="opacity-100" />
                                     </div>
                                 </button>
 
                                 {hasTranslation && (
-                                    <button onClick={toggleTranslation} className={`flex flex-col items-center transition-all ${showTranslation ? 'text-white' : 'text-white/30'}`}>
+                                    <button onClick={toggleTranslation} className={`flex flex-col items-center transition-all ${showTranslation ? 'text-white opacity-100' : 'text-white opacity-30'}`}>
                                         <div className={`p-2.5 rounded-full transition-colors ${showTranslation ? 'bg-white/15 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'bg-transparent'}`}>
-                                            <Languages size={24} className={showTranslation ? 'opacity-100' : 'opacity-60'} />
+                                            <Languages size={24} className="opacity-100" />
                                         </div>
                                     </button>
                                 )}
@@ -1039,7 +1040,7 @@ export function FullscreenPlayer() {
                             className={`p-1.5 rounded-full transition-colors ${rightPanelMode === 'info' ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
                             title={rightPanelMode === 'info' ? '显示歌词' : '切换歌曲信息'}
                         >
-                            <Activity size={20} />
+                            <Info size={20} />
                         </button>
                         <button
                             onClick={() => setRightPanelMode(rightPanelMode === 'eq' ? 'lyrics' : 'eq')}
