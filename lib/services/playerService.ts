@@ -11,6 +11,9 @@ import { Track } from "../models/track"
 import { historyService } from "./historyService"
 import { lxMusicRuntimeService } from "./lxMusicRuntimeService"
 import { androidMediaNotificationService, isAndroidTauriRuntime } from './androidMediaNotificationService'
+import { androidLyricService } from './androidLyricService'
+import { cacheService } from './cacheService'
+import { useCacheStore } from '../store/useCacheStore'
 import { toast } from 'sonner'
 
 import { listen, emit as tauriEmit } from '@tauri-apps/api/event'
@@ -62,6 +65,9 @@ class PlayerService {
             this.setupSMTC()
             this.setupRemoteControl()
             this.setupAndroidNativeMediaControls()
+            
+            // 确保实例化歌词推送服务
+            androidLyricService;
         }
     }
 
@@ -536,8 +542,24 @@ class PlayerService {
                                 usePlayerStore.getState().updateTrackLyrics(prefetchResult.lyrics)
                             }
 
-                            console.log(`[PlayerService] ⚡ Playing via prefetch: ${prefetchResult.url}`);
-                            this.initHowl(prefetchResult.url, track)
+                            let finalUrl = prefetchResult.url
+                            if (useCacheStore.getState().isCacheEnabled) {
+                                try {
+                                    if (await cacheService.isCached(track.id, track.source, quality)) {
+                                        finalUrl = await cacheService.getCachedAudioBlobUrl(track.id, track.source, quality)
+                                        console.log(`[PlayerService] 🛡️ 预解析命中本地缓存: ${track.name}`)
+                                    } else {
+                                        cacheService.downloadAndCache(track, finalUrl, quality)
+                                    }
+                                } catch (e) {
+                                    console.error('[PlayerService] 缓存拦截失败:', e)
+                                }
+                            }
+
+                            if (this.currentPlayRequestId !== requestId) return;
+
+                            console.log(`[PlayerService] ⚡ Playing via prefetch: ${finalUrl}`);
+                            this.initHowl(finalUrl, track)
 
                             this.triggerPrefetch()
                             return
@@ -580,6 +602,21 @@ class PlayerService {
                             finalUrl = finalUrl.replace('https://', 'http://')
                             console.log(`[PlayerService] 酷狗音频自动降级为 HTTP:`, finalUrl)
                         }
+
+                        if (useCacheStore.getState().isCacheEnabled) {
+                            try {
+                                if (await cacheService.isCached(track.id, track.source, quality)) {
+                                    finalUrl = await cacheService.getCachedAudioBlobUrl(track.id, track.source, quality)
+                                    console.log(`[PlayerService] 🛡️ 命中本地缓存: ${track.name}`)
+                                } else {
+                                    cacheService.downloadAndCache(track, finalUrl, quality)
+                                }
+                            } catch (e) {
+                                console.error('[PlayerService] 缓存拦截失败:', e)
+                            }
+                        }
+
+                        if (this.currentPlayRequestId !== requestId) return;
 
                         console.log(`[PlayerService] ✅ Source #${i + 1} "${configSource.name}" success. Playing: ${track.name}`)
                         this.initHowl(finalUrl, track)

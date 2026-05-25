@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { ChevronRight, Server, ChevronLeft, User, Music, KeyRound, Info, FileText, Settings2, Palette, RefreshCw } from "lucide-react"
+import { ChevronRight, Server, ChevronLeft, User, Music, KeyRound, Info, FileText, Settings2, Palette, RefreshCw, HardDrive } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,6 +18,7 @@ import { AccountBindingManager } from "@/components/settings/AccountBindingManag
 import { QualitySettingsDialog } from "@/components/settings/QualitySettingsDialog"
 import { useAudioSourceStore } from "@/lib/store/useAudioSourceStore"
 import { AppearanceSettingsManager } from "@/components/settings/AppearanceSettingsManager"
+import { CacheSettingsManager } from "@/components/settings/CacheSettingsManager"
 import { useTheme } from "next-themes"
 
 import { useRouter, useSearchParams } from "next/navigation"
@@ -29,7 +30,7 @@ import { UserAgreementContent } from "@/components/common/UserAgreementContent"
 import { updateService, UpdateInfo } from "@/lib/services/updateService"
 import { UpdateDialog } from "@/components/common/UpdateDialog"
 
-type SettingsView = "main" | "backend-source" | "audio-source" | "account-binding" | "appearance" | "about" | "user-agreement"
+type SettingsView = "main" | "backend-source" | "audio-source" | "account-binding" | "appearance" | "about" | "user-agreement" | "cache-management"
 
 function SettingsPageContent() {
     const router = useRouter()
@@ -192,6 +193,19 @@ function SettingsPageContent() {
                     <span className="text-foreground">用户协议</span>
                 </div>
             )
+        } else if (view === "cache-management") {
+            return (
+                <div className="flex items-center gap-1">
+                    <span
+                        className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => setView("main")}
+                    >
+                        设置
+                    </span>
+                    <ChevronRight className="h-6 w-6 text-muted-foreground" />
+                    <span className="text-foreground">缓存管理</span>
+                </div>
+            )
         }
     }
 
@@ -325,6 +339,12 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
                                     description={`当前选择: ${quality === 'standard' || quality === '128k' ? '标准' : quality === 'exhigh' || quality === '320k' ? '极高' : quality === 'lossless' || quality === 'flac' ? '无损' : quality === 'hires' || quality === 'flac24bit' ? 'Hi-Res' : quality.toUpperCase()}`}
                                     onClick={() => setQualityDialogOpen(true)}
                                 />
+                                <SettingsItem
+                                    icon={HardDrive}
+                                    title="缓存管理"
+                                    description="管理本地加密音频缓存，离线可用"
+                                    onClick={() => setView("cache-management")}
+                                />
                             </SettingsItemGroup>
                         </section>
                     </div>
@@ -345,6 +365,12 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
                 {view === "account-binding" && (
                     <div className="max-w-2xl mx-auto pb-10">
                         <AccountBindingManager />
+                    </div>
+                )}
+
+                {view === "cache-management" && (
+                    <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-right-4 duration-300 pb-10">
+                        <CacheSettingsManager />
                     </div>
                 )}
 

@@ -14,6 +14,8 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.PowerManager
+import android.net.wifi.WifiManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -53,10 +55,19 @@ class MediaPlaybackService : Service() {
   private val artworkExecutor = Executors.newSingleThreadExecutor()
   private val mainHandler = Handler(Looper.getMainLooper())
 
+  private var wakeLock: PowerManager.WakeLock? = null
+  private var wifiLock: WifiManager.WifiLock? = null
+
   override fun onCreate() {
     super.onCreate()
     ensureNotificationChannel()
     ensureMediaSession()
+
+    val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+    wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "CyreneMusic::MediaPlaybackWakeLock")
+
+    val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+    wifiLock = wifiManager.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "CyreneMusic::MediaPlaybackWifiLock")
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -79,6 +90,9 @@ class MediaPlaybackService : Service() {
   override fun onBind(intent: Intent?): IBinder? = null
 
   override fun onDestroy() {
+    if (wakeLock?.isHeld == true) wakeLock?.release()
+    if (wifiLock?.isHeld == true) wifiLock?.release()
+
     mediaSession?.isActive = false
     mediaSession?.release()
     mediaSession = null
@@ -188,8 +202,12 @@ class MediaPlaybackService : Service() {
         PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
 
     val state = if (payload.isPlaying) {
+      if (wakeLock?.isHeld == false) wakeLock?.acquire()
+      if (wifiLock?.isHeld == false) wifiLock?.acquire()
       PlaybackStateCompat.STATE_PLAYING
     } else {
+      if (wakeLock?.isHeld == true) wakeLock?.release()
+      if (wifiLock?.isHeld == true) wifiLock?.release()
       PlaybackStateCompat.STATE_PAUSED
     }
 

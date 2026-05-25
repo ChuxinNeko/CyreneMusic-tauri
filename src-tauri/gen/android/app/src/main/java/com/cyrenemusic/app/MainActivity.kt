@@ -65,6 +65,14 @@ class MainActivity : TauriActivity() {
     AndroidMediaNotificationManager.hide()
   }
 
+  fun updateLyricNotification(payloadJson: String) {
+    AndroidLyricNotificationManager.updateFromJson(this, payloadJson)
+  }
+
+  fun hideLyricNotification() {
+    AndroidLyricNotificationManager.hide(this)
+  }
+
   fun installApk(filePath: String) {
     runOnUiThread {
       try {

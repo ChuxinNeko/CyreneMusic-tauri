@@ -330,6 +330,14 @@ struct AndroidMediaNotificationPayload {
 }
 
 #[cfg(target_os = "android")]
+#[derive(serde::Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AndroidLyricNotificationPayload {
+    title: String,
+    lyric: String,
+}
+
+#[cfg(target_os = "android")]
 fn with_android_activity<F>(mut callback: F) -> Result<(), String>
 where
     F: FnMut(&mut jni::JNIEnv, jni::objects::JObject) -> Result<(), String>,
@@ -377,6 +385,43 @@ fn android_media_notification_hide() -> Result<(), String> {
     with_android_activity(|env, activity| {
         env.call_method(&activity, "hideMediaNotification", "()V", &[])
             .map_err(|e| format!("Call hideMediaNotification fail: {:?}", e))?;
+
+        Ok(())
+    })
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+fn android_lyric_notification_update(
+    payload: AndroidLyricNotificationPayload,
+) -> Result<(), String> {
+    let payload_json = serde_json::to_string(&payload)
+        .map_err(|e| format!("Serialize lyric notification payload fail: {}", e))?;
+
+    with_android_activity(|env, activity| {
+        let payload_arg = env
+            .new_string(&payload_json)
+            .map_err(|e| format!("Create payload string fail: {}", e))?;
+        let payload_obj = jni::objects::JObject::from(payload_arg);
+
+        env.call_method(
+            &activity,
+            "updateLyricNotification",
+            "(Ljava/lang/String;)V",
+            &[jni::objects::JValue::Object(&payload_obj)],
+        )
+        .map_err(|e| format!("Call updateLyricNotification fail: {:?}", e))?;
+
+        Ok(())
+    })
+}
+
+#[cfg(target_os = "android")]
+#[tauri::command]
+fn android_lyric_notification_hide() -> Result<(), String> {
+    with_android_activity(|env, activity| {
+        env.call_method(&activity, "hideLyricNotification", "()V", &[])
+            .map_err(|e| format!("Call hideLyricNotification fail: {:?}", e))?;
 
         Ok(())
     })
@@ -612,6 +657,8 @@ pub fn run() {
                         set_status_bar_style,
                         android_media_notification_update,
                         android_media_notification_hide,
+                        android_lyric_notification_update,
+                        android_lyric_notification_hide,
                         local_music::scan_music_folder,
                         local_music::get_audio_metadata,
                         local_music::read_lrc_file,
