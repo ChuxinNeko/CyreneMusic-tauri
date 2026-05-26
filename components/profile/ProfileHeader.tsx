@@ -1,6 +1,4 @@
-import { motion } from "framer-motion"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { AsyncImage } from "@/components/common/AsyncImage"
 import { User } from "@/lib/services/authService"
 
 interface ProfileHeaderProps {
@@ -23,9 +21,11 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
             {/* Content */}
             <div className="relative z-10 p-8 md:p-12 flex flex-col md:flex-row items-center md:items-end gap-6 md:gap-8">
                 <Avatar className="w-28 h-28 md:w-40 md:h-40 border-4 border-background shadow-2xl transition-transform hover:scale-105 duration-500">
-                    <AvatarImage src={user?.avatarUrl || ''} asChild>
-                        <AsyncImage src={user?.avatarUrl || ''} />
-                    </AvatarImage>
+                    <AvatarImage
+                        src={user?.avatarUrl}
+                        alt={user?.username}
+                        className="object-cover"
+                    />
                     <AvatarFallback className="text-4xl bg-muted font-bold text-muted-foreground">
                         {user?.username?.substring(0, 1) || 'U'}
                     </AvatarFallback>

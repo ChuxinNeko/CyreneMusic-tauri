@@ -542,6 +542,35 @@ struct ProcessInfo {
 }
 
 #[tauri::command]
+fn get_app_target_abi() -> String {
+    #[cfg(target_arch = "aarch64")]
+    {
+        return "arm64-v8a".to_string();
+    }
+    #[cfg(target_arch = "arm")]
+    {
+        return "armeabi-v7a".to_string();
+    }
+    #[cfg(target_arch = "x86_64")]
+    {
+        return "x86_64".to_string();
+    }
+    #[cfg(target_arch = "x86")]
+    {
+        return "x86".to_string();
+    }
+    #[cfg(not(any(
+        target_arch = "aarch64",
+        target_arch = "arm",
+        target_arch = "x86_64",
+        target_arch = "x86"
+    )))]
+    {
+        "unknown".to_string()
+    }
+}
+
+#[tauri::command]
 fn get_process_info() -> ProcessInfo {
     let mut sys = SYS.lock().unwrap();
     sys.refresh_processes();
@@ -611,6 +640,7 @@ pub fn run() {
                         set_window_material,
                         lx_http_request,
                         get_system_info,
+                        get_app_target_abi,
                         get_process_info,
                         set_status_bar_style,
                         update_thumbbar_playing_state,
@@ -633,6 +663,7 @@ pub fn run() {
                         set_window_material,
                         lx_http_request,
                         get_system_info,
+                        get_app_target_abi,
                         get_process_info,
                         set_status_bar_style,
                         local_music::scan_music_folder,
@@ -653,6 +684,7 @@ pub fn run() {
                         android_install_apk,
                         lx_http_request,
                         get_system_info,
+                        get_app_target_abi,
                         get_process_info,
                         set_status_bar_style,
                         android_media_notification_update,
@@ -674,6 +706,7 @@ pub fn run() {
                         android_install_apk,
                         lx_http_request,
                         get_system_info,
+                        get_app_target_abi,
                         get_process_info,
                         set_status_bar_style,
                         local_music::scan_music_folder,

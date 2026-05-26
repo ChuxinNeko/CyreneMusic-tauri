@@ -1,11 +1,14 @@
 package com.cyrenemusic.app
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.webkit.WebView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -18,10 +21,24 @@ class MainActivity : TauriActivity() {
     private const val REQUEST_NOTIFICATION_PERMISSION = 1001
   }
 
+  private var webViewRef: WebView? = null
+  private var pendingInstallPath: String? = null
+
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
     requestNotificationPermission()
+  }
+
+  override fun onResume() {
+    super.onResume()
+    val pending = pendingInstallPath
+    if (pending != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+      && packageManager.canRequestPackageInstalls()
+    ) {
+      pendingInstallPath = null
+      installApk(pending)
+    }
   }
 
   private fun requestNotificationPermission() {
@@ -48,13 +65,36 @@ class MainActivity : TauriActivity() {
 
   override fun onWebViewCreate(webView: WebView) {
     super.onWebViewCreate(webView)
+    webViewRef = webView
     AndroidMediaNotificationManager.attach(this, webView)
     requestNotificationPermission()
   }
 
   override fun onDestroy() {
     AndroidMediaNotificationManager.detach(this)
+    webViewRef = null
     super.onDestroy()
+  }
+
+  @Suppress("DEPRECATION", "MissingSuperCall")
+  override fun onBackPressed() {
+    val webView = webViewRef
+    if (webView == null) {
+      superOnBackPressed()
+      return
+    }
+    webView.evaluateJavascript(
+      "(window.__cyreneOnAndroidBack && window.__cyreneOnAndroidBack()) ? true : false"
+    ) { result ->
+      if (result != "true") {
+        superOnBackPressed()
+      }
+    }
+  }
+
+  private fun superOnBackPressed() {
+    @Suppress("DEPRECATION")
+    super.onBackPressed()
   }
 
   fun updateMediaNotification(payloadJson: String) {
@@ -75,35 +115,69 @@ class MainActivity : TauriActivity() {
 
   fun installApk(filePath: String) {
     runOnUiThread {
+      val file = File(filePath)
+      if (!file.exists()) {
+        toast("安装包不存在：$filePath")
+        return@runOnUiThread
+      }
+
+      // Android 8.0+ 必须先获得"安装未知应用"权限，否则系统会静默拦截
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+        && !packageManager.canRequestPackageInstalls()
+      ) {
+        pendingInstallPath = filePath
+        toast("请先允许「安装未知来源应用」权限")
+        try {
+          val settingsIntent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+            .setData(Uri.parse("package:$packageName"))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+          startActivity(settingsIntent)
+        } catch (e: Exception) {
+          e.printStackTrace()
+          toast("无法打开权限设置：${e.message}")
+        }
+        return@runOnUiThread
+      }
+
       try {
-        val file = File(filePath)
-        if (!file.exists()) {
-          println("[MainActivity] APK 文件不存在: $filePath")
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+          flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+            Intent.FLAG_GRANT_READ_URI_PERMISSION
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val apkUri: Uri = FileProvider.getUriForFile(
+              this@MainActivity,
+              "$packageName.fileprovider",
+              file
+            )
+            setDataAndType(apkUri, "application/vnd.android.package-archive")
+          } else {
+            @Suppress("DEPRECATION")
+            setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive")
+          }
+        }
+
+        if (intent.resolveActivity(packageManager) == null) {
+          toast("找不到可处理安装包的系统组件")
           return@runOnUiThread
         }
-
-        val intent = Intent(Intent.ACTION_VIEW)
-        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-          // Android 7.0 及以上通过 FileProvider 获取 content URI，以符合系统沙盒安全规则
-          val apkUri: Uri = FileProvider.getUriForFile(
-            this,
-            "$packageName.fileprovider",
-            file
-          )
-          intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-          intent.setDataAndType(apkUri, "application/vnd.android.package-archive")
-        } else {
-          // Android 7.0 以下可直接通过 file 协议 URI 打开
-          intent.setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive")
-        }
-
         startActivity(intent)
+      } catch (e: ActivityNotFoundException) {
+        e.printStackTrace()
+        toast("未找到安装器：${e.message}")
+      } catch (e: SecurityException) {
+        e.printStackTrace()
+        toast("安装被系统拒绝：${e.message}")
       } catch (e: Exception) {
         e.printStackTrace()
-        println("[MainActivity] 安装 APK 失败: ${e.message}")
+        toast("安装失败：${e.message}")
       }
+    }
+  }
+
+  private fun toast(message: String) {
+    runOnUiThread {
+      Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
     }
   }
 }

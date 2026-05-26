@@ -65,6 +65,7 @@ import { useTheme } from "next-themes"
 import { LiquidGlass } from "@/components/ui/LiquidGlass"
 import { useRouter } from "next/navigation"
 import { artistService } from "@/lib/services/artistService"
+import { pushAndroidBackHandler } from "@/lib/utils/androidBack"
 import {
     Dialog,
     DialogContent,
@@ -317,6 +318,14 @@ export function FullscreenPlayer() {
             }
         }
     }, [isVisible, resolvedTheme, isMobile, lyricDisplayStyle])
+
+    React.useEffect(() => {
+        if (!isMobile || !isVisible) return
+        return pushAndroidBackHandler(() => {
+            setIsFullscreen(false)
+            return true
+        })
+    }, [isMobile, isVisible, setIsFullscreen])
 
     if (!isVisible) return null
 
