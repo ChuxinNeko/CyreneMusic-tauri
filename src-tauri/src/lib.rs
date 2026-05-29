@@ -13,6 +13,8 @@ use tauri::{Emitter, Manager};
 mod thumbbar;
 
 mod local_music;
+mod audio_proxy;
+mod taskbar_player;
 
 lazy_static::lazy_static! {
     static ref SYS: Mutex<System> = Mutex::new(System::new_all());
@@ -617,6 +619,11 @@ fn update_thumbbar_playing_state(is_playing: bool) {
     thumbbar::update_thumbbar_state(is_playing);
 }
 
+#[tauri::command]
+fn get_audio_proxy_port(state: tauri::State<'_, audio_proxy::AudioProxyPort>) -> u16 {
+    state.0
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -647,7 +654,10 @@ pub fn run() {
                         local_music::scan_music_folder,
                         local_music::get_audio_metadata,
                         local_music::read_lrc_file,
-                        local_music::save_mobile_local_music
+                        local_music::save_mobile_local_music,
+                        get_audio_proxy_port,
+                        taskbar_player::open_taskbar_player,
+                        taskbar_player::close_taskbar_player
                     ]
                 }
                 #[cfg(not(target_os = "windows"))]
@@ -669,7 +679,10 @@ pub fn run() {
                         local_music::scan_music_folder,
                         local_music::get_audio_metadata,
                         local_music::read_lrc_file,
-                        local_music::save_mobile_local_music
+                        local_music::save_mobile_local_music,
+                        get_audio_proxy_port,
+                        taskbar_player::open_taskbar_player,
+                        taskbar_player::close_taskbar_player
                     ]
                 }
             }
@@ -694,7 +707,10 @@ pub fn run() {
                         local_music::scan_music_folder,
                         local_music::get_audio_metadata,
                         local_music::read_lrc_file,
-                        local_music::save_mobile_local_music
+                        local_music::save_mobile_local_music,
+                        get_audio_proxy_port,
+                        taskbar_player::open_taskbar_player,
+                        taskbar_player::close_taskbar_player
                     ]
                 }
                 #[cfg(not(target_os = "android"))]
@@ -712,7 +728,10 @@ pub fn run() {
                         local_music::scan_music_folder,
                         local_music::get_audio_metadata,
                         local_music::read_lrc_file,
-                        local_music::save_mobile_local_music
+                        local_music::save_mobile_local_music,
+                        get_audio_proxy_port,
+                        taskbar_player::open_taskbar_player,
+                        taskbar_player::close_taskbar_player
                     ]
                 }
             }
@@ -800,6 +819,11 @@ pub fn run() {
                     })
                     .build(app)?;
             }
+
+            // 启动音频代理服务器（所有平台，用于代理汽水音乐等需绕过防盗链的音频）
+            let proxy_port = audio_proxy::start();
+            app.manage(audio_proxy::AudioProxyPort(proxy_port));
+
             Ok(())
         })
         .run(tauri::generate_context!())

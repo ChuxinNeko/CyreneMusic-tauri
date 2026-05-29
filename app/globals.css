@@ -159,3 +159,53 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* 增强文字的阴影，确保在复杂图片背景下依然清晰 */
+.text-glow {
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.4), 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.text-glow-sm {
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* 专辑封面滚动动画 */
+@keyframes scroll-up {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.album-wall-scroll-vertical {
+  animation: scroll-up 40s linear infinite;
+  will-change: transform;
+}
+
+.album-wall-scroll-horizontal {
+  animation: scroll-left 40s linear infinite;
+  will-change: transform;
+}
+
+/* 横屏模式适配 */
+@media (orientation: landscape) {
+  .album-wall-landscape {
+    aspect-ratio: 16/9 !important;
+  }
+  
+  .album-wall-grid-landscape {
+    grid-template-columns: repeat(5, 1fr) !important;
+    grid-template-rows: repeat(4, 1fr) !important;
+  }
+}

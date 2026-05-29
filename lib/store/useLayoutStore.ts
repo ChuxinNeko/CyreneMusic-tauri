@@ -4,11 +4,14 @@ import { persist } from 'zustand/middleware'
 interface LayoutState {
     isSidebarCollapsed: boolean
     devModeUnlocked: boolean
+    isTaskbarPlayerEnabled: boolean
     isLiquidGlassVisible: boolean
     _settingsClickCount: number
     _lastSettingsClickTime: number
     toggleSidebar: () => void
     setSidebarCollapsed: (collapsed: boolean) => void
+    toggleTaskbarPlayer: () => void
+    setTaskbarPlayerEnabled: (enabled: boolean) => void
     handleSettingsClick: () => void
     showLiquidGlass: () => void
     hideLiquidGlass: () => void
@@ -19,11 +22,14 @@ export const useLayoutStore = create<LayoutState>()(
         (set, get) => ({
             isSidebarCollapsed: false,
             devModeUnlocked: false,
+            isTaskbarPlayerEnabled: false,
             isLiquidGlassVisible: false,
             _settingsClickCount: 0,
             _lastSettingsClickTime: 0,
             toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
             setSidebarCollapsed: (collapsed: boolean) => set({ isSidebarCollapsed: collapsed }),
+            toggleTaskbarPlayer: () => set((state) => ({ isTaskbarPlayerEnabled: !state.isTaskbarPlayerEnabled })),
+            setTaskbarPlayerEnabled: (enabled: boolean) => set({ isTaskbarPlayerEnabled: enabled }),
             handleSettingsClick: () => {
                 const now = Date.now()
                 const { _settingsClickCount, _lastSettingsClickTime } = get()
@@ -47,6 +53,7 @@ export const useLayoutStore = create<LayoutState>()(
             partialize: (state) => ({
                 isSidebarCollapsed: state.isSidebarCollapsed,
                 devModeUnlocked: state.devModeUnlocked,
+                isTaskbarPlayerEnabled: state.isTaskbarPlayerEnabled,
             }),
         }
     )

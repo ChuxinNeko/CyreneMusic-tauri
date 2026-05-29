@@ -19,6 +19,7 @@ export interface SearchResult {
     kuwoResults: Track[];
     appleResults: Track[];
     spotifyResults: Track[];
+    qishuiResults: Track[];
     artistResults: NeteaseArtistBrief[];
 
     neteaseLoading: boolean;
@@ -27,6 +28,7 @@ export interface SearchResult {
     kuwoLoading: boolean;
     appleLoading: boolean;
     spotifyLoading: boolean;
+    qishuiLoading: boolean;
     artistLoading: boolean;
 
     neteaseError?: string;
@@ -35,6 +37,7 @@ export interface SearchResult {
     kuwoError?: string;
     appleError?: string;
     spotifyError?: string;
+    qishuiError?: string;
     artistError?: string;
 }
 
@@ -45,6 +48,7 @@ export const initialSearchResult: SearchResult = {
     kuwoResults: [],
     appleResults: [],
     spotifyResults: [],
+    qishuiResults: [],
     artistResults: [],
 
     neteaseLoading: false,
@@ -53,5 +57,6 @@ export const initialSearchResult: SearchResult = {
     kuwoLoading: false,
     appleLoading: false,
     spotifyLoading: false,
+    qishuiLoading: false,
     artistLoading: false,
 };

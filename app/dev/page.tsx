@@ -8,8 +8,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
-import { Cpu, HardDrive, TerminalSquare, Trash2, Sparkles } from "lucide-react"
+import { Cpu, HardDrive, TerminalSquare, Trash2, Sparkles, Database } from "lucide-react"
 import { useLayoutStore } from "@/lib/store/useLayoutStore"
+import { listeningStatsService } from "@/lib/services/listeningStatsService"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog"
 
 interface SystemInfo {
     name: string
@@ -72,6 +82,45 @@ function RefreshControl({ autoRefresh, onChange, mobile = false }: { autoRefresh
             <span className="text-sm text-muted-foreground">自动刷新 (1s)</span>
             <Switch checked={autoRefresh} onCheckedChange={onChange} />
         </div>
+    )
+}
+
+function ClearHistoryButton({ mobile = false }: { mobile?: boolean }) {
+    const [isClearing, setIsClearing] = useState(false)
+    const [result, setResult] = useState<{ success: boolean; message: string } | null>(null)
+    const [open, setOpen] = useState(false)
+
+    const handleClear = async () => {
+        setIsClearing(true)
+        setResult(null)
+        const res = await listeningStatsService.clearServerHistory()
+        setResult(res)
+        setIsClearing(false)
+        setOpen(false)
+        setTimeout(() => setResult(null), 3000)
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="destructive" className="gap-2" disabled={isClearing}>
+                    <Database className="h-4 w-4" />
+                    {isClearing ? "清空中..." : "清空服务器历史"}
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>确认清空服务器播放历史？</DialogTitle>
+                    <DialogDescription>
+                        此操作将永久删除服务器上保存的所有播放历史数据，包括播放次数、听歌时长等统计信息。此操作不可撤销。
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)}>取消</Button>
+                    <Button variant="destructive" onClick={handleClear}>确认清空</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     )
 }
 
@@ -210,6 +259,7 @@ function DesktopDevLayout({
                     <span className="truncate">开发者工具</span>
                 </h1>
                 <div className="flex items-center gap-2">
+                    <ClearHistoryButton />
                     <Button variant="secondary" onClick={showLiquidGlass} className="gap-2">
                         <Sparkles className="h-4 w-4" />
                         显示液态玻璃
@@ -261,6 +311,7 @@ function MobilePortraitDevLayout({
                         </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                        <ClearHistoryButton />
                         <Button variant="secondary" onClick={showLiquidGlass} className="gap-2">
                             <Sparkles className="h-4 w-4" />
                             显示液态玻璃

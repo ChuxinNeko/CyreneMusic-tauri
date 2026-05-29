@@ -103,7 +103,7 @@ class SearchService {
         let supportedPlatforms: string[] = [];
         if (activeSource) {
             if (activeSource.type === AudioSourceType.OmniParse) {
-                supportedPlatforms = ['netease', 'qq', 'kugou', 'kuwo', 'apple', 'spotify'];
+                supportedPlatforms = ['netease', 'qq', 'kugou', 'kuwo', 'apple', 'spotify', 'qishui'];
             } else if (activeSource.type === AudioSourceType.TuneHub) {
                 supportedPlatforms = ['netease', 'qq', 'kuwo'];
             } else if (activeSource.type === AudioSourceType.LxMusic) {
@@ -121,6 +121,7 @@ class SearchService {
             kuwoLoading: supportedPlatforms.includes('kuwo'),
             appleLoading: supportedPlatforms.includes('apple'),
             spotifyLoading: supportedPlatforms.includes('spotify'),
+            qishuiLoading: supportedPlatforms.includes('qishui'),
             artistLoading: true, // 总是搜索歌手
         };
         this.notifyListeners();
@@ -133,6 +134,7 @@ class SearchService {
         if (supportedPlatforms.includes('kuwo')) promises.push(this.searchKuwo(trimmed));
         if (supportedPlatforms.includes('apple')) promises.push(this.searchApple(trimmed));
         if (supportedPlatforms.includes('spotify')) promises.push(this.searchSpotify(trimmed));
+        if (supportedPlatforms.includes('qishui')) promises.push(this.searchQishui(trimmed));
         promises.push(this.searchArtists(trimmed)); // 并行搜索歌手
 
         await Promise.allSettled(promises);
@@ -285,6 +287,38 @@ class SearchService {
         this.notifyListeners();
     }
 
+    private async searchQishui(keyword: string, cursor: number = 0) {
+        try {
+            const resp = await fetch(`${urlService.qishuiSearchUrl}?keyword=${encodeURIComponent(keyword)}&cursor=${cursor}`);
+            const data = await resp.json();
+            if (data.status === 200) {
+                const results: Track[] = (data.tracks || []).map((item: any) => ({
+                    id: item.id || '',
+                    name: item.title || '',
+                    artists: item.artist || '',
+                    album: item.album || '',
+                    picUrl: item.pic || '',
+                    source: MusicSource.Qishui,
+                    duration: item.duration ? Math.round(item.duration / 1000) : undefined,
+                }));
+                if (cursor === 0) {
+                    this._searchResult = { ...this._searchResult, qishuiResults: results, qishuiLoading: false };
+                } else {
+                    this._searchResult = {
+                        ...this._searchResult,
+                        qishuiResults: [...this._searchResult.qishuiResults, ...results],
+                        qishuiLoading: false,
+                    };
+                }
+            } else {
+                throw new Error(data.msg || 'Search failed');
+            }
+        } catch (e: any) {
+            this._searchResult = { ...this._searchResult, qishuiLoading: false, qishuiError: e.message };
+        }
+        this.notifyListeners();
+    }
+
     private async searchArtists(keyword: string) {
         try {
             const resp = await fetch(`${urlService.baseUrl}/artist/search`, {
@@ -326,6 +360,7 @@ class SearchService {
             ...this._searchResult.kuwoResults,
             ...this._searchResult.spotifyResults,
             ...this._searchResult.appleResults,
+            ...this._searchResult.qishuiResults,
         ];
 
         if (allTracks.length === 0) return [];

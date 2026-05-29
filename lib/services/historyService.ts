@@ -190,6 +190,28 @@ class HistoryService {
     }
 
     /**
+     * 获取所有历史记录（无数量限制，用于同步）
+     */
+    public async getAll(): Promise<HistoryEntry[]> {
+        const db = await this.getDB();
+        const tx = db.transaction(this.storeName, "readonly");
+        const store = tx.objectStore(this.storeName);
+
+        return new Promise((resolve) => {
+            const results: HistoryEntry[] = [];
+            store.openCursor().onsuccess = (event) => {
+                const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+                if (cursor) {
+                    results.push(cursor.value);
+                    cursor.continue();
+                } else {
+                    resolve(results);
+                }
+            };
+        });
+    }
+
+    /**
      * 获取统计数据
      */
     public async getStats(): Promise<OverallStats> {

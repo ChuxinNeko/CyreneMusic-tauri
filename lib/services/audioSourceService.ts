@@ -21,6 +21,7 @@ export enum MusicSource {
     Kuwo = 'kuwo',
     Apple = 'apple',
     Spotify = 'spotify',
+    Qishui = 'qishui',
     Local = 'local'
 }
 
@@ -122,6 +123,7 @@ class AudioSourceService {
             [MusicSource.Kuwo]: 'kuwo/song',
             [MusicSource.Apple]: 'apple/song',
             [MusicSource.Spotify]: 'spotify/stream',
+            [MusicSource.Qishui]: 'qishui',
         };
 
         const path = sourcePathMap[source];
@@ -147,6 +149,9 @@ class AudioSourceService {
             case MusicSource.Kuwo:
                 // 后端期望 mid 参数
                 return `${base}?mid=${songId}&quality=${quality}`;
+            case MusicSource.Qishui:
+                // 汽水音乐通过 url 参数传入完整链接
+                return `${base}?url=https://music.douyin.com/track/${songId}`;
             default:
                 return `${base}?id=${songId}&quality=${quality}`;
         }

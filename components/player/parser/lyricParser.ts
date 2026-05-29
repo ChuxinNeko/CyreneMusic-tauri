@@ -69,8 +69,27 @@ export function parseLyrics(track: { id?: string | number; yrc?: string; lyric?:
                 timeMs = lineStart + INTRO_DELAY;
                 endTime = timeMs + lineDuration;
 
+                // 汽水音乐逐字格式: <offset,duration,flag>word（offset 相对行起始）
+                const hasQishuiVerbatim = lineStr.includes('<') && lineStr.includes('>');
+                if (hasQishuiVerbatim) {
+                    const qishuiWordRegex = /<(\d+),(\d+),\d+>([^<\[\n]+)/g;
+                    let qMatch;
+                    while ((qMatch = qishuiWordRegex.exec(lineStr)) !== null) {
+                        const wOffset = parseInt(qMatch[1]);
+                        const wDur = parseInt(qMatch[2]);
+                        const wStart = timeMs + wOffset;
+                        words.push({
+                            text: qMatch[3],
+                            startTime: wStart,
+                            endTime: wStart + wDur,
+                            duration: wDur
+                        });
+                    }
+                }
+
+                // 网易云 YRC 逐字格式: (absTime,duration,flag)word（absTime 是绝对时间）
                 const hasVerbatimData = lineStr.includes('(') && lineStr.includes(')');
-                if (hasVerbatimData) {
+                if (hasVerbatimData && words.length === 0) {
                     if (track?.source === 'netease' || !track?.source) {
                         yrcWordRegex.lastIndex = 0;
                         let wordMatch;

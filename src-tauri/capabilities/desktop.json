@@ -6,7 +6,8 @@
   "windows": [
     "main",
     "tray",
-    "desktop-lyric"
+    "desktop-lyric",
+    "taskbar-player"
   ],
   "permissions": []
 }

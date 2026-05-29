@@ -35,7 +35,7 @@ export default function SearchPage() {
             const state = { ...searchService.searchResult }
             setSearchState(state)
 
-            const stillLoading = state.neteaseLoading || state.qqLoading || state.kugouLoading || state.kuwoLoading || state.appleLoading || state.spotifyLoading
+            const stillLoading = state.neteaseLoading || state.qqLoading || state.kugouLoading || state.kuwoLoading || state.appleLoading || state.spotifyLoading || state.qishuiLoading
             if (!stillLoading) {
                 setIsLoading(false)
             }
@@ -193,6 +193,9 @@ export default function SearchPage() {
                         <TabsTrigger value="spotify" className="flex-1 max-w-[120px]">
                             Spotify <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.spotifyResults.length}</Badge>
                         </TabsTrigger>
+                        <TabsTrigger value="qishui" className="flex-1 max-w-[120px]">
+                            汽水音乐 <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.qishuiResults.length}</Badge>
+                        </TabsTrigger>
                         <TabsTrigger value="artist" className="flex-1 max-w-[120px]">
                             歌手 <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.artistResults.length}</Badge>
                         </TabsTrigger>
@@ -216,6 +219,9 @@ export default function SearchPage() {
                             </TabsContent>
                             <TabsContent value="spotify" className="m-0 focus-visible:ring-0">
                                 {renderTrackList(searchState.spotifyResults)}
+                            </TabsContent>
+                            <TabsContent value="qishui" className="m-0 focus-visible:ring-0">
+                                {renderTrackList(searchState.qishuiResults)}
                             </TabsContent>
                             <TabsContent value="artist" className="m-0 focus-visible:ring-0">
                                 {renderArtistList(searchState.artistResults)}

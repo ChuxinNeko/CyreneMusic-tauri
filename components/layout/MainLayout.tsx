@@ -11,6 +11,8 @@ import { SetupWizard } from "../setup/SetupWizard"
 import { updateService, UpdateInfo } from "@/lib/services/updateService"
 import { UpdateDialog } from "../common/UpdateDialog"
 import { AnnouncementDialog } from "../common/AnnouncementDialog"
+import { useLayoutStore } from "@/lib/store/useLayoutStore"
+import { emit } from "@tauri-apps/api/event"
 import {
     useWindowMaterialStore,
     fetchSystemMaterialSupport,
@@ -23,6 +25,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
     const searchParams = useSearchParams()
     const isTray = pathname === "/tray"
     const isDesktopLyric = pathname === "/desktop-lyric"
+    const isTaskbar = pathname === "/taskbar"
 
     const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
     const [showUpdateDialog, setShowUpdateDialog] = useState(false)
@@ -40,8 +43,8 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
         }
         document.addEventListener("contextmenu", handleContextMenu)
 
-        // 桌面歌词和托盘窗口不需要检查更新和初始化材质
-        if (isTray || isDesktopLyric) {
+        // 桌面歌词、托盘和任务栏窗口不需要检查更新和初始化材质
+        if (isTray || isDesktopLyric || isTaskbar) {
             return () => {
                 document.removeEventListener("contextmenu", handleContextMenu)
             }
@@ -82,6 +85,18 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
         }
         initWindowMaterial()
 
+        // 恢复任务栏播放器状态
+        const initTaskbarPlayer = async () => {
+            const { isTaskbarPlayerEnabled } = useLayoutStore.getState()
+            if (isTaskbarPlayerEnabled) {
+                // 等待主窗口完全初始化后再发送指令，避免过早调用 Tauri 命令
+                setTimeout(() => {
+                    emit('player:command', 'open-taskbar-player')
+                }, 1000)
+            }
+        }
+        initTaskbarPlayer()
+
         return () => {
             document.removeEventListener("contextmenu", handleContextMenu)
         }
@@ -90,7 +105,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
     // 是否使用透明背景
     const isTransparent = material === "mica" || material === "acrylic"
 
-    if (isTray || isDesktopLyric) {
+    if (isTray || isDesktopLyric || isTaskbar) {
         return <div className="h-screen w-full bg-transparent overflow-hidden">{children}</div>
     }
 

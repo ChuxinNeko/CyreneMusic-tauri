@@ -146,6 +146,9 @@ class UrlService {
     // Spotify API
     public get spotifySearchUrl(): string { return `${this.baseUrl}/spotify/search`; }
 
+    // Qishui API
+    public get qishuiSearchUrl(): string { return `${this.baseUrl}/qishui/search`; }
+
     // Update API
     public get latestNextVersionUrl(): string { return `${this.baseUrl}/version/next/latest`; }
 }

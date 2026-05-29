@@ -12,12 +12,16 @@ import {
     fetchSystemMaterialSupport,
     applyWindowMaterial,
 } from "@/lib/store/useWindowMaterialStore"
+import { Switch } from "@/components/ui/switch"
+import { useLayoutStore } from "@/lib/store/useLayoutStore"
+import { emit } from "@tauri-apps/api/event"
 
 export function AppearanceSettingsManager() {
     const { theme, setTheme } = useTheme()
     const [mounted, setMounted] = useState(false)
     const [isDesktop, setIsDesktop] = useState(false)
     const { material, systemSupport, setMaterial, setSystemSupport } = useWindowMaterialStore()
+    const { isTaskbarPlayerEnabled, setTaskbarPlayerEnabled } = useLayoutStore()
 
     // Prevent hydration mismatch
     useEffect(() => {
@@ -108,6 +112,15 @@ export function AppearanceSettingsManager() {
     const handleMaterialChange = async (newMaterial: WindowMaterial) => {
         setMaterial(newMaterial)
         await applyWindowMaterial(newMaterial)
+    }
+
+    const handleTaskbarPlayerChange = async (checked: boolean) => {
+        setTaskbarPlayerEnabled(checked)
+        if (checked) {
+            emit('player:command', 'open-taskbar-player')
+        } else {
+            emit('player:command', 'close-taskbar-player')
+        }
     }
 
     return (
@@ -201,6 +214,23 @@ export function AppearanceSettingsManager() {
                                     </Label>
                                 )
                             })}
+                        </div>
+                    </div>
+                )}
+
+                {isDesktop && (
+                    <div className="space-y-4 pt-4 border-t">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <h3 className="text-base font-semibold">任务栏播放器</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    在 Windows 任务栏显示微型播放控件（悬浮窗）。
+                                </p>
+                            </div>
+                            <Switch 
+                                checked={isTaskbarPlayerEnabled}
+                                onCheckedChange={handleTaskbarPlayerChange}
+                            />
                         </div>
                     </div>
                 )}

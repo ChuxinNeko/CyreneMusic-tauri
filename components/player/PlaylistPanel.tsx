@@ -7,8 +7,7 @@ import {
     Music2,
     Play,
     X,
-    ListMusic,
-    ChevronRight
+    ListMusic
 } from "lucide-react"
 import {
     Sheet,
@@ -19,16 +18,16 @@ import {
 } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { usePlayerStore } from "@/lib/store/usePlayerStore"
 import { playerService } from "@/lib/services/playerService"
 import { AsyncImage } from "@/components/common/AsyncImage"
 import { cn } from "@/lib/utils"
-import { Track } from "@/lib/models/track"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 export function PlaylistPanel() {
     const { queue, currentTrack, isPlaying, setQueue } = usePlayerStore()
     const [searchQuery, setSearchQuery] = useState("")
+    const isMobile = useIsMobile()
 
     const filteredQueue = useMemo(() => {
         if (!searchQuery.trim()) return queue
@@ -57,9 +56,12 @@ export function PlaylistPanel() {
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-foreground relative group"
+                    className={cn(
+                        "text-muted-foreground hover:text-foreground relative group",
+                        isMobile ? "h-10 w-10 rounded-full hover:bg-muted/80" : "h-8 w-8"
+                    )}
                 >
-                    <ListMusic className="h-4 w-4" />
+                    <ListMusic className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
                     {queue.length > 0 && (
                         <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-primary text-[8px] font-bold text-primary-foreground shadow-sm">
                             {queue.length > 99 ? '99+' : queue.length}
@@ -67,7 +69,15 @@ export function PlaylistPanel() {
                     )}
                 </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="p-0 flex flex-col gap-0 w-full sm:max-w-md border-l bg-background/95 backdrop-blur-md">
+            <SheetContent 
+                side={isMobile ? "bottom" : "right"} 
+                className={cn(
+                    "p-0 flex flex-col gap-0 bg-background/95 backdrop-blur-md overflow-hidden",
+                    isMobile 
+                        ? "w-full h-full max-h-[80vh] rounded-t-2xl border-t" 
+                        : "w-full sm:max-w-md border-l"
+                )}
+            >
                 <SheetHeader className="p-6 pb-2">
                     <div className="flex items-center justify-between mb-4">
                         <SheetTitle className="text-xl font-black flex items-center gap-2">
@@ -105,7 +115,7 @@ export function PlaylistPanel() {
                     </div>
                 </SheetHeader>
 
-                <ScrollArea className="flex-1 min-h-0 px-4">
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4">
                     <div className="py-4 space-y-1">
                         {filteredQueue.length > 0 ? (
                             filteredQueue.map((track, index) => {
@@ -175,7 +185,7 @@ export function PlaylistPanel() {
                             </div>
                         )}
                     </div>
-                </ScrollArea>
+                </div>
 
                 <div className="p-4 bg-accent/10 border-t">
                     <p className="text-[10px] text-muted-foreground text-center font-bold uppercase tracking-widest opacity-50">

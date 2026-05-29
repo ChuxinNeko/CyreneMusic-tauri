@@ -122,6 +122,81 @@ class ListeningStatsService {
     }
 
     /**
+     * 记录一次播放事件（后端历史存储）
+     * @param track 歌曲对象
+     * @param playDuration 本次播放时长（秒）
+     * @param language 仅 source==='netease' 时携带的歌曲语种（用于听歌语言统计）
+     */
+    public async recordPlayEvent(track: Track, playDuration: number = 0, language?: string | null) {
+        const { isLoggedIn, token } = useAuthStore.getState();
+        if (!isLoggedIn || !token) {
+            return;
+        }
+
+        const payload: any = {
+            trackId: String(track.id).trim(),
+            trackName: (track.name || '').trim(),
+            artists: (track.artists || '').trim(),
+            album: (track.album || '').trim(),
+            picUrl: (track.picUrl || '').trim(),
+            source: track.source,
+            playDuration: Math.round(playDuration),
+        };
+        if (track.source === 'netease' && language && language.trim()) {
+            payload.language = language.trim();
+        }
+
+        try {
+            const response = await fetch(`${urlService.baseUrl}/history/record`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                console.error(`❌ [ListeningStatsService] 记录播放历史失败: ${response.status}`);
+            }
+        } catch (error) {
+            console.error("❌ [ListeningStatsService] 记录播放历史异常:", error);
+        }
+    }
+
+    /**
+     * 清空服务器保存的播放历史
+     */
+    public async clearServerHistory(): Promise<{ success: boolean; message: string }> {
+        const { isLoggedIn, token } = useAuthStore.getState();
+        if (!isLoggedIn || !token) {
+            return { success: false, message: "未登录" };
+        }
+
+        try {
+            const response = await fetch(`${urlService.baseUrl}/history`, {
+                method: "DELETE",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log("✅ [ListeningStatsService] 服务器播放历史已清空");
+                return { success: true, message: result.message || "清空成功" };
+            } else {
+                const errorText = await response.text();
+                console.error(`❌ [ListeningStatsService] 清空历史失败: ${response.status} ${errorText}`);
+                return { success: false, message: `请求失败: ${response.status}` };
+            }
+        } catch (error) {
+            console.error("❌ [ListeningStatsService] 清空历史异常:", error);
+            return { success: false, message: "网络异常" };
+        }
+    }
+
+    /**
      * 获取用户统计数据与播放历史
      */
     public async fetchStats() {
@@ -146,6 +221,66 @@ class ListeningStatsService {
             }
         } catch (error) {
             console.error("❌ [ListeningStatsService] 获取统计数据异常:", error);
+            return null;
+        }
+    }
+
+    /**
+     * 获取本周播放的歌曲列表
+     */
+    public async fetchWeeklyPlays() {
+        const { isLoggedIn, token } = useAuthStore.getState();
+        if (!isLoggedIn || !token) {
+            return null;
+        }
+
+        try {
+            const response = await fetch(`${urlService.baseUrl}/history/weekly`, {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                return result.data;
+            } else {
+                console.error(`❌ [ListeningStatsService] 获取本周播放数据失败: ${response.status}`);
+                return null;
+            }
+        } catch (error) {
+            console.error("❌ [ListeningStatsService] 获取本周播放数据异常:", error);
+            return null;
+        }
+    }
+
+    /**
+     * 获取用户播放历史（分页）
+     */
+    public async fetchPlayHistory(options: { page?: number; limit?: number; startDate?: string; endDate?: string } = {}) {
+        const { isLoggedIn, token } = useAuthStore.getState();
+        if (!isLoggedIn || !token) {
+            return null;
+        }
+
+        try {
+            const params = new URLSearchParams();
+            if (options.page) params.set('page', String(options.page));
+            if (options.limit) params.set('limit', String(options.limit));
+            if (options.startDate) params.set('startDate', options.startDate);
+            if (options.endDate) params.set('endDate', options.endDate);
+
+            const response = await fetch(`${urlService.baseUrl}/history?${params.toString()}`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                return result.data;
+            }
+            return null;
+        } catch (error) {
+            console.error("❌ [ListeningStatsService] 获取播放历史异常:", error);
             return null;
         }
     }
@@ -181,6 +316,35 @@ class ListeningStatsService {
             }
         } catch (error) {
             console.error("❌ [ListeningStatsService] 获取歌曲回忆异常:", error);
+            return null;
+        }
+    }
+
+    /**
+     * 获取听歌语言统计（仅网易云歌曲参与）
+     */
+    public async fetchLanguageStats() {
+        const { isLoggedIn, token } = useAuthStore.getState();
+        if (!isLoggedIn || !token) {
+            return null;
+        }
+
+        try {
+            const response = await fetch(`${urlService.baseUrl}/stats/languages`, {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                return result.data;
+            } else {
+                console.error(`❌ [ListeningStatsService] 获取听歌语言统计失败: ${response.status}`);
+                return null;
+            }
+        } catch (error) {
+            console.error("❌ [ListeningStatsService] 获取听歌语言统计异常:", error);
             return null;
         }
     }

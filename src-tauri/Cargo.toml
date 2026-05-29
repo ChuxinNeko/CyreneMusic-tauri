@@ -32,6 +32,7 @@ lofty = "0.21"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 walkdir = "2"
+tokio = { version = "1", features = ["rt", "net", "io-util"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 ndk-context = "0.1.1"

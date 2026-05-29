@@ -9,15 +9,19 @@ import { usePlayerStore, RepeatMode } from "../store/usePlayerStore"
 import { useAudioSourceStore } from "../store/useAudioSourceStore"
 import { Track } from "../models/track"
 import { historyService } from "./historyService"
+import { listeningStatsService } from "./listeningStatsService"
+import { neteaseSongWikiService } from "./neteaseSongWikiService"
 import { lxMusicRuntimeService } from "./lxMusicRuntimeService"
 import { androidMediaNotificationService, isAndroidTauriRuntime } from './androidMediaNotificationService'
 import { androidLyricService } from './androidLyricService'
 import { cacheService } from './cacheService'
 import { useCacheStore } from '../store/useCacheStore'
+import { audioProxyService } from './audioProxyService'
 import { toast } from 'sonner'
 
 import { listen, emit as tauriEmit } from '@tauri-apps/api/event'
 import { invoke } from '@tauri-apps/api/core'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 
 const emit = async (event: string, payload?: any) => {
     try {
@@ -59,8 +63,24 @@ class PlayerService {
     private nextRandomTrack2: Track | null = null
     // 当前正在执行的播放请求的唯一 ID，用以解决快速切歌时的竞态冲突与进度抽搐问题
     private currentPlayRequestId: string | null = null
+    // 当前歌曲累计播放时长（秒），用于上报后端历史记录
+    private currentSongListenedSeconds: number = 0
+    private currentSongForHistory: Track | null = null
+    // 当前歌曲语言（仅 source==='netease' 时异步拉取，用于听歌语言统计）
+    private currentSongLanguage: string | null = null
 
     private constructor() {
+        if (typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__) {
+            try {
+                if (getCurrentWindow().label !== 'main') {
+                    console.log("[PlayerService] Not in main window, skipping initialization.");
+                    return;
+                }
+            } catch (e) {
+                console.error("[PlayerService] Failed to get current window label:", e)
+            }
+        }
+
         if (typeof window !== "undefined") {
             this.setupSMTC()
             this.setupRemoteControl()
@@ -107,6 +127,16 @@ class PlayerService {
                             desktopLyricColor: state.desktopLyricColor,
                             desktopLyricStrokeColor: state.desktopLyricStrokeColor
                         })
+                    }
+                    break
+                case 'open-taskbar-player':
+                    if (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) {
+                        invoke('open_taskbar_player').catch(console.error)
+                    }
+                    break
+                case 'close-taskbar-player':
+                    if (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) {
+                        invoke('close_taskbar_player').catch(console.error)
                     }
                     break
             }
@@ -311,6 +341,7 @@ class PlayerService {
         })
 
         howl.on('end', () => {
+            this.flushPlayHistory()
             this.playNext()
         })
     }
@@ -341,6 +372,7 @@ class PlayerService {
                 const currentTrack = usePlayerStore.getState().currentTrack
                 if (currentTrack) {
                     historyService.recordTime(currentTrack.id, currentTrack.source, 1)
+                    this.currentSongListenedSeconds += 1
                 }
             }
         }, 1000)
@@ -350,6 +382,22 @@ class PlayerService {
         if (this.progressInterval) {
             clearInterval(this.progressInterval)
             this.progressInterval = null
+        }
+    }
+
+    /**
+     * 将当前歌曲的播放记录上报后端
+     */
+    private flushPlayHistory() {
+        if (this.currentSongForHistory && this.currentSongListenedSeconds > 0) {
+            listeningStatsService.recordPlayEvent(
+                this.currentSongForHistory,
+                this.currentSongListenedSeconds,
+                this.currentSongLanguage
+            )
+            this.currentSongListenedSeconds = 0
+            this.currentSongForHistory = null
+            this.currentSongLanguage = null
         }
     }
 
@@ -458,13 +506,31 @@ class PlayerService {
             }
             this.stopProgressTimer()
 
+            // 上报上一首歌的播放历史到后端
+            this.flushPlayHistory()
+
             usePlayerStore.getState().setIsLoading(true)
             usePlayerStore.getState().setCurrentTrack(track)
             usePlayerStore.getState().setPlayError(null)
             this.fallbackQualityUrl = null // 重置备选 URL
 
-            // 记录播放次数
+            // 记录本地播放次数
             historyService.recordPlay(track)
+
+            // 初始化后端历史追踪
+            this.currentSongListenedSeconds = 0
+            this.currentSongForHistory = track
+            this.currentSongLanguage = null
+
+            // 仅网易云歌曲异步获取语种，命中缓存时近乎零开销；
+            // 拉取过程不阻塞播放流程，语言上报在 flushPlayHistory 时进行
+            if (track.source === 'netease') {
+                neteaseSongWikiService.fetchSongLanguage(track.id).then((language) => {
+                    if (this.currentSongForHistory && this.currentSongForHistory.id === track.id) {
+                        this.currentSongLanguage = language || null
+                    }
+                }).catch(() => { /* 已在服务内部记录 */ })
+            }
 
             this.updateSMTCMetadata(track)
             this.syncAndroidMediaNotification(true)
@@ -788,8 +854,8 @@ class PlayerService {
             return { url, fallbackUrl: null, lyrics: lyricData }
         }
 
-        // ─── OmniParse GET (QQ / 酷狗 / 酷我) ───
-        const omniParseGetSources = ['qq', 'kugou', 'kuwo'] as const
+        // ─── OmniParse GET (QQ / 酷狗 / 酷我 / 汽水) ───
+        const omniParseGetSources = ['qq', 'kugou', 'kuwo', 'qishui'] as const
         if (configSource.type === AudioSourceType.OmniParse && (omniParseGetSources as readonly string[]).includes(track.source)) {
             const response = await fetch(url, {
                 headers: { 'X-API-Key': configSource.apiKey || '' }
@@ -825,6 +891,11 @@ class PlayerService {
                 } else {
                     const songData = result.song || result
                     extractedUrl = songData.url || ''
+
+                    // 汽水音乐 API 直接返回歌词
+                    if (track.source === 'qishui' && songData.lyric) {
+                        lyricData = { lyric: songData.lyric || '', tlyric: songData.tlyric || '' }
+                    }
                 }
 
                 if (!extractedUrl) {
@@ -834,10 +905,16 @@ class PlayerService {
                 }
                 url = extractedUrl
 
+                // 汽水音乐：通过 Rust 代理绕过 CDN 防盗链
+                if (track.source === 'qishui' && audioProxyService.shouldProxy(url)) {
+                    url = await audioProxyService.wrapUrl(url)
+                    console.log('[PlayerService] 🔄 Qishui audio URL proxied via Rust backend')
+                }
+
                 // 异步并行加载歌词
                 this.fetchAndApplyLyrics(track)
 
-                return { url, fallbackUrl: fallbackQualityUrl, lyrics: null }
+                return { url, fallbackUrl: fallbackQualityUrl, lyrics: lyricData }
             } else {
                 throw new AudioSourceError(`${track.source} 解析失败: ${result.msg || 'Unknown error'}`, {
                     rawJson: result
@@ -1204,8 +1281,8 @@ class PlayerService {
                     throw new Error(result.msg || 'Netease API status error');
                 }
             }
-            // 3. OmniParse 且是 QQ / Kugou / Kuwo 预解析逻辑
-            else if (activeConfigSource.type === AudioSourceType.OmniParse && ['qq', 'kugou', 'kuwo'].includes(track.source)) {
+            // 3. OmniParse 且是 QQ / Kugou / Kuwo / 汽水 预解析逻辑
+            else if (activeConfigSource.type === AudioSourceType.OmniParse && ['qq', 'kugou', 'kuwo', 'qishui'].includes(track.source)) {
                 const response = await fetch(url, {
                     headers: {
                         'X-API-Key': activeConfigSource.apiKey || ''
@@ -1234,6 +1311,11 @@ class PlayerService {
                     } else {
                         const songData = result.song || result
                         extractedUrl = songData.url || ''
+
+                        // 汽水音乐 API 在播放链接响应中直接返回歌词
+                        if (track.source === 'qishui' && songData.lyric) {
+                            lyricData = { lyric: songData.lyric || '', tlyric: songData.tlyric || '' }
+                        }
                     }
 
                     if (extractedUrl) {
@@ -1242,8 +1324,15 @@ class PlayerService {
                         throw new Error("No playback URL in response");
                     }
 
-                    // 并行加载歌词
-                    lyricData = await this.fetchLyricsOnly(track);
+                    // 汽水音乐：通过 Rust 代理绕过 CDN 防盗链
+                    if (track.source === 'qishui' && audioProxyService.shouldProxy(url)) {
+                        url = await audioProxyService.wrapUrl(url)
+                    }
+
+                    // 汽水歌词已随播放链接返回，其余源单独预载
+                    if (track.source !== 'qishui') {
+                        lyricData = await this.fetchLyricsOnly(track);
+                    }
                 } else {
                     throw new Error(result.msg || 'API status error');
                 }

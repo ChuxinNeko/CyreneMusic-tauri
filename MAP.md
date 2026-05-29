@@ -238,6 +238,20 @@ src-tauri/
 - **位置**: `app/desktop-lyric/`
 - **功能**: 独立歌词窗口、桌面歌词显示
 
+### 6. 全屏播放器歌曲信息（语言获取）
+- **位置**: `components/player/song-info/SongWiki.tsx`, `lib/services/neteaseSongWikiService.ts`
+- **触发**: 用户点击"切换歌曲信息"按钮 → `rightPanelMode = 'info'` → 渲染 `<SongInfoPanel />`
+- **数据流**:
+  ```
+  SongInfoPanel → SongWiki → neteaseSongWikiService.fetchSongWiki(trackId)
+    → HTTP GET /song/wiki/summary?id={trackId}
+      → 返回 JSON: blocks[].creatives[]
+        → 筛选 creativeType === 'language'
+          → 提取 textLinks[0].text 作为语言
+  ```
+- **关键字段**: `creativeType` 区分数据类型：`songTag`(曲风)、`language`(语种)、`bpm`(节奏)
+- **限制**: 仅网易云音源支持（`track.source === 'netease'`），因为依赖网易云百科接口
+
 ## 开发命令
 
 ```bash

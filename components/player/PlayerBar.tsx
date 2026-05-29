@@ -346,6 +346,7 @@ export function PlayerBar() {
 
                 {/* Right: Controls */}
                 <div className="flex items-center gap-0.5 flex-shrink-0 mr-1">
+                    <PlaylistPanel />
                     <Button
                         variant="ghost"
                         size="icon"
