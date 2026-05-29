@@ -63,7 +63,7 @@ interface PlayerState {
     playError: string | null
 
     // Actions
-    setCurrentTrack: (track: Track | null) => void
+    setCurrentTrack: (track: Track | null, preserveProgress?: boolean) => void
     updateTrackLyrics: (lyrics: Partial<Pick<Track, 'lyric' | 'yrc' | 'tlyric' | 'ytlrc' | 'chorus'>>) => void
     setQueue: (tracks: Track[]) => void
     addToQueue: (track: Track) => void
@@ -123,18 +123,23 @@ export const usePlayerStore = create<PlayerState>()(
             singleLineAnimation: SingleLineAnimation.SlideUp,
             playError: null,
 
-            setCurrentTrack: (track) => {
+            setCurrentTrack: (track, preserveProgress = false) => {
                 const { currentTrack, history } = get()
 
                 // 状态快照更新
-                set({
+                const updates: Partial<PlayerState> = {
                     currentTrack: track,
                     isPlaying: !!track,
-                    progress: 0,
-                    currentTime: 0,
                     isLoading: !!track,
                     playError: null
-                })
+                }
+                
+                if (!preserveProgress) {
+                    updates.progress = 0
+                    updates.currentTime = 0
+                }
+                
+                set(updates)
 
                 if (track) {
                     const isSameTrack = currentTrack?.id === track.id && currentTrack?.source === track.source
@@ -226,6 +231,9 @@ export const usePlayerStore = create<PlayerState>()(
                 volume: state.volume,
                 repeatMode: state.repeatMode,
                 history: state.history,
+                currentTime: state.currentTime,
+                duration: state.duration,
+                progress: state.progress,
                 audioVisualization: state.audioVisualization,
                 lyricFontSize: state.lyricFontSize,
                 lyricBlurStrength: state.lyricBlurStrength,

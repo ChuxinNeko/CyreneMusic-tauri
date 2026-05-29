@@ -1,4 +1,4 @@
-import { readFile, writeFile, exists, mkdir, remove, readDir } from '@tauri-apps/plugin-fs';
+import { readFile, writeFile, exists, mkdir, remove, readDir, stat } from '@tauri-apps/plugin-fs';
 import { appLocalDataDir, join } from '@tauri-apps/api/path';
 import { useCacheStore } from '../store/useCacheStore';
 import { Track } from '../models/track';
@@ -134,14 +134,11 @@ class CacheService {
             const entries = await readDir(cacheDir);
             let totalSize = 0;
             
-            // Note: @tauri-apps/plugin-fs readDir returns file names, we might need stat to get size.
-            // 简单起见，如果需要统计准确大小，可以引入 stat。这里假设有 stat 可用，如果没有则可能需要其他方式。
-            const { stat } = await import('@tauri-apps/plugin-fs');
             for (const entry of entries) {
-                if (entry.isFile && entry.name.endsWith('.cyrene')) {
+                if (entry.isFile && entry.name && entry.name.endsWith('.cyrene')) {
                     const filePath = await join(cacheDir, entry.name);
                     const fileStat = await stat(filePath);
-                    totalSize += fileStat.size;
+                    totalSize += fileStat.size || 0;
                 }
             }
             return totalSize;
@@ -161,7 +158,7 @@ class CacheService {
             
             const entries = await readDir(cacheDir);
             for (const entry of entries) {
-                if (entry.isFile && entry.name.endsWith('.cyrene')) {
+                if (entry.isFile && entry.name && entry.name.endsWith('.cyrene')) {
                     const filePath = await join(cacheDir, entry.name);
                     await remove(filePath);
                 }

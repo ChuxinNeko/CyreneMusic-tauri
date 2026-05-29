@@ -56,28 +56,28 @@ export default function SearchPage() {
 
         return (
             <div className="flex flex-col gap-1 pb-10">
-                <div className="grid grid-cols-[48px_1fr_1fr_1fr_48px] gap-4 px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <div className="hidden md:grid grid-cols-[48px_1fr_1fr_1fr_48px] gap-4 px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     <div className="text-center">#</div>
                     <div>标题</div>
                     <div>歌手</div>
                     <div>专辑</div>
                     <div className="text-right pr-4"></div>
                 </div>
-                <Separator className="mb-2" />
+                <Separator className="mb-2 hidden md:block" />
                 {tracks.map((track, index) => {
                     const key = `${track.source}-${track.id}`;
 
                     return (
                         <div
                             key={key}
-                            className="grid grid-cols-[48px_1fr_1fr_1fr_48px] gap-4 px-4 py-2.5 items-center rounded-lg hover:bg-accent/50 group transition-all cursor-pointer"
+                            className="grid grid-cols-[40px_1fr_40px] md:grid-cols-[48px_1fr_1fr_1fr_48px] gap-2 md:gap-4 px-2 md:px-4 py-2 md:py-2.5 items-center rounded-lg hover:bg-accent/50 group transition-all cursor-pointer"
                             onClick={() => {
                                 playerService.playWithQueue(track, [track]);
                             }}
                         >
                             <div className="flex justify-center items-center relative">
-                                <span className="text-sm text-muted-foreground group-hover:opacity-0">{index + 1}</span>
-                                <Play className="h-4 w-4 absolute opacity-0 group-hover:opacity-100 text-primary fill-primary" />
+                                <span className="text-sm text-muted-foreground md:group-hover:opacity-0">{index + 1}</span>
+                                <Play className="h-4 w-4 absolute opacity-0 md:group-hover:opacity-100 text-primary fill-primary hidden md:block" />
                             </div>
 
                             <div className="flex items-center gap-3 min-w-0">
@@ -92,19 +92,20 @@ export default function SearchPage() {
                                 </div>
                                 <div className="flex flex-col min-w-0">
                                     <span className="font-medium text-sm truncate" title={track.name}>{track.name}</span>
+                                    <span className="md:hidden text-xs text-muted-foreground truncate" title={track.artists}>{track.artists}</span>
                                 </div>
                             </div>
 
-                            <div className="text-sm text-muted-foreground truncate" title={track.artists}>
+                            <div className="hidden md:block text-sm text-muted-foreground truncate" title={track.artists}>
                                 {track.artists}
                             </div>
 
-                            <div className="text-sm text-muted-foreground truncate" title={track.album}>
+                            <div className="hidden md:block text-sm text-muted-foreground truncate" title={track.album}>
                                 {track.album}
                             </div>
 
                             <div className="flex justify-end items-center pr-2">
-                                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 opacity-100 md:opacity-0 md:group-hover:opacity-100">
                                     <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                                 </Button>
                             </div>
@@ -126,11 +127,11 @@ export default function SearchPage() {
         }
 
         return (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 pb-10">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 md:gap-4 pb-10">
                 {artists.map((artist) => (
                     <div
                         key={`artist-${artist.id}`}
-                        className="flex flex-col items-center gap-3 p-4 rounded-xl hover:bg-accent/50 cursor-pointer transition-all border border-transparent hover:border-border"
+                        className="flex flex-col items-center gap-2 md:gap-3 p-2 md:p-4 rounded-xl hover:bg-accent/50 cursor-pointer transition-all border border-transparent hover:border-border"
                         onClick={() => {
                             router.push(`/artist?id=${artist.id}`)
                         }}
@@ -175,28 +176,28 @@ export default function SearchPage() {
                 )}
             </div>
 
-            <Tabs defaultValue="netease" className="flex-1 flex flex-col">
-                <div className="px-4 lg:px-8">
-                    <TabsList className="w-full justify-start h-10 bg-muted/50 p-1 rounded-lg">
-                        <TabsTrigger value="netease" className="flex-1 max-w-[120px]">
+            <Tabs defaultValue="netease" className="flex-1 flex flex-col min-h-0">
+                <div className="px-4 lg:px-8 overflow-hidden">
+                    <TabsList className="w-full justify-start h-11 bg-muted/50 p-1 rounded-lg overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+                        <TabsTrigger value="netease" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
                             网易云 <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.neteaseResults.length}</Badge>
                         </TabsTrigger>
-                        <TabsTrigger value="qq" className="flex-1 max-w-[120px]">
+                        <TabsTrigger value="qq" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
                             QQ 音乐 <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.qqResults.length}</Badge>
                         </TabsTrigger>
-                        <TabsTrigger value="kugou" className="flex-1 max-w-[120px]">
+                        <TabsTrigger value="kugou" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
                             酷狗 <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.kugouResults.length}</Badge>
                         </TabsTrigger>
-                        <TabsTrigger value="kuwo" className="flex-1 max-w-[120px]">
+                        <TabsTrigger value="kuwo" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
                             酷我 <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.kuwoResults.length}</Badge>
                         </TabsTrigger>
-                        <TabsTrigger value="spotify" className="flex-1 max-w-[120px]">
+                        <TabsTrigger value="spotify" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
                             Spotify <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.spotifyResults.length}</Badge>
                         </TabsTrigger>
-                        <TabsTrigger value="qishui" className="flex-1 max-w-[120px]">
+                        <TabsTrigger value="qishui" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
                             汽水音乐 <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.qishuiResults.length}</Badge>
                         </TabsTrigger>
-                        <TabsTrigger value="artist" className="flex-1 max-w-[120px]">
+                        <TabsTrigger value="artist" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
                             歌手 <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.artistResults.length}</Badge>
                         </TabsTrigger>
                     </TabsList>

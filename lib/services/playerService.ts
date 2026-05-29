@@ -494,7 +494,7 @@ class PlayerService {
         }
     }
 
-    public async playTrack(track: Track) {
+    public async playTrack(track: Track, options?: { resumeTime?: number }) {
         const requestId = `${track.source}_${track.id}_${Date.now()}`;
         this.currentPlayRequestId = requestId;
 
@@ -509,8 +509,9 @@ class PlayerService {
             // 上报上一首歌的播放历史到后端
             this.flushPlayHistory()
 
+            const isResuming = options?.resumeTime !== undefined;
             usePlayerStore.getState().setIsLoading(true)
-            usePlayerStore.getState().setCurrentTrack(track)
+            usePlayerStore.getState().setCurrentTrack(track, isResuming)
             usePlayerStore.getState().setPlayError(null)
             this.fallbackQualityUrl = null // 重置备选 URL
 
@@ -574,7 +575,7 @@ class PlayerService {
                     });
                 }
 
-                this.initHowl(assetUrl, track);
+                this.initHowl(assetUrl, track, options?.resumeTime);
                 return;
             }
 
@@ -625,7 +626,7 @@ class PlayerService {
                             if (this.currentPlayRequestId !== requestId) return;
 
                             console.log(`[PlayerService] ⚡ Playing via prefetch: ${finalUrl}`);
-                            this.initHowl(finalUrl, track)
+                            this.initHowl(finalUrl, track, options?.resumeTime)
 
                             this.triggerPrefetch()
                             return
@@ -685,7 +686,7 @@ class PlayerService {
                         if (this.currentPlayRequestId !== requestId) return;
 
                         console.log(`[PlayerService] ✅ Source #${i + 1} "${configSource.name}" success. Playing: ${track.name}`)
-                        this.initHowl(finalUrl, track)
+                        this.initHowl(finalUrl, track, options?.resumeTime)
 
                         this.triggerPrefetch()
                         return
@@ -977,7 +978,7 @@ class PlayerService {
         }
     }
 
-    private initHowl(url: string, track: Track) {
+    private initHowl(url: string, track: Track, resumeTime?: number) {
         // 双保验证：确保最终初始化的歌曲严格匹配 Zustand 中的当前曲目，防止极端延迟回调引发的进度冲突
         const currentTrack = usePlayerStore.getState().currentTrack;
         if (!currentTrack || currentTrack.id !== track.id || currentTrack.source !== track.source) {
@@ -1014,6 +1015,15 @@ class PlayerService {
         }
 
         this.setupEvents(this.howl)
+        
+        if (resumeTime !== undefined && resumeTime > 0) {
+            this.howl.once('load', () => {
+                if (this.howl) {
+                    this.howl.seek(resumeTime);
+                }
+            });
+        }
+        
         this.howl.play()
         usePlayerStore.getState().setIsPlaying(true)
         usePlayerStore.getState().setIsLoading(false)
@@ -1061,7 +1071,18 @@ class PlayerService {
     }
 
     public togglePlay() {
-        if (!this.howl) return
+        if (!this.howl) {
+            const store = usePlayerStore.getState();
+            const track = store.currentTrack;
+            if (track) {
+                // If there's a track in state but no howl instance (e.g. app restarted), 
+                // we reload the track and resume from the saved time.
+                const savedTime = store.currentTime || 0;
+                this.playTrack(track, { resumeTime: savedTime });
+            }
+            return;
+        }
+        
         if (this.howl.playing()) {
             this.howl.pause()
         } else {
@@ -1083,6 +1104,12 @@ class PlayerService {
             }
             this.updateMediaSessionPosition()
             this.syncAndroidMediaNotification(true)
+        } else {
+            const store = usePlayerStore.getState()
+            store.setCurrentTime(time)
+            if (store.duration > 0) {
+                store.setProgress(time / store.duration)
+            }
         }
     }
 

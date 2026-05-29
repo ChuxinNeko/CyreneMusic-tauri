@@ -162,20 +162,20 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
     }
 
     return (
-        <div className="space-y-4 animate-in fade-in duration-500 pb-20 max-w-6xl mx-auto px-4 sm:px-0 relative pt-[env(safe-area-inset-top)] isolate">
+        <div className="space-y-4 animate-in fade-in duration-500 pb-20 max-w-6xl w-full mx-auto px-4 sm:px-0 relative pt-[env(safe-area-inset-top)] isolate overflow-x-hidden">
             {/* 移动端全宽顶部封面渐变背景 */}
-            <div className="md:hidden absolute top-0 left-1/2 -translate-x-1/2 w-screen aspect-square sm:max-h-[500px] -z-10 pointer-events-none overflow-hidden origin-top">
+            <div className="md:hidden absolute top-0 inset-x-0 aspect-square sm:max-h-[500px] -z-10 pointer-events-none overflow-hidden origin-top">
                 <AsyncImage src={playlist.coverImgUrl} className="w-full h-full object-cover scale-105" lazy={false} />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-background/60 to-background" />
             </div>
 
             {/* Action Bar / Back Button */}
-            <div className="flex items-center pt-2 md:pt-4 md:pb-6 translate-y-[20px] md:translate-y-0 relative z-20">
+            <div className="absolute top-[max(40px,calc(env(safe-area-inset-top)+32px))] left-4 md:static md:top-auto md:left-auto flex items-center md:pt-4 md:pb-6 md:translate-y-0 z-50">
                 <Button
                     variant="ghost"
                     size="sm"
                     onClick={onBack}
-                    className="h-8 md:-ml-2 gap-1 md:text-muted-foreground md:hover:text-foreground md:hover:bg-transparent transition-colors md:bg-transparent bg-background/40 backdrop-blur-md text-foreground rounded-full px-3 md:rounded-md md:px-2"
+                    className="h-8 gap-1 md:text-muted-foreground md:hover:text-foreground md:hover:bg-transparent transition-colors md:bg-transparent bg-background/40 backdrop-blur-md text-foreground rounded-full px-3 md:rounded-md md:px-2 md:-ml-2"
                 >
                     <ChevronLeft className="h-5 w-5" />
                     <span className="text-sm font-medium">返回</span>
@@ -189,7 +189,7 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                     <AsyncImage src={playlist.coverImgUrl} className="w-full h-full object-cover scale-105" lazy={false} />
                 </div>
 
-                <div className="flex-1 min-w-0 space-y-4 md:space-y-3 pt-[55vw] sm:pt-[250px] md:pt-1 flex flex-col items-center md:items-start w-full px-4 md:px-0">
+                <div className="flex-1 min-w-0 space-y-4 md:space-y-3 pt-[70vw] sm:pt-[250px] md:pt-1 flex flex-col items-center md:items-start w-full px-4 md:px-0">
                     <div className="space-y-2 md:space-y-1 w-full">
                         <span className="text-[11px] font-bold text-muted-foreground/60 uppercase tracking-widest block text-center md:text-left hidden md:block">歌单</span>
                         <h1 className="text-2xl sm:text-3xl md:text-xl lg:text-2xl font-black tracking-tight leading-tight text-foreground break-words text-center md:text-left">
@@ -430,9 +430,9 @@ export function DailySongsDetailView({ songs, onBack }: { songs: any[], onBack: 
     }
 
     return (
-        <div className="space-y-4 animate-in fade-in duration-500 pb-20 max-w-6xl mx-auto px-4 sm:px-0 relative pt-[env(safe-area-inset-top)] isolate">
+        <div className="space-y-4 animate-in fade-in duration-500 pb-20 max-w-6xl w-full mx-auto px-4 sm:px-0 relative pt-[env(safe-area-inset-top)] isolate overflow-x-hidden">
             {/* 移动端全宽顶部推荐封面渐变背景 */}
-            <div className="md:hidden absolute top-0 left-1/2 -translate-x-1/2 w-screen aspect-square sm:max-h-[500px] -z-10 pointer-events-none flex flex-col items-center justify-center bg-primary/10 overflow-hidden">
+            <div className="md:hidden absolute top-0 inset-x-0 aspect-square sm:max-h-[500px] -z-10 pointer-events-none flex flex-col items-center justify-center bg-primary/10 overflow-hidden">
                 <div className="text-center space-y-4 -mt-10">
                     <div className="text-[120px] leading-none font-black text-primary/80">{new Date().getDate()}</div>
                 </div>
@@ -440,12 +440,12 @@ export function DailySongsDetailView({ songs, onBack }: { songs: any[], onBack: 
             </div>
 
             {/* Action Bar / Back Button */}
-            <div className="flex items-center pt-2 md:pt-4 md:pb-6 translate-y-[20px] md:translate-y-0 relative z-20">
+            <div className="absolute top-[max(40px,calc(env(safe-area-inset-top)+32px))] left-4 md:static md:top-auto md:left-auto flex items-center md:pt-4 md:pb-6 md:translate-y-0 z-50">
                 <Button
                     variant="ghost"
                     size="sm"
                     onClick={onBack}
-                    className="h-8 md:-ml-2 gap-1 md:text-muted-foreground md:hover:text-foreground md:hover:bg-transparent transition-colors md:bg-transparent bg-background/40 backdrop-blur-md text-foreground rounded-full px-3 md:rounded-md md:px-2"
+                    className="h-8 gap-1 md:text-muted-foreground md:hover:text-foreground md:hover:bg-transparent transition-colors md:bg-transparent bg-background/40 backdrop-blur-md text-foreground rounded-full px-3 md:rounded-md md:px-2 md:-ml-2"
                 >
                     <ChevronLeft className="h-5 w-5" />
                     <span className="text-sm font-medium">返回</span>
@@ -461,7 +461,7 @@ export function DailySongsDetailView({ songs, onBack }: { songs: any[], onBack: 
                     </div>
                 </div>
 
-                <div className="flex-1 min-w-0 space-y-4 md:space-y-3 pt-[55vw] sm:pt-[250px] md:pt-1 flex flex-col items-center md:items-start w-full px-4 md:px-0">
+                <div className="flex-1 min-w-0 space-y-4 md:space-y-3 pt-[70vw] sm:pt-[250px] md:pt-1 flex flex-col items-center md:items-start w-full px-4 md:px-0">
                     <div className="space-y-2 md:space-y-1 w-full">
                         <span className="text-[11px] font-bold text-muted-foreground/60 uppercase tracking-widest text-center md:text-left hidden md:block">推荐内容</span>
                         <h1 className="text-2xl sm:text-3xl md:text-xl lg:text-2xl font-black tracking-tight leading-tight text-foreground break-words text-center md:text-left">

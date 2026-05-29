@@ -174,9 +174,9 @@ export default function ProfilePage() {
     }
 
     return (
-        <ScrollArea className="h-full">
+        <ScrollArea className="h-full [&_[data-radix-scroll-area-viewport]>div]:!block">
             {titleBar}
-            <div className="mt-6 lg:mt-8">
+            <div className={selectedPlaylistId ? "lg:mt-8" : "mt-6 lg:mt-8"}>
                 {renderBody()}
             </div>
         </ScrollArea>
