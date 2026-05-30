@@ -209,6 +209,19 @@ export const UpdateDialog: React.FC<UpdateDialogProps> = ({
         if (!downloadResult?.path) return
 
         try {
+            if (downloadResult.fileName.toLowerCase().endsWith('.apk') || activeDownloadId?.startsWith('android')) {
+                try {
+                    await invoke("android_install_apk", { filePath: downloadResult.path })
+                    return
+                } catch (e) {
+                    if (String(e).includes("Not supported")) {
+                        await openPath(downloadResult.path)
+                        return
+                    }
+                    throw e
+                }
+            }
+
             await openPath(downloadResult.path)
         } catch (error) {
             console.error("[UpdateDialog] 打开安装包失败:", error)

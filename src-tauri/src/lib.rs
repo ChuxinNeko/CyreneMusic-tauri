@@ -62,15 +62,15 @@ fn sanitize_download_file_name(file_name: &str) -> String {
 }
 
 fn resolve_update_download_dir(app: &tauri::AppHandle) -> Result<PathBuf, String> {
-    #[cfg(any(target_os = "android", target_os = "ios"))]
+    #[cfg(target_os = "ios")]
     {
+        // iOS 上将包放在 Documents 目录，配合 iTunes 文件共享即可在自带“文件”App 中看到
         app.path()
-            .app_cache_dir()
-            .map(|path| path.join("updates"))
-            .map_err(|e| format!("Resolve app cache dir failed: {}", e))
+            .document_dir()
+            .map_err(|e| format!("Resolve documents dir failed: {}", e))
     }
 
-    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    #[cfg(not(target_os = "ios"))]
     {
         app.path()
             .download_dir()
