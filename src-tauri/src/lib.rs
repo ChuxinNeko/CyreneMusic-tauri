@@ -657,7 +657,13 @@ pub fn run() {
                         local_music::save_mobile_local_music,
                         get_audio_proxy_port,
                         taskbar_player::open_taskbar_player,
-                        taskbar_player::close_taskbar_player
+                        taskbar_player::close_taskbar_player,
+                        taskbar_player::unpin_taskbar_player,
+                        taskbar_player::pin_taskbar_player,
+                        taskbar_player::get_taskbar_info,
+                        taskbar_player::show_taskbar_drop_zone,
+                        taskbar_player::hide_taskbar_drop_zone,
+                        taskbar_player::is_left_mouse_button_pressed
                     ]
                 }
                 #[cfg(not(target_os = "windows"))]
@@ -682,7 +688,13 @@ pub fn run() {
                         local_music::save_mobile_local_music,
                         get_audio_proxy_port,
                         taskbar_player::open_taskbar_player,
-                        taskbar_player::close_taskbar_player
+                        taskbar_player::close_taskbar_player,
+                        taskbar_player::unpin_taskbar_player,
+                        taskbar_player::pin_taskbar_player,
+                        taskbar_player::get_taskbar_info,
+                        taskbar_player::show_taskbar_drop_zone,
+                        taskbar_player::hide_taskbar_drop_zone,
+                        taskbar_player::is_left_mouse_button_pressed
                     ]
                 }
             }

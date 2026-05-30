@@ -105,7 +105,7 @@ export function CacheSettingsManager() {
             <CardHeader className="px-0 pt-0">
                 <CardTitle>歌曲缓存</CardTitle>
                 <CardDescription>
-                    缓存播放过的歌曲以节省流量，并在离线时提供可用性。缓存的音频受本地加密保护 (.cyrene)。
+                    缓存播放过的歌曲以节省流量，并在离线时提供可用性。
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 px-0">

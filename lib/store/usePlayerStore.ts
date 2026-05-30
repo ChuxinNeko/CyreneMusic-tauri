@@ -61,6 +61,7 @@ interface PlayerState {
     lyricDisplayStyle: LyricDisplayStyle
     singleLineAnimation: SingleLineAnimation
     playError: string | null
+    isTaskbarPlayerOpen: boolean
 
     // Actions
     setCurrentTrack: (track: Track | null, preserveProgress?: boolean) => void
@@ -91,6 +92,7 @@ interface PlayerState {
     setLyricDisplayStyle: (style: LyricDisplayStyle) => void
     setSingleLineAnimation: (animation: SingleLineAnimation) => void
     setPlayError: (error: string | null) => void
+    setIsTaskbarPlayerOpen: (open: boolean) => void
 
     playNext: () => void
     playPrevious: () => void
@@ -122,6 +124,7 @@ export const usePlayerStore = create<PlayerState>()(
             lyricDisplayStyle: LyricDisplayStyle.Scroll,
             singleLineAnimation: SingleLineAnimation.SlideUp,
             playError: null,
+            isTaskbarPlayerOpen: true,
 
             setCurrentTrack: (track, preserveProgress = false) => {
                 const { currentTrack, history } = get()
@@ -193,6 +196,7 @@ export const usePlayerStore = create<PlayerState>()(
             setLyricDisplayStyle: (lyricDisplayStyle) => set({ lyricDisplayStyle }),
             setSingleLineAnimation: (singleLineAnimation) => set({ singleLineAnimation }),
             setPlayError: (playError) => set({ playError }),
+            setIsTaskbarPlayerOpen: (isTaskbarPlayerOpen) => set({ isTaskbarPlayerOpen }),
 
             playNext: () => {
                 const { queue, currentTrack, repeatMode } = get()
@@ -244,6 +248,7 @@ export const usePlayerStore = create<PlayerState>()(
                 isImmersiveMode: state.isImmersiveMode,
                 lyricDisplayStyle: state.lyricDisplayStyle,
                 singleLineAnimation: state.singleLineAnimation,
+                isTaskbarPlayerOpen: state.isTaskbarPlayerOpen,
             }),
         }
     )

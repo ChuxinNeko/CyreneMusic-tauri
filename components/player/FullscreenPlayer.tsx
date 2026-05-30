@@ -26,7 +26,8 @@ import {
     Repeat,
     Repeat1,
     Shuffle,
-    Disc
+    Disc,
+    AppWindow
 } from "lucide-react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { emit } from "@tauri-apps/api/event"
@@ -110,6 +111,8 @@ export function FullscreenPlayer() {
     const setSingleLineAnimation = usePlayerStore(s => s.setSingleLineAnimation)
     const repeatMode = usePlayerStore(s => s.repeatMode)
     const setRepeatMode = usePlayerStore(s => s.setRepeatMode)
+    const isTaskbarPlayerOpen = usePlayerStore(s => s.isTaskbarPlayerOpen)
+    const setIsTaskbarPlayerOpen = usePlayerStore(s => s.setIsTaskbarPlayerOpen)
 
     const [localProgress, setLocalProgress] = React.useState(0)
     const [localVolume, setLocalVolume] = React.useState(0)
@@ -790,6 +793,21 @@ export function FullscreenPlayer() {
                     {!isMobile && (
                         <>
                             <div className="flex items-center gap-2 ml-4 text-white/50">
+                                <button
+                                    onClick={async () => {
+                                        if (isTaskbarPlayerOpen) {
+                                            await invoke("close_taskbar_player")
+                                            setIsTaskbarPlayerOpen(false)
+                                        } else {
+                                            await invoke("open_taskbar_player")
+                                            setIsTaskbarPlayerOpen(true)
+                                        }
+                                    }}
+                                    className={`p-2 rounded-full transition-colors ${isTaskbarPlayerOpen ? 'bg-white/20 text-white' : 'hover:text-white hover:bg-white/10'}`}
+                                    title="任务栏播放器"
+                                >
+                                    <AppWindow size={20} />
+                                </button>
                                 <button
                                     onClick={minimize}
                                     className="p-2 hover:text-white hover:bg-white/10 rounded-full transition-colors"

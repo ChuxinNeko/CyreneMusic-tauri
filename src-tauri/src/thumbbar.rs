@@ -278,7 +278,7 @@ pub fn init_thumbbar(hwnd_raw: isize, callback: CommandCallback) {
 
         // Subclass the window
         let original = GetWindowLongPtrW(hwnd, GWLP_WNDPROC);
-        SetWindowLongPtrW(hwnd, GWLP_WNDPROC, thumbbar_wndproc as isize);
+        SetWindowLongPtrW(hwnd, GWLP_WNDPROC, thumbbar_wndproc as *const () as isize);
         let original_wndproc: WNDPROC = std::mem::transmute(original);
 
         let state = ThumbBarState {

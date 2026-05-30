@@ -88,6 +88,13 @@ class PlayerService {
             
             // 确保实例化歌词推送服务
             androidLyricService;
+
+            if (typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__) {
+                const store = usePlayerStore.getState();
+                if (store.isTaskbarPlayerOpen) {
+                    invoke('open_taskbar_player').catch(console.error);
+                }
+            }
         }
     }
 
