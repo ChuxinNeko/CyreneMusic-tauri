@@ -15,7 +15,7 @@ pub fn start() -> u16 {
 
     std::thread::spawn(move || {
         let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_io()
+            .enable_all()
             .build()
             .expect("[AudioProxy] Failed to create tokio runtime");
 
