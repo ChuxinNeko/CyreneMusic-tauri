@@ -146,22 +146,23 @@ export function FullscreenPlayer() {
     // 音频频率数据通过 ref 直接注入 WebGL，避免触发 React 重绘
     const bgRef = React.useRef<any>(null)
 
-    // 频率数据采集循环（复用 WebGL 渲染器自身的 tick 节奏，不再独立开 rAF）
+    // 频率数据采集循环（使用 rAF 与 WebGL 渲染器的 tick 自然同步，避免 setInterval 抖动）
     React.useEffect(() => {
         if (!isVisible || !isPlaying || !audioVisualization) {
             bgRef.current?.bgRender?.setFrequencyData(0, 0, 0)
             return
         }
 
-        // 使用 setInterval 以 ~30fps 注入频率数据，与 WebGL 渲染器的 tick 对齐
-        // 避免额外的 rAF 循环竞争主线程
-        const intervalId = setInterval(() => {
+        let handle = 0
+        const tick = () => {
             const data = audioAnalyser.getFrequencyData()
             bgRef.current?.bgRender?.setFrequencyData(data.bass, data.mid, data.treble)
-        }, 33)
+            handle = requestAnimationFrame(tick)
+        }
+        handle = requestAnimationFrame(tick)
 
         return () => {
-            clearInterval(intervalId)
+            cancelAnimationFrame(handle)
         }
     }, [isVisible, isPlaying, audioVisualization])
 
@@ -503,7 +504,8 @@ export function FullscreenPlayer() {
                     ref={bgRef}
                     album={currentTrack?.picUrl}
                     playing={isPlaying}
-                    renderScale={isMobile ? 0.15 : 0.25}
+                    fps={60}
+                    renderScale={isMobile ? 0.1 : 0.25}
                     isMobile={isMobile}
                     className="absolute inset-0 w-full h-full opacity-80"
                 />
@@ -910,6 +912,18 @@ export function FullscreenPlayer() {
                                 >
                                     {currentTrack?.artists || "未知歌手"}
                                 </p>
+                                <div className="flex w-full justify-end">
+                                    <button
+                                        onClick={() => {
+                                            const modes = [RepeatMode.All, RepeatMode.One, RepeatMode.Shuffle]
+                                            const currentIndex = modes.indexOf(repeatMode)
+                                            setRepeatMode(modes[(currentIndex + 1) % modes.length])
+                                        }}
+                                        className={`transition-colors p-1.5 ${repeatMode === RepeatMode.All ? 'text-white/30 hover:text-white/60' : 'text-white/80 hover:text-white'}`}
+                                    >
+                                        {repeatMode === RepeatMode.One ? <Repeat1 size={20} /> : repeatMode === RepeatMode.Shuffle ? <Shuffle size={20} /> : <Repeat size={20} />}
+                                    </button>
+                                </div>
                             </div>
                             </>
                             )}

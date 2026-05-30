@@ -749,7 +749,7 @@ export class MeshGradientRenderer extends BaseRenderer {
 	private _mobileMode = false;
 
 	private get meshSubdivision(): number {
-		return this._mobileMode ? 8 : 15;
+		return this._mobileMode ? 6 : 15;
 	}
 
 	setManualControl(enable: boolean) {

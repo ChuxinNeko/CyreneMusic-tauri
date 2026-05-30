@@ -1056,7 +1056,7 @@ class PlayerService {
 
         // 🔁 其他模式或退化情况：正常走原有播放顺序逻辑
         store.playNext()
-        const nextTrack = store.currentTrack
+        const nextTrack = usePlayerStore.getState().currentTrack
         if (nextTrack) {
             this.playTrack(nextTrack)
         }
