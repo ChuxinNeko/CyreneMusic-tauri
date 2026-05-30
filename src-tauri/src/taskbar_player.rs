@@ -115,7 +115,7 @@ pub async fn unpin_taskbar_player(app: AppHandle) -> Result<(), String> {
 
 #[cfg(not(target_os = "windows"))]
 #[tauri::command]
-pub async fn unpin_taskbar_player(_app: AppHandle) -> Result<(), String> {
+pub async fn unpin_taskbar_player(_app: tauri::AppHandle) -> Result<(), String> {
     Err("Taskbar player is only supported on Windows".to_string())
 }
 
@@ -169,7 +169,7 @@ pub async fn pin_taskbar_player(app: AppHandle) -> Result<(), String> {
 
 #[cfg(not(target_os = "windows"))]
 #[tauri::command]
-pub async fn pin_taskbar_player(_app: AppHandle) -> Result<(), String> {
+pub async fn pin_taskbar_player(_app: tauri::AppHandle) -> Result<(), String> {
     Err("Taskbar player is only supported on Windows".to_string())
 }
 
