@@ -118,64 +118,65 @@ class MainActivity : TauriActivity() {
   }
 
   fun installApk(filePath: String) {
-    runOnUiThread {
-      val file = File(filePath)
-      if (!file.exists()) {
-        toast("安装包不存在：$filePath")
-        return@runOnUiThread
-      }
-
-      // Android 8.0+ 必须先获得"安装未知应用"权限，否则系统会静默拦截
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-        && !packageManager.canRequestPackageInstalls()
-      ) {
-        pendingInstallPath = filePath
-        toast("请先允许「安装未知来源应用」权限")
+    try {
+      runOnUiThread {
         try {
-          val settingsIntent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
-            .setData(Uri.parse("package:$packageName"))
-            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-          startActivity(settingsIntent)
+          val file = File(filePath)
+          if (!file.exists()) {
+            toast("安装包不存在：$filePath")
+            return@runOnUiThread
+          }
+
+          // Android 8.0+ 必须先获得"安装未知应用"权限，否则系统会静默拦截
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+            && !packageManager.canRequestPackageInstalls()
+          ) {
+            pendingInstallPath = filePath
+            toast("请先允许「安装未知来源应用」权限")
+            try {
+              val settingsIntent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                .setData(Uri.parse("package:$packageName"))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+              startActivity(settingsIntent)
+            } catch (e: Exception) {
+              e.printStackTrace()
+              toast("无法打开权限设置：${e.message}")
+            }
+            return@runOnUiThread
+          }
+
+          val intent = Intent(Intent.ACTION_VIEW).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+              Intent.FLAG_ACTIVITY_CLEAR_TOP or
+              Intent.FLAG_GRANT_READ_URI_PERMISSION
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+              val apkUri: Uri = FileProvider.getUriForFile(
+                this@MainActivity,
+                "$packageName.fileprovider",
+                file
+              )
+              setDataAndType(apkUri, "application/vnd.android.package-archive")
+            } else {
+              @Suppress("DEPRECATION")
+              setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive")
+            }
+          }
+
+          startActivity(intent)
+        } catch (e: ActivityNotFoundException) {
+          e.printStackTrace()
+          toast("未找到安装器：${e.message}")
+        } catch (e: SecurityException) {
+          e.printStackTrace()
+          toast("安装被系统拒绝：${e.message}")
         } catch (e: Exception) {
           e.printStackTrace()
-          toast("无法打开权限设置：${e.message}")
+          toast("安装失败：${e.message}")
         }
-        return@runOnUiThread
       }
-
-      try {
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-          flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-            Intent.FLAG_ACTIVITY_CLEAR_TOP or
-            Intent.FLAG_GRANT_READ_URI_PERMISSION
-          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            val apkUri: Uri = FileProvider.getUriForFile(
-              this@MainActivity,
-              "$packageName.fileprovider",
-              file
-            )
-            setDataAndType(apkUri, "application/vnd.android.package-archive")
-          } else {
-            @Suppress("DEPRECATION")
-            setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive")
-          }
-        }
-
-        if (intent.resolveActivity(packageManager) == null) {
-          toast("找不到可处理安装包的系统组件")
-          return@runOnUiThread
-        }
-        startActivity(intent)
-      } catch (e: ActivityNotFoundException) {
-        e.printStackTrace()
-        toast("未找到安装器：${e.message}")
-      } catch (e: SecurityException) {
-        e.printStackTrace()
-        toast("安装被系统拒绝：${e.message}")
-      } catch (e: Exception) {
-        e.printStackTrace()
-        toast("安装失败：${e.message}")
-      }
+    } catch (e: Exception) {
+      e.printStackTrace()
+      toast("安装APK失败：${e.message}")
     }
   }
 
