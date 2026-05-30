@@ -14,6 +14,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.activity.OnBackPressedCallback
 import java.io.File
 
 class MainActivity : TauriActivity() {
@@ -27,7 +28,29 @@ class MainActivity : TauriActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     enableEdgeToEdge()
     super.onCreate(savedInstanceState)
+    WebView.setWebContentsDebuggingEnabled(true)
     requestNotificationPermission()
+
+    onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+      override fun handleOnBackPressed() {
+        val webView = webViewRef
+        if (webView == null) {
+          isEnabled = false
+          onBackPressedDispatcher.onBackPressed()
+          isEnabled = true
+          return
+        }
+        webView.evaluateJavascript(
+          "(window.__cyreneOnAndroidBack && window.__cyreneOnAndroidBack()) ? true : false"
+        ) { result ->
+          if (result != "true") {
+            isEnabled = false
+            onBackPressedDispatcher.onBackPressed()
+            isEnabled = true
+          }
+        }
+      }
+    })
   }
 
   override fun onResume() {
@@ -76,26 +99,7 @@ class MainActivity : TauriActivity() {
     super.onDestroy()
   }
 
-  @Suppress("DEPRECATION", "MissingSuperCall")
-  override fun onBackPressed() {
-    val webView = webViewRef
-    if (webView == null) {
-      superOnBackPressed()
-      return
-    }
-    webView.evaluateJavascript(
-      "(window.__cyreneOnAndroidBack && window.__cyreneOnAndroidBack()) ? true : false"
-    ) { result ->
-      if (result != "true") {
-        superOnBackPressed()
-      }
-    }
-  }
 
-  private fun superOnBackPressed() {
-    @Suppress("DEPRECATION")
-    super.onBackPressed()
-  }
 
   fun updateMediaNotification(payloadJson: String) {
     AndroidMediaNotificationManager.updateFromJson(payloadJson)

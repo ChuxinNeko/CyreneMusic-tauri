@@ -21,20 +21,22 @@ interface GitHubAsset {
     browser_download_url: string;
 }
 
-type AndroidAbi = "arm64-v8a" | "armeabi-v7a" | "x86_64" | "x86";
+type AndroidAbi = "arm64-v8a" | "armeabi-v7a" | "x86_64" | "x86" | "universal";
 
 const ABI_FALLBACK_ORDER: Record<AndroidAbi, AndroidAbi[]> = {
-    "arm64-v8a": ["arm64-v8a", "armeabi-v7a"],
-    "armeabi-v7a": ["armeabi-v7a", "arm64-v8a"],
-    "x86_64": ["x86_64", "x86", "arm64-v8a", "armeabi-v7a"],
-    "x86": ["x86", "x86_64", "armeabi-v7a", "arm64-v8a"],
+    "arm64-v8a": ["arm64-v8a", "universal", "armeabi-v7a"],
+    "armeabi-v7a": ["armeabi-v7a", "universal", "arm64-v8a"],
+    "x86_64": ["x86_64", "universal", "x86", "arm64-v8a", "armeabi-v7a"],
+    "x86": ["x86", "universal", "x86_64", "armeabi-v7a", "arm64-v8a"],
+    "universal": ["universal", "arm64-v8a", "armeabi-v7a", "x86_64", "x86"],
 };
 
 const ABI_FILENAME_PATTERNS: Record<AndroidAbi, RegExp> = {
-    "arm64-v8a": /arm64[-_]?v?8a?/i,
-    "armeabi-v7a": /armeabi[-_]?v?7a?/i,
+    "arm64-v8a": /arm64|aarch64/i,
+    "armeabi-v7a": /armeabi|armv7|([_-])arm(\.apk|[_-])/i,
     "x86_64": /x86[-_]?64/i,
-    "x86": /(^|[^_0-9])x86([^_0-9]|$)/i,
+    "x86": /([_-])(x86|i686)(\.apk|[_-])/i,
+    "universal": /universal/i,
 };
 
 const isTauri = (): boolean => {
