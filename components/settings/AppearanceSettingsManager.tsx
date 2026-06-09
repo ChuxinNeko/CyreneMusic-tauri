@@ -21,7 +21,7 @@ export function AppearanceSettingsManager() {
     const [mounted, setMounted] = useState(false)
     const [isDesktop, setIsDesktop] = useState(false)
     const { material, systemSupport, setMaterial, setSystemSupport } = useWindowMaterialStore()
-    const { isTaskbarPlayerEnabled, setTaskbarPlayerEnabled } = useLayoutStore()
+    const { isTaskbarPlayerEnabled, setTaskbarPlayerEnabled, taskbarPlayerPosition, setTaskbarPlayerPosition } = useLayoutStore()
 
     // Prevent hydration mismatch
     useEffect(() => {
@@ -120,6 +120,13 @@ export function AppearanceSettingsManager() {
             emit('player:command', 'open-taskbar-player')
         } else {
             emit('player:command', 'close-taskbar-player')
+        }
+    }
+
+    const handleTaskbarPositionChange = (position: 'left' | 'center' | 'right') => {
+        setTaskbarPlayerPosition(position)
+        if (isTaskbarPlayerEnabled) {
+            emit('player:command', 'open-taskbar-player')
         }
     }
 
@@ -232,6 +239,45 @@ export function AppearanceSettingsManager() {
                                 onCheckedChange={handleTaskbarPlayerChange}
                             />
                         </div>
+                        {isTaskbarPlayerEnabled && (
+                            <div className="pl-4 border-l-2 space-y-3 pt-2">
+                                <div className="space-y-1">
+                                    <h4 className="text-sm font-medium">悬浮窗对齐位置</h4>
+                                    <p className="text-xs text-muted-foreground">
+                                        选择在任务栏最大空白区域内的对齐方式。
+                                    </p>
+                                </div>
+                                <div className="flex bg-muted/50 p-1 rounded-lg w-fit">
+                                    <button
+                                        onClick={() => handleTaskbarPositionChange('left')}
+                                        className={cn(
+                                            "px-4 py-1.5 text-sm rounded-md transition-all",
+                                            taskbarPlayerPosition === 'left' ? "bg-background shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"
+                                        )}
+                                    >
+                                        靠左
+                                    </button>
+                                    <button
+                                        onClick={() => handleTaskbarPositionChange('center')}
+                                        className={cn(
+                                            "px-4 py-1.5 text-sm rounded-md transition-all",
+                                            taskbarPlayerPosition === 'center' ? "bg-background shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"
+                                        )}
+                                    >
+                                        居中
+                                    </button>
+                                    <button
+                                        onClick={() => handleTaskbarPositionChange('right')}
+                                        className={cn(
+                                            "px-4 py-1.5 text-sm rounded-md transition-all",
+                                            taskbarPlayerPosition === 'right' ? "bg-background shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"
+                                        )}
+                                    >
+                                        靠右
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
             </CardContent>

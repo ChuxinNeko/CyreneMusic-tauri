@@ -5,6 +5,7 @@ interface LayoutState {
     isSidebarCollapsed: boolean
     devModeUnlocked: boolean
     isTaskbarPlayerEnabled: boolean
+    taskbarPlayerPosition: 'left' | 'center' | 'right'
     isLiquidGlassVisible: boolean
     _settingsClickCount: number
     _lastSettingsClickTime: number
@@ -12,6 +13,7 @@ interface LayoutState {
     setSidebarCollapsed: (collapsed: boolean) => void
     toggleTaskbarPlayer: () => void
     setTaskbarPlayerEnabled: (enabled: boolean) => void
+    setTaskbarPlayerPosition: (position: 'left' | 'center' | 'right') => void
     handleSettingsClick: () => void
     showLiquidGlass: () => void
     hideLiquidGlass: () => void
@@ -23,6 +25,7 @@ export const useLayoutStore = create<LayoutState>()(
             isSidebarCollapsed: false,
             devModeUnlocked: false,
             isTaskbarPlayerEnabled: false,
+            taskbarPlayerPosition: 'center',
             isLiquidGlassVisible: false,
             _settingsClickCount: 0,
             _lastSettingsClickTime: 0,
@@ -30,6 +33,7 @@ export const useLayoutStore = create<LayoutState>()(
             setSidebarCollapsed: (collapsed: boolean) => set({ isSidebarCollapsed: collapsed }),
             toggleTaskbarPlayer: () => set((state) => ({ isTaskbarPlayerEnabled: !state.isTaskbarPlayerEnabled })),
             setTaskbarPlayerEnabled: (enabled: boolean) => set({ isTaskbarPlayerEnabled: enabled }),
+            setTaskbarPlayerPosition: (position: 'left' | 'center' | 'right') => set({ taskbarPlayerPosition: position }),
             handleSettingsClick: () => {
                 const now = Date.now()
                 const { _settingsClickCount, _lastSettingsClickTime } = get()
@@ -54,6 +58,7 @@ export const useLayoutStore = create<LayoutState>()(
                 isSidebarCollapsed: state.isSidebarCollapsed,
                 devModeUnlocked: state.devModeUnlocked,
                 isTaskbarPlayerEnabled: state.isTaskbarPlayerEnabled,
+                taskbarPlayerPosition: state.taskbarPlayerPosition,
             }),
         }
     )

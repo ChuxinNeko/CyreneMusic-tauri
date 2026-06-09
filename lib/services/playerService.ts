@@ -7,6 +7,7 @@ import { urlService } from "./urlService"
 import { AudioSourceType } from "../models/audioSourceConfig"
 import { usePlayerStore, RepeatMode } from "../store/usePlayerStore"
 import { useAudioSourceStore } from "../store/useAudioSourceStore"
+import { useLayoutStore } from "../store/useLayoutStore"
 import { Track } from "../models/track"
 import { historyService } from "./historyService"
 import { listeningStatsService } from "./listeningStatsService"
@@ -92,7 +93,7 @@ class PlayerService {
             if (typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__) {
                 const store = usePlayerStore.getState();
                 if (store.isTaskbarPlayerOpen) {
-                    invoke('open_taskbar_player').catch(console.error);
+                    invoke('open_taskbar_player', { position: store.taskbarPlayerPosition }).catch(console.error);
                 }
             }
         }
@@ -138,7 +139,8 @@ class PlayerService {
                     break
                 case 'open-taskbar-player':
                     if (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) {
-                        invoke('open_taskbar_player').catch(console.error)
+                        const store = useLayoutStore.getState()
+                        invoke('open_taskbar_player', { position: store.taskbarPlayerPosition }).catch(console.error)
                     }
                     break
                 case 'close-taskbar-player':

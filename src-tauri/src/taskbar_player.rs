@@ -8,8 +8,10 @@ use windows::core::w;
 use windows::Win32::Foundation::RECT;
 #[cfg(target_os = "windows")]
 use windows::Win32::UI::WindowsAndMessaging::{
-    FindWindowW, GetWindowRect, SetWindowLongPtrW, GWLP_HWNDPARENT,
+    FindWindowW, GetWindowRect, SetWindowLongPtrW, GWLP_HWNDPARENT, EnumChildWindows, IsWindowVisible
 };
+#[cfg(target_os = "windows")]
+use windows::Win32::Foundation::{BOOL, HWND, LPARAM};
 
 /// 悬浮模式的窗口尺寸
 const TASKBAR_WIDTH: u32 = 280;
@@ -32,6 +34,112 @@ fn get_taskbar_rect() -> Option<RECT> {
 #[cfg(target_os = "windows")]
 fn get_taskbar_hwnd() -> Option<windows::Win32::Foundation::HWND> {
     unsafe { FindWindowW(w!("Shell_TrayWnd"), None).ok() }
+}
+
+/// 动态获取最优的 X 坐标，寻找最大的可用间隙并居中/靠左/靠右
+#[cfg(target_os = "windows")]
+fn get_best_taskbar_x(taskbar_rect: &RECT, player_width: u32, position: Option<&str>) -> i32 {
+    let pos_str = position.unwrap_or("center");
+
+    // 如果用户明确选择靠右，直接寻找系统托盘(TrayNotifyWnd)并紧贴其左侧
+    if pos_str == "right" {
+        if let Some(parent_hwnd) = get_taskbar_hwnd() {
+            unsafe {
+                use windows::Win32::UI::WindowsAndMessaging::FindWindowExW;
+                if let Ok(tray) = FindWindowExW(parent_hwnd, HWND(0 as _), w!("TrayNotifyWnd"), None) {
+                    if IsWindowVisible(tray).into() {
+                        let mut r = RECT::default();
+                        if GetWindowRect(tray, &mut r).is_ok() {
+                            return r.left - player_width as i32 - 10;
+                        }
+                    }
+                }
+            }
+        }
+        // 如果找不到，则使用经验值回退
+        return taskbar_rect.right - player_width as i32 - 200;
+    }
+
+    struct Span {
+        left: i32,
+        right: i32,
+    }
+
+    struct EnumData {
+        spans: Vec<Span>,
+        tb_width: i32,
+    }
+
+    let mut data = EnumData {
+        spans: Vec::new(),
+        tb_width: taskbar_rect.right - taskbar_rect.left,
+    };
+
+    unsafe extern "system" fn enum_child_proc(hwnd: HWND, lparam: LPARAM) -> BOOL {
+        let data_ptr = &mut *(lparam.0 as *mut EnumData);
+        if IsWindowVisible(hwnd).into() {
+            let mut r = RECT::default();
+            if GetWindowRect(hwnd, &mut r).is_ok() {
+                let w = r.right - r.left;
+                if w > 0 && w < data_ptr.tb_width - 10 {
+                    data_ptr.spans.push(Span { left: r.left, right: r.right });
+                }
+            }
+        }
+        BOOL(1)
+    }
+
+    if let Some(parent_hwnd) = get_taskbar_hwnd() {
+        unsafe {
+            let data_ptr = &mut data as *mut EnumData;
+            let _ = EnumChildWindows(parent_hwnd, Some(enum_child_proc), LPARAM(data_ptr as isize));
+
+            if let Ok(start_hwnd) = FindWindowW(w!("Button"), w!("Start")) {
+                if IsWindowVisible(start_hwnd).into() {
+                    let mut r = RECT::default();
+                    if GetWindowRect(start_hwnd, &mut r).is_ok() {
+                        data.spans.push(Span { left: r.left, right: r.right });
+                    }
+                }
+            }
+        }
+    }
+
+    if data.spans.is_empty() {
+        return TASKBAR_X_OFFSET;
+    }
+
+    data.spans.sort_by_key(|s| s.left);
+
+    let mut current_x = taskbar_rect.left;
+    let mut max_gap = 0;
+    let mut best_x = current_x;
+
+    for span in &data.spans {
+        let gap = span.left - current_x;
+        if gap > max_gap {
+            max_gap = gap;
+            best_x = current_x;
+        }
+        if span.right > current_x {
+            current_x = span.right;
+        }
+    }
+
+    let final_gap = taskbar_rect.right - current_x;
+    if final_gap > max_gap {
+        max_gap = final_gap;
+        best_x = current_x;
+    }
+
+    if max_gap >= player_width as i32 {
+        match pos_str {
+            "left" => best_x + 20,
+            _ => best_x + (max_gap - player_width as i32) / 2, // 默认居中
+        }
+    } else {
+        TASKBAR_X_OFFSET
+    }
 }
 
 /// 任务栏矩形信息（用于前端判断是否拖到了任务栏区域）
@@ -124,7 +232,7 @@ pub async fn unpin_taskbar_player(_app: tauri::AppHandle) -> Result<(), String> 
 /// - 调整窗口尺寸并定位到任务栏
 #[cfg(target_os = "windows")]
 #[tauri::command]
-pub async fn pin_taskbar_player(app: AppHandle) -> Result<(), String> {
+pub async fn pin_taskbar_player(app: AppHandle, position: Option<String>) -> Result<(), String> {
     let window = app
         .get_webview_window("taskbar-player")
         .ok_or("Taskbar player window not found")?;
@@ -155,9 +263,11 @@ pub async fn pin_taskbar_player(app: AppHandle) -> Result<(), String> {
         height: taskbar_height,
     })).map_err(|e| format!("Failed to set size: {}", e))?;
 
+    let target_x = get_best_taskbar_x(&taskbar_rect, TASKBAR_WIDTH, position.as_deref());
+
     // 重新定位到任务栏
     window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
-        x: TASKBAR_X_OFFSET,
+        x: target_x,
         y: taskbar_rect.top,
     })).map_err(|e| format!("Failed to set position: {}", e))?;
 
@@ -169,17 +279,26 @@ pub async fn pin_taskbar_player(app: AppHandle) -> Result<(), String> {
 
 #[cfg(not(target_os = "windows"))]
 #[tauri::command]
-pub async fn pin_taskbar_player(_app: tauri::AppHandle) -> Result<(), String> {
+pub async fn pin_taskbar_player(_app: tauri::AppHandle, _position: Option<String>) -> Result<(), String> {
     Err("Taskbar player is only supported on Windows".to_string())
 }
 
-/// 打开任务栏播放器（保持原有逻辑）
+/// 打开任务栏播放器
 #[cfg(target_os = "windows")]
 #[tauri::command]
-pub async fn open_taskbar_player(app: AppHandle) -> Result<(), String> {
+pub async fn open_taskbar_player(app: AppHandle, position: Option<String>) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("taskbar-player") {
         let _ = window.show();
         let _ = window.set_focus();
+        
+        // 如果窗口已经存在，根据最新的设置重新计算位置
+        if let Some(rect) = get_taskbar_rect() {
+            let target_x = get_best_taskbar_x(&rect, TASKBAR_WIDTH, position.as_deref());
+            let _ = window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
+                x: target_x,
+                y: rect.top,
+            }));
+        }
         return Ok(());
     }
 
@@ -187,12 +306,13 @@ pub async fn open_taskbar_player(app: AppHandle) -> Result<(), String> {
     let hwnd = get_taskbar_hwnd();
     let mut y = 0;
     let mut height = 60;
-    let x = TASKBAR_X_OFFSET;
     let width = TASKBAR_WIDTH;
+    let mut x = TASKBAR_X_OFFSET;
 
     if let Some(rect) = get_taskbar_rect() {
         y = rect.top;
         height = rect.bottom - rect.top;
+        x = get_best_taskbar_x(&rect, width, position.as_deref());
     }
 
     let window = WebviewWindowBuilder::new(
@@ -240,7 +360,7 @@ pub async fn open_taskbar_player(app: AppHandle) -> Result<(), String> {
 
 #[cfg(not(target_os = "windows"))]
 #[tauri::command]
-pub async fn open_taskbar_player(_app: tauri::AppHandle) -> Result<(), String> {
+pub async fn open_taskbar_player(_app: tauri::AppHandle, _position: Option<String>) -> Result<(), String> {
     Err("Taskbar player is only supported on Windows".to_string())
 }
 
@@ -272,12 +392,13 @@ pub async fn show_taskbar_drop_zone(app: AppHandle) -> Result<(), String> {
     let hwnd = get_taskbar_hwnd();
     let mut y = 0;
     let mut height = 60;
-    let x = TASKBAR_X_OFFSET;
     let width = TASKBAR_WIDTH;
+    let mut x = TASKBAR_X_OFFSET;
 
     if let Some(rect) = get_taskbar_rect() {
         y = rect.top;
         height = rect.bottom - rect.top;
+        x = get_best_taskbar_x(&rect, width, None);
     }
 
     let window = WebviewWindowBuilder::new(
