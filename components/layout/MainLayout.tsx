@@ -11,6 +11,7 @@ import { SetupWizard } from "../setup/SetupWizard"
 import { updateService, UpdateInfo } from "@/lib/services/updateService"
 import { UpdateDialog } from "../common/UpdateDialog"
 import { AnnouncementDialog } from "../common/AnnouncementDialog"
+import { SongRecommendPopup } from "../common/SongRecommendPopup"
 import { useLayoutStore } from "@/lib/store/useLayoutStore"
 import { emit } from "@tauri-apps/api/event"
 import {
@@ -27,6 +28,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
     const isDesktopLyric = pathname === "/desktop-lyric"
     const isTaskbar = pathname === "/taskbar"
     const isTaskbarDropZone = pathname === "/taskbar-drop-zone"
+    const isSongRecommend = pathname === "/song-recommend"
 
     const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
     const [showUpdateDialog, setShowUpdateDialog] = useState(false)
@@ -45,7 +47,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
         document.addEventListener("contextmenu", handleContextMenu)
 
         // 桌面歌词、托盘和任务栏窗口不需要检查更新和初始化材质
-        if (isTray || isDesktopLyric || isTaskbar || isTaskbarDropZone) {
+        if (isTray || isDesktopLyric || isTaskbar || isTaskbarDropZone || isSongRecommend) {
             return () => {
                 document.removeEventListener("contextmenu", handleContextMenu)
             }
@@ -101,12 +103,12 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
         return () => {
             document.removeEventListener("contextmenu", handleContextMenu)
         }
-    }, [isTray, isDesktopLyric, isTaskbar, isTaskbarDropZone])
+    }, [isTray, isDesktopLyric, isTaskbar, isTaskbarDropZone, isSongRecommend])
 
     // 是否使用透明背景
     const isTransparent = material === "mica" || material === "acrylic"
 
-    if (isTray || isDesktopLyric || isTaskbar || isTaskbarDropZone) {
+    if (isTray || isDesktopLyric || isTaskbar || isTaskbarDropZone || isSongRecommend) {
         return <div className="h-screen w-full bg-transparent overflow-hidden">{children}</div>
     }
 
@@ -133,6 +135,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
                 onOpenChange={setShowUpdateDialog} 
             />
             <AnnouncementDialog />
+            <SongRecommendPopup />
             <LiquidGlassOverlay />
         </div>
     )

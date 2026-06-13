@@ -6,7 +6,8 @@
     "main",
     "tray",
     "desktop-lyric",
-    "taskbar-player"
+    "taskbar-player",
+    "song-recommend"
   ],
   "permissions": [
     "core:default",

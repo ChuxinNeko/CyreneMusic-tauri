@@ -7,8 +7,10 @@ interface LayoutState {
     isTaskbarPlayerEnabled: boolean
     taskbarPlayerPosition: 'left' | 'center' | 'right'
     isLiquidGlassVisible: boolean
+    showDailyRecommendPopup: boolean
     _settingsClickCount: number
     _lastSettingsClickTime: number
+    _recommendPopupTrigger: number
     toggleSidebar: () => void
     setSidebarCollapsed: (collapsed: boolean) => void
     toggleTaskbarPlayer: () => void
@@ -17,6 +19,8 @@ interface LayoutState {
     handleSettingsClick: () => void
     showLiquidGlass: () => void
     hideLiquidGlass: () => void
+    setShowDailyRecommendPopup: (show: boolean) => void
+    triggerRecommendPopup: () => void
 }
 
 export const useLayoutStore = create<LayoutState>()(
@@ -27,7 +31,9 @@ export const useLayoutStore = create<LayoutState>()(
             isTaskbarPlayerEnabled: false,
             taskbarPlayerPosition: 'center',
             isLiquidGlassVisible: false,
+            showDailyRecommendPopup: true,
             _settingsClickCount: 0,
+            _recommendPopupTrigger: 0,
             _lastSettingsClickTime: 0,
             toggleSidebar: () => set((state) => ({ isSidebarCollapsed: !state.isSidebarCollapsed })),
             setSidebarCollapsed: (collapsed: boolean) => set({ isSidebarCollapsed: collapsed }),
@@ -51,6 +57,8 @@ export const useLayoutStore = create<LayoutState>()(
             },
             showLiquidGlass: () => set({ isLiquidGlassVisible: true }),
             hideLiquidGlass: () => set({ isLiquidGlassVisible: false }),
+            setShowDailyRecommendPopup: (show: boolean) => set({ showDailyRecommendPopup: show }),
+            triggerRecommendPopup: () => set((state) => ({ _recommendPopupTrigger: state._recommendPopupTrigger + 1 })),
         }),
         {
             name: 'cyrene-layout-store',
@@ -59,6 +67,7 @@ export const useLayoutStore = create<LayoutState>()(
                 devModeUnlocked: state.devModeUnlocked,
                 isTaskbarPlayerEnabled: state.isTaskbarPlayerEnabled,
                 taskbarPlayerPosition: state.taskbarPlayerPosition,
+                showDailyRecommendPopup: state.showDailyRecommendPopup,
             }),
         }
     )

@@ -215,6 +215,73 @@ async fn close_desktop_lyric(app: tauri::AppHandle) -> Result<(), String> {
 
 #[cfg(desktop)]
 #[tauri::command]
+async fn open_recommend_popup(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("song-recommend") {
+        let _ = window.show();
+        let _ = window.set_focus();
+        return Ok(());
+    }
+
+    // 获取主窗口所在显示器的工作区来定位窗口到右下角
+    let popup_width = 360.0_f64;
+    let popup_height = 460.0_f64;
+    let margin = 16.0_f64;
+
+    let (x, y) = if let Some(main_win) = app.get_webview_window("main") {
+        if let Ok(monitor) = main_win.current_monitor() {
+            if let Some(monitor) = monitor {
+                let size = monitor.size();
+                let pos = monitor.position();
+                let scale = main_win.scale_factor().unwrap_or(1.0);
+                let work_w = size.width as f64 / scale;
+                let work_h = size.height as f64 / scale;
+                let origin_x = pos.x as f64 / scale;
+                let origin_y = pos.y as f64 / scale;
+                (
+                    origin_x + work_w - popup_width - margin,
+                    origin_y + work_h - popup_height - margin - 48.0, // 48px 给任务栏留空
+                )
+            } else {
+                (1200.0, 500.0)
+            }
+        } else {
+            (1200.0, 500.0)
+        }
+    } else {
+        (1200.0, 500.0)
+    };
+
+    tauri::WebviewWindowBuilder::new(
+        &app,
+        "song-recommend",
+        tauri::WebviewUrl::App("song-recommend".into()),
+    )
+    .title("Song Recommend")
+    .resizable(false)
+    .focused(false)
+    .decorations(false)
+    .always_on_top(true)
+    .skip_taskbar(true)
+    .shadow(true)
+    .inner_size(popup_width, popup_height)
+    .position(x, y)
+    .build()
+    .map_err(|e| format!("Failed to create recommend popup: {}", e))?;
+
+    Ok(())
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+async fn close_recommend_popup(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("song-recommend") {
+        let _ = window.close();
+    }
+    Ok(())
+}
+
+#[cfg(desktop)]
+#[tauri::command]
 fn update_window_material(window: tauri::Window, material: String, is_dark: bool) -> Result<(), String> {
     match material.as_str() {
         "mica" => {
@@ -663,7 +730,9 @@ pub fn run() {
                         taskbar_player::get_taskbar_info,
                         taskbar_player::show_taskbar_drop_zone,
                         taskbar_player::hide_taskbar_drop_zone,
-                        taskbar_player::is_left_mouse_button_pressed
+                        taskbar_player::is_left_mouse_button_pressed,
+                        open_recommend_popup,
+                        close_recommend_popup
                     ]
                 }
                 #[cfg(not(target_os = "windows"))]
@@ -694,7 +763,9 @@ pub fn run() {
                         taskbar_player::get_taskbar_info,
                         taskbar_player::show_taskbar_drop_zone,
                         taskbar_player::hide_taskbar_drop_zone,
-                        taskbar_player::is_left_mouse_button_pressed
+                        taskbar_player::is_left_mouse_button_pressed,
+                        open_recommend_popup,
+                        close_recommend_popup
                     ]
                 }
             }

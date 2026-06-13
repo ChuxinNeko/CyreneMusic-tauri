@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { ChevronRight, Server, ChevronLeft, User, Music, KeyRound, Info, FileText, Settings2, Palette, RefreshCw, HardDrive } from "lucide-react"
+import { ChevronRight, Server, ChevronLeft, User, Music, KeyRound, Info, FileText, Settings2, Palette, RefreshCw, HardDrive, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -20,6 +20,9 @@ import { useAudioSourceStore } from "@/lib/store/useAudioSourceStore"
 import { AppearanceSettingsManager } from "@/components/settings/AppearanceSettingsManager"
 import { CacheSettingsManager } from "@/components/settings/CacheSettingsManager"
 import { useTheme } from "next-themes"
+import { useLayoutStore } from "@/lib/store/useLayoutStore"
+import { Switch } from "@/components/ui/switch"
+import { toast } from "sonner"
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense } from "react"
@@ -59,6 +62,7 @@ function SettingsPageContent() {
     const activeSource = useActiveSource()
     const { quality, sources } = useAudioSourceStore()
     const { theme } = useTheme()
+    const { showDailyRecommendPopup, setShowDailyRecommendPopup, triggerRecommendPopup } = useLayoutStore()
 
     useEffect(() => {
         // Initial load
@@ -284,6 +288,35 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
                                     title="外观设置"
                                     description={theme === "dark" ? "深色模式" : theme === "light" ? "浅色模式" : "跟随系统"}
                                     onClick={() => setView("appearance")}
+                                />
+                                <SettingsItem
+                                    icon={Sparkles}
+                                    title="启动推荐"
+                                    description="启动时在右下角弹出歌曲推荐"
+                                    onClick={() => {}}
+                                    rightElement={
+                                        <div className="flex items-center gap-3">
+                                            {!showDailyRecommendPopup && (
+                                                <button
+                                                    className="text-xs text-primary hover:text-primary/80 font-medium transition-colors whitespace-nowrap"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        triggerRecommendPopup()
+                                                        toast.success("正在加载推荐歌曲...")
+                                                    }}
+                                                >
+                                                    显示一次
+                                                </button>
+                                            )}
+                                            <Switch
+                                                checked={showDailyRecommendPopup}
+                                                onCheckedChange={(checked) => {
+                                                    setShowDailyRecommendPopup(checked)
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                        </div>
+                                    }
                                 />
                             </SettingsItemGroup>
                         </section>
