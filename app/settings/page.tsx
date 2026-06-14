@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { ChevronRight, Server, ChevronLeft, User, Music, KeyRound, Info, FileText, Settings2, Palette, RefreshCw, HardDrive, Sparkles } from "lucide-react"
+import { ChevronRight, Server, ChevronLeft, User, Music, Music2, KeyRound, Info, FileText, Settings2, Palette, RefreshCw, HardDrive, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,6 +19,7 @@ import { QualitySettingsDialog } from "@/components/settings/QualitySettingsDial
 import { useAudioSourceStore } from "@/lib/store/useAudioSourceStore"
 import { AppearanceSettingsManager } from "@/components/settings/AppearanceSettingsManager"
 import { CacheSettingsManager } from "@/components/settings/CacheSettingsManager"
+import { PlayerSettingsManager } from "@/components/settings/PlayerSettingsManager"
 import { useTheme } from "next-themes"
 import { useLayoutStore } from "@/lib/store/useLayoutStore"
 import { Switch } from "@/components/ui/switch"
@@ -33,7 +34,7 @@ import { UserAgreementContent } from "@/components/common/UserAgreementContent"
 import { updateService, UpdateInfo } from "@/lib/services/updateService"
 import { UpdateDialog } from "@/components/common/UpdateDialog"
 
-type SettingsView = "main" | "backend-source" | "audio-source" | "account-binding" | "appearance" | "about" | "user-agreement" | "cache-management"
+type SettingsView = "main" | "backend-source" | "audio-source" | "account-binding" | "appearance" | "player" | "about" | "user-agreement" | "cache-management"
 
 function SettingsPageContent() {
     const router = useRouter()
@@ -162,6 +163,19 @@ function SettingsPageContent() {
                     </span>
                     <ChevronRight className="h-6 w-6 text-muted-foreground" />
                     <span className="text-foreground">外观设置</span>
+                </div>
+            )
+        } else if (view === "player") {
+            return (
+                <div className="flex items-center gap-1">
+                    <span
+                        className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+                        onClick={() => setView("main")}
+                    >
+                        设置
+                    </span>
+                    <ChevronRight className="h-6 w-6 text-muted-foreground" />
+                    <span className="text-foreground">播放器设置</span>
                 </div>
             )
         } else if (view === "about") {
@@ -373,6 +387,12 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
                                     onClick={() => setQualityDialogOpen(true)}
                                 />
                                 <SettingsItem
+                                    icon={Music2}
+                                    title="播放器设置"
+                                    description="歌词、字体、背景与桌面歌词"
+                                    onClick={() => setView("player")}
+                                />
+                                <SettingsItem
                                     icon={HardDrive}
                                     title="缓存管理"
                                     description="管理本地加密音频缓存，离线可用"
@@ -386,6 +406,12 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
                 {view === "appearance" && (
                     <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-right-4 duration-300 pb-10">
                         <AppearanceSettingsManager />
+                    </div>
+                )}
+
+                {view === "player" && (
+                    <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-right-4 duration-300 pb-10">
+                        <PlayerSettingsManager />
                     </div>
                 )}
 

@@ -27,10 +27,12 @@ import {
     Repeat1,
     Shuffle,
     Disc,
-    AppWindow
+    AppWindow,
+    Image as ImageIcon
 } from "lucide-react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { emit } from "@tauri-apps/api/event"
+import { convertFileSrc } from "@tauri-apps/api/core"
 import { usePlayerStore, RepeatMode, LyricDisplayStyle, SingleLineAnimation } from "@/lib/store/usePlayerStore"
 import { playerService } from "@/lib/services/playerService"
 import { audioAnalyser } from "@/lib/services/audioAnalyser"
@@ -45,6 +47,7 @@ import { AudioVisualizer } from "./AudioVisualizer"
 import { AddToPlaylistDialog } from "./AddToPlaylistDialog"
 import { playlistService } from "@/lib/services/playlistService"
 import { LYRIC_FONT_OPTIONS } from "@/lib/constants/fonts"
+import { BackgroundSettingsDialog } from "./BackgroundSettingsDialog"
 import { Slider } from "@/components/ui/slider"
 import { useAudioSourceStore, useActiveSource } from "@/lib/store/useAudioSourceStore"
 import { AudioQuality } from "@/lib/services/audioSourceService"
@@ -117,6 +120,14 @@ export function FullscreenPlayer() {
     const isTaskbarPlayerOpen = usePlayerStore(s => s.isTaskbarPlayerOpen)
     const setIsTaskbarPlayerOpen = usePlayerStore(s => s.setIsTaskbarPlayerOpen)
 
+    // 自定义播放器背景
+    const playerBgType = usePlayerStore(s => s.playerBgType)
+    const customBgPath = usePlayerStore(s => s.customBgPath)
+    const customBgBlur = usePlayerStore(s => s.customBgBlur)
+    const customBgBrightness = usePlayerStore(s => s.customBgBrightness)
+    const customBgScale = usePlayerStore(s => s.customBgScale)
+    const customBgOverlay = usePlayerStore(s => s.customBgOverlay)
+
     const [localProgress, setLocalProgress] = React.useState(0)
     const [localVolume, setLocalVolume] = React.useState(0)
     const isDraggingProgress = React.useRef(false)
@@ -141,6 +152,7 @@ export function FullscreenPlayer() {
     const router = useRouter()
     const [showArtistPicker, setShowArtistPicker] = React.useState(false)
     const [artistList, setArtistList] = React.useState<string[]>([])
+    const [bgDialogOpen, setBgDialogOpen] = React.useState(false)
 
     // 双视频无缝循环淡入淡出
     const video0Ref = React.useRef<HTMLVideoElement>(null)
@@ -560,16 +572,33 @@ export function FullscreenPlayer() {
         <div className={`fixed inset-0 z-[100] bg-black overflow-hidden flex flex-col transition-all duration-500 ease-in-out ${isAnimatingOut ? 'opacity-0 translate-y-full' : 'opacity-100 translate-y-0'}`}>
             {/* Ambient Background */}
             <div className="absolute inset-0 z-0 bg-black">
-                <WebGLBackground
-                    ref={bgRef}
-                    album={currentTrack?.picUrl}
-                    playing={isPlaying}
-                    fps={60}
-                    renderScale={isMobile ? 0.1 : 0.25}
-                    isMobile={isMobile}
-                    className="absolute inset-0 w-full h-full opacity-80"
+                {playerBgType === 'image' && customBgPath ? (
+                    <div
+                        className="absolute inset-0"
+                        style={{
+                            backgroundImage: `url(${convertFileSrc(customBgPath)})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            filter: `blur(${customBgBlur}px) brightness(${customBgBrightness}%)`,
+                            transform: `scale(${customBgScale / 100})`,
+                            transition: 'filter 200ms ease, transform 200ms ease',
+                        }}
+                    />
+                ) : (
+                    <WebGLBackground
+                        ref={bgRef}
+                        album={currentTrack?.picUrl}
+                        playing={isPlaying}
+                        fps={60}
+                        renderScale={isMobile ? 0.1 : 0.25}
+                        isMobile={isMobile}
+                        className="absolute inset-0 w-full h-full opacity-80"
+                    />
+                )}
+                <div
+                    className="absolute inset-0 bg-black"
+                    style={{ opacity: playerBgType === 'image' && customBgPath ? customBgOverlay / 100 : 0.2 }}
                 />
-                <div className="absolute inset-0 bg-black/20" />
             </div>
 
 
@@ -614,6 +643,13 @@ export function FullscreenPlayer() {
                         >
                             <Monitor className="mr-2 h-4 w-4" />
                             桌面歌词
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                            onSelect={(e) => { e.preventDefault(); setBgDialogOpen(true) }}
+                            className="focus:bg-white/10 focus:text-white"
+                        >
+                            <ImageIcon className="mr-2 h-4 w-4" />
+                            播放器背景…
                         </DropdownMenuItem>
                         <DropdownMenuSeparator className="bg-white/10" />
                         <div className="px-2 py-1.5">
@@ -780,6 +816,13 @@ export function FullscreenPlayer() {
                                     <Monitor className="mr-2 h-4 w-4" />
                                     沉浸模式
                                 </DropdownMenuCheckboxItem>
+                                <DropdownMenuItem
+                                    onSelect={(e) => { e.preventDefault(); setBgDialogOpen(true) }}
+                                    className="focus:bg-white/10 focus:text-white"
+                                >
+                                    <ImageIcon className="mr-2 h-4 w-4" />
+                                    播放器背景…
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-white/10" />
                                 <div className="px-2 py-1.5">
                                     <div className="flex items-center text-sm font-medium mb-2 opacity-80">
@@ -1430,6 +1473,10 @@ export function FullscreenPlayer() {
                 track={currentTrack}
                 onStatusChange={checkPlaylistStatus}
                 mode={showAddToPlaylistMode}
+            />
+            <BackgroundSettingsDialog
+                open={bgDialogOpen}
+                onOpenChange={setBgDialogOpen}
             />
         </div>
     )

@@ -23,6 +23,9 @@ export enum SingleLineAnimation {
     Blur = 'blur'
 }
 
+// 播放器背景类型
+export type PlayerBgType = 'webgl' | 'image'
+
 interface PlayerState {
     // Current track being played
     currentTrack: Track | null
@@ -65,6 +68,14 @@ interface PlayerState {
     playError: string | null
     isTaskbarPlayerOpen: boolean
 
+    // Custom Player Background
+    playerBgType: PlayerBgType
+    customBgPath: string | null
+    customBgBlur: number
+    customBgBrightness: number
+    customBgScale: number
+    customBgOverlay: number
+
     // Actions
     setCurrentTrack: (track: Track | null, preserveProgress?: boolean) => void
     updateTrackLyrics: (lyrics: Partial<Pick<Track, 'lyric' | 'yrc' | 'tlyric' | 'ytlrc' | 'chorus'>>) => void
@@ -96,6 +107,13 @@ interface PlayerState {
     setSingleLineAnimation: (animation: SingleLineAnimation) => void
     setPlayError: (error: string | null) => void
     setIsTaskbarPlayerOpen: (open: boolean) => void
+
+    setPlayerBgType: (type: PlayerBgType) => void
+    setCustomBgPath: (path: string | null) => void
+    setCustomBgBlur: (blur: number) => void
+    setCustomBgBrightness: (brightness: number) => void
+    setCustomBgScale: (scale: number) => void
+    setCustomBgOverlay: (overlay: number) => void
 
     playNext: () => void
     playPrevious: () => void
@@ -129,6 +147,13 @@ export const usePlayerStore = create<PlayerState>()(
             singleLineAnimation: SingleLineAnimation.SlideUp,
             playError: null,
             isTaskbarPlayerOpen: true,
+
+            playerBgType: 'webgl',
+            customBgPath: null,
+            customBgBlur: 0,
+            customBgBrightness: 60,
+            customBgScale: 110,
+            customBgOverlay: 30,
 
             setCurrentTrack: (track, preserveProgress = false) => {
                 const { currentTrack, history } = get()
@@ -203,6 +228,13 @@ export const usePlayerStore = create<PlayerState>()(
             setPlayError: (playError) => set({ playError }),
             setIsTaskbarPlayerOpen: (isTaskbarPlayerOpen) => set({ isTaskbarPlayerOpen }),
 
+            setPlayerBgType: (playerBgType) => set({ playerBgType }),
+            setCustomBgPath: (customBgPath) => set({ customBgPath }),
+            setCustomBgBlur: (customBgBlur) => set({ customBgBlur }),
+            setCustomBgBrightness: (customBgBrightness) => set({ customBgBrightness }),
+            setCustomBgScale: (customBgScale) => set({ customBgScale }),
+            setCustomBgOverlay: (customBgOverlay) => set({ customBgOverlay }),
+
             playNext: () => {
                 const { queue, currentTrack, repeatMode } = get()
                 if (queue.length === 0) return
@@ -255,6 +287,12 @@ export const usePlayerStore = create<PlayerState>()(
                 lyricDisplayStyle: state.lyricDisplayStyle,
                 singleLineAnimation: state.singleLineAnimation,
                 isTaskbarPlayerOpen: state.isTaskbarPlayerOpen,
+                playerBgType: state.playerBgType,
+                customBgPath: state.customBgPath,
+                customBgBlur: state.customBgBlur,
+                customBgBrightness: state.customBgBrightness,
+                customBgScale: state.customBgScale,
+                customBgOverlay: state.customBgOverlay,
             }),
         }
     )
