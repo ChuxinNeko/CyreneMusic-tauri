@@ -228,7 +228,7 @@ function SettingsPageContent() {
     }
 
 const SettingsItemGroup = ({ children }: { children: React.ReactNode }) => (
-    <div className="flex flex-col border rounded-xl overflow-hidden bg-card shadow-sm ring-1 ring-black/5 dark:ring-white/5 divide-y">
+    <div className="flex flex-col border border-border/40 rounded-xl overflow-hidden bg-card/60 backdrop-blur-xl shadow-sm ring-1 ring-black/5 dark:ring-white/5 divide-y divide-border/40">
         {children}
     </div>
 );
@@ -280,17 +280,23 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
                     <div className="space-y-8 max-w-2xl mx-auto animate-in fade-in slide-in-from-left-4 duration-300 pb-10">
                         <section className="space-y-3">
                             <div className="space-y-1">
-                                <h2 className="text-lg font-semibold tracking-tight">账号</h2>
+                                <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                                    <User className="h-5 w-5 text-primary" />
+                                    账号
+                                </h2>
                                 <p className="text-sm text-muted-foreground">
                                     管理您的个人资料及同步设置
                                 </p>
                             </div>
-                            <UserCard onLoginClick={() => setAuthDialogOpen(true)} />
+                            <UserCard className="rounded-xl" onLoginClick={() => setAuthDialogOpen(true)} />
                         </section>
 
                         <section className="space-y-3">
                             <div className="space-y-1">
-                                <h2 className="text-lg font-semibold tracking-tight">界面</h2>
+                                <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                                    <Palette className="h-5 w-5 text-primary" />
+                                    界面
+                                </h2>
                                 <p className="text-sm text-muted-foreground">
                                     个性化视觉与交互体验
                                 </p>
@@ -337,7 +343,10 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
 
                         <section className="space-y-3">
                             <div className="space-y-1">
-                                <h2 className="text-lg font-semibold tracking-tight">服务</h2>
+                                <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                                    <Server className="h-5 w-5 text-primary" />
+                                    服务
+                                </h2>
                                 <p className="text-sm text-muted-foreground">
                                     配置后端连接及数据来源
                                 </p>
@@ -373,7 +382,10 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
 
                         <section className="space-y-3">
                             <div className="space-y-1">
-                                <h2 className="text-lg font-semibold tracking-tight">播放</h2>
+                                <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                                    <Music2 className="h-5 w-5 text-primary" />
+                                    播放
+                                </h2>
                                 <p className="text-sm text-muted-foreground">
                                     自定义音乐播放体验
                                 </p>

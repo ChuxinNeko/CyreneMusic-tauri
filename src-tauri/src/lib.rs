@@ -194,6 +194,7 @@ async fn open_desktop_lyric(app: tauri::AppHandle) -> Result<(), String> {
     .focused(false)
     .decorations(false)
     .always_on_top(true)
+    .transparent(true)
     .background_color(Color(0, 0, 0, 0))
     .shadow(false)
     .skip_taskbar(true)

@@ -6,7 +6,7 @@ import { listen, emit } from "@tauri-apps/api/event"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { usePlayerStore } from "@/lib/store/usePlayerStore"
 import { Track } from "@/lib/models/track"
-import { parseLyrics, LyricLineData, WordData, INTRO_DELAY } from "@/components/player/parser"
+import { parseLyrics, LyricLineData, INTRO_DELAY } from "@/components/player/parser"
 
 export default function DesktopLyricPage() {
     const rootRef = useRef<HTMLDivElement>(null)
@@ -25,8 +25,6 @@ export default function DesktopLyricPage() {
     const lastSyncRef = useRef<{ time: number, timestamp: number }>({ time: 0, timestamp: Date.now() })
 
     // Elements refs
-    const wordsRef = useRef<Map<number, HTMLSpanElement>>(new Map())
-    const wordAnimsRef = useRef<Map<number, Animation>>(new Map())
     const requestRef = useRef<number>(0)
     const activeLineRef = useRef<HTMLDivElement>(null)
 
@@ -142,62 +140,6 @@ export default function DesktopLyricPage() {
             }
         }
 
-        // Apply word-by-word mask animations for the active line
-        const activeLine = parsedLyrics[activeLineIndex]
-        if (activeLine && activeLine.isVerbatim) {
-            activeLine.words.forEach((word, wIndex) => {
-                const globalWordIndex = activeLineIndex * 1000 + wIndex // simple specific id
-                const span = wordsRef.current.get(globalWordIndex)
-                if (!span) return
-
-                const delay = word.startTime - loopTime
-                if (delay < -word.duration - 500) return // already finished fully
-
-                let anim = wordAnimsRef.current.get(globalWordIndex)
-                if (!anim) {
-                    const width = span.clientWidth
-                    const wTotal = width + 30 // padding and fade width smooth
-
-                    // define gradient
-                    const maskImage = `linear-gradient(to right, 
-                        rgba(255,255,255,1.0) 0%, 
-                        rgba(255,255,255,1.0) 40%, 
-                        rgba(255,255,255,0.4) 60%, 
-                        rgba(255,255,255,0.4) 100%)`
-
-                    span.style.maskImage = maskImage
-                    span.style.webkitMaskImage = maskImage
-                    span.style.maskSize = `${250}% 100%`
-                    span.style.webkitMaskSize = `${250}% 100%`
-
-                    anim = span.animate(
-                        [{ maskPosition: `${-wTotal * 1.5}px 0` }, { maskPosition: `0px 0` }],
-                        { delay: Math.max(0, delay), duration: Math.max(word.duration + 50, 300), fill: 'both', easing: 'linear' }
-                    )
-                    wordAnimsRef.current.set(globalWordIndex, anim)
-                }
-
-                if (isPlaying && anim.playState === 'paused') anim.play()
-                if (!isPlaying && anim.playState === 'running') anim.pause()
-
-                // Auto scroll logic for overflowing texts
-                // If a word is currently being sung (delay <= 0 and anim not finished), we scroll to it
-                if (delay <= 0 && delay > -word.duration) {
-                    if (activeLineRef.current) {
-                        const containerWidth = activeLineRef.current.clientWidth
-                        const spanLeft = span.offsetLeft
-                        const spanWidth = span.clientWidth
-                        // Target scroll position: Center the span in the container
-                        const targetScroll = spanLeft - (containerWidth / 2) + (spanWidth / 2)
-                        activeLineRef.current.scrollTo({
-                            left: Math.max(0, targetScroll),
-                            behavior: 'smooth'
-                        })
-                    }
-                }
-            })
-        }
-
         // 仅在当前组件是桌面歌词，并且由于失去焦点导致 react 渲染冻结时，我们通过 setState 强行激活 React 树
         setRenderTick(prev => prev + 1)
     }
@@ -279,22 +221,16 @@ export default function DesktopLyricPage() {
                                 WebkitTextStroke: `1px ${lyricStrokeColor}`
                             }}
                         >
-                            {currentLine.words.map((w, i) => {
-                                return (
-                                    <span
-                                        key={i}
-                                        className="inline-block mx-0.5"
-                                        ref={el => { if (el) wordsRef.current.set(activeIndex! * 1000 + i, el) }}
-                                        style={{
-                                            textShadow: `0 2px 4px ${lyricStrokeColor}80`,
-                                            paddingBottom: "0.08em",
-                                            verticalAlign: "baseline"
-                                        }}
-                                    >
-                                        {w.text}
-                                    </span>
-                                )
-                            })}
+                            <span
+                                className="inline-block"
+                                style={{
+                                    textShadow: `0 2px 4px ${lyricStrokeColor}80`,
+                                    paddingBottom: "0.08em",
+                                    verticalAlign: "baseline"
+                                }}
+                            >
+                                {currentLine.words.map(w => w.text).join('')}
+                            </span>
                         </div>
                         {currentLine.translation && (
                             <div
