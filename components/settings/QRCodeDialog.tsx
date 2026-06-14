@@ -18,13 +18,14 @@ import QRCode from "qrcode"
 interface QRCodeDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    platform: "netease" | "kugou"
+    platform: "netease" | "kugou" | "qq"
     onSuccess: () => void
 }
 
 export function QRCodeDialog({ open, onOpenChange, platform, onSuccess }: QRCodeDialogProps) {
     const [qrData, setQrData] = useState<string | null>(null)
     const [qrKey, setQrKey] = useState<string | null>(null)
+    const [qqTokens, setQqTokens] = useState<{ ptqrtoken: string; qrsig: string } | null>(null)
     const [status, setStatus] = useState<"loading" | "waiting" | "scanning" | "success" | "expired" | "error">("loading")
     const [message, setMessage] = useState("")
     const { user } = useAuthStore()
@@ -34,6 +35,7 @@ export function QRCodeDialog({ open, onOpenChange, platform, onSuccess }: QRCode
         setStatus("loading")
         setQrData(null)
         setQrKey(null)
+        setQqTokens(null)
 
         try {
             if (platform === "netease") {
@@ -69,7 +71,7 @@ export function QRCodeDialog({ open, onOpenChange, platform, onSuccess }: QRCode
                     setStatus("error")
                     setMessage("获取二维码 Key 失败")
                 }
-            } else {
+            } else if (platform === "kugou") {
                 const data = await accountService.getKugouQRData()
                 if (data && data.qrcode) {
                     setQrKey(data.qrcode)
@@ -93,6 +95,16 @@ export function QRCodeDialog({ open, onOpenChange, platform, onSuccess }: QRCode
                     setStatus("error")
                     setMessage("获取酷狗扫码数据失败")
                 }
+            } else if (platform === "qq") {
+                const data = await accountService.getQqQRData()
+                if (data && data.img) {
+                    setQqTokens({ ptqrtoken: data.ptqrtoken, qrsig: data.qrsig })
+                    setQrData(data.img)
+                    setStatus("waiting")
+                } else {
+                    setStatus("error")
+                    setMessage("获取QQ音乐扫码数据失败")
+                }
             }
         } catch (error) {
             console.error("Fetch QR failed:", error)
@@ -109,11 +121,11 @@ export function QRCodeDialog({ open, onOpenChange, platform, onSuccess }: QRCode
 
     useEffect(() => {
         let timer: NodeJS.Timeout
-        if (open && status !== "success" && status !== "expired" && status !== "error" && qrKey && user) {
+        if (open && status !== "success" && status !== "expired" && status !== "error" && user) {
             timer = setInterval(async () => {
                 try {
                     let res
-                    if (platform === "netease") {
+                    if (platform === "netease" && qrKey) {
                         res = await accountService.checkNeteaseQR(qrKey, user.id)
                         // Netease codes: 800: expired, 801: waiting, 802: scanning, 803: success
                         if (res.code === 803) {
@@ -128,7 +140,7 @@ export function QRCodeDialog({ open, onOpenChange, platform, onSuccess }: QRCode
                         } else if (res.code === 802) {
                             setStatus("scanning")
                         }
-                    } else {
+                    } else if (platform === "kugou" && qrKey) {
                         res = await accountService.checkKugouQR(qrKey, user.id)
                         // Kugou status: 0: expired, 1: waiting, 2: scanning, 4: success
                         if (res.status === 4) {
@@ -142,6 +154,22 @@ export function QRCodeDialog({ open, onOpenChange, platform, onSuccess }: QRCode
                             setStatus("expired")
                         } else if (res.status === 2) {
                             setStatus("scanning")
+                        }
+                    } else if (platform === "qq" && qqTokens) {
+                        res = await accountService.checkQqQR(qqTokens.ptqrtoken, qqTokens.qrsig, user.id)
+                        if (res.code === 200) {
+                            if (res.data?.isOk) {
+                                setStatus("success")
+                                toast.success("QQ音乐绑定成功")
+                                setTimeout(() => {
+                                    onSuccess()
+                                    onOpenChange(false)
+                                }, 1500)
+                            } else if (res.data?.refresh) {
+                                setStatus("expired")
+                            } else if (res.data?.message?.includes("认证") || res.data?.message?.includes("扫描成功")) {
+                                setStatus("scanning")
+                            }
                         }
                     }
                 } catch (error) {
@@ -160,10 +188,10 @@ export function QRCodeDialog({ open, onOpenChange, platform, onSuccess }: QRCode
             <DialogContent className="sm:max-w-md flex flex-col items-center py-10">
                 <DialogHeader className="w-full">
                     <DialogTitle className="text-center text-xl">
-                        绑定{platform === "netease" ? "网易云音乐" : "酷狗音乐"}
+                        绑定{platform === "netease" ? "网易云音乐" : platform === "kugou" ? "酷狗音乐" : "QQ音乐"}
                     </DialogTitle>
                     <DialogDescription className="text-center">
-                        请使用{platform === "netease" ? "网易云音乐" : "酷狗音乐"} App 扫码登录
+                        请使用{platform === "netease" ? "网易云音乐" : platform === "kugou" ? "酷狗音乐" : "手机QQ"} App 扫码登录
                     </DialogDescription>
                 </DialogHeader>
 

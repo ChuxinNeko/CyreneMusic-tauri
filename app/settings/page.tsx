@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { ChevronRight, Server, ChevronLeft, User, Music, Music2, KeyRound, Info, FileText, Settings2, Palette, RefreshCw, HardDrive, Sparkles } from "lucide-react"
+import { ChevronRight, Server, ChevronLeft, User, Music, Music2, KeyRound, Info, FileText, Settings2, Palette, RefreshCw, HardDrive, Sparkles, Trophy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -63,7 +63,7 @@ function SettingsPageContent() {
     const activeSource = useActiveSource()
     const { quality, sources } = useAudioSourceStore()
     const { theme } = useTheme()
-    const { showDailyRecommendPopup, setShowDailyRecommendPopup, triggerRecommendPopup } = useLayoutStore()
+    const { showDailyRecommendPopup, setShowDailyRecommendPopup, triggerRecommendPopup, toplistSource, setToplistSource, recommendSource, setRecommendSource } = useLayoutStore()
 
     useEffect(() => {
         // Initial load
@@ -370,6 +370,60 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
                                     title="第三方账号绑定"
                                     description="同步网易云、酷狗音乐等平台数据"
                                     onClick={() => setView("account-binding")}
+                                />
+                                <SettingsItem
+                                    icon={Trophy}
+                                    title="榜单来源"
+                                    description="首页「全部榜单」的数据来源"
+                                    onClick={() => {}}
+                                    rightElement={
+                                        <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/60" onClick={(e) => e.stopPropagation()}>
+                                            {(["netease", "qq"] as const).map((src) => (
+                                                <button
+                                                    key={src}
+                                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                                                        toplistSource === src
+                                                            ? "bg-background text-foreground shadow-sm"
+                                                            : "text-muted-foreground hover:text-foreground"
+                                                    }`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        setToplistSource(src)
+                                                        toast.success(src === 'qq' ? '已切换为 QQ 音乐榜单' : '已切换为网易云音乐榜单')
+                                                    }}
+                                                >
+                                                    {src === 'qq' ? 'QQ 音乐' : '网易云'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    }
+                                />
+                                <SettingsItem
+                                    icon={Sparkles}
+                                    title="为你推荐源"
+                                    description="首页「为你推荐」的数据来源"
+                                    onClick={() => {}}
+                                    rightElement={
+                                        <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/60" onClick={(e) => e.stopPropagation()}>
+                                            {(["netease", "qq"] as const).map((src) => (
+                                                <button
+                                                    key={src}
+                                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                                                        recommendSource === src
+                                                            ? "bg-background text-foreground shadow-sm"
+                                                            : "text-muted-foreground hover:text-foreground"
+                                                    }`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        setRecommendSource(src)
+                                                        toast.success(src === 'qq' ? '已切换为 QQ音乐推荐' : '已切换为网易云音乐推荐')
+                                                    }}
+                                                >
+                                                    {src === 'qq' ? 'QQ 音乐' : '网易云'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    }
                                 />
                                 <SettingsItem
                                     icon={Info}

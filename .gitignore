@@ -41,9 +41,9 @@ yarn-error.log*
 next-env.d.ts
 /demo/
 /applemusic-like-lyrics/
-/backend/
 # signing
 *.keystore
 *.jks
 keystore.properties
 /.cursor
+/backend/

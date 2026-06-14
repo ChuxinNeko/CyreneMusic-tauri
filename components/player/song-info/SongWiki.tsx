@@ -14,8 +14,14 @@ interface ParsedWikiData {
     bpm: string
 }
 
+interface PublishTimeData {
+    publishTime: number
+    dateStr: string
+}
+
 export function SongWiki({ track }: SongWikiProps) {
     const [wikiData, setWikiData] = useState<ParsedWikiData | null>(null)
+    const [publishData, setPublishData] = useState<PublishTimeData | null>(null)
     const [isLoading, setIsLoading] = useState(false)
 
     useEffect(() => {
@@ -23,12 +29,18 @@ export function SongWiki({ track }: SongWikiProps) {
             // 只在网易云音源时才去请求百科
             if (!track || track.source !== 'netease') {
                 setWikiData(null)
+                setPublishData(null)
                 return
             }
 
             setIsLoading(true)
             try {
-                const data = await neteaseSongWikiService.fetchSongWiki(track.id)
+                // 并行请求百科与发行时间
+                const [data, pub] = await Promise.all([
+                    neteaseSongWikiService.fetchSongWiki(track.id),
+                    neteaseSongWikiService.fetchPublishTime(track.id).then(ms => formatPublishTime(ms)),
+                ])
+
                 if (data) {
                     const parsed = parseWikiData(data)
                     // If everything is empty we don't need to show it
@@ -40,9 +52,11 @@ export function SongWiki({ track }: SongWikiProps) {
                 } else {
                     setWikiData(null)
                 }
+                setPublishData(pub)
             } catch (err) {
                 console.error("Failed to parse wiki data", err)
                 setWikiData(null)
+                setPublishData(null)
             } finally {
                 setIsLoading(false)
             }
@@ -92,7 +106,8 @@ export function SongWiki({ track }: SongWikiProps) {
         )
     }
 
-    if (!wikiData) return null
+    // wiki 全空且无发行时间，则不渲染
+    if (!wikiData && !publishData) return null
 
     return (
         <div className="w-full max-w-xl mx-auto p-4 mb-4 rounded-[12px] bg-white/[0.03] hover:bg-white/[0.05] transition-colors">
@@ -100,25 +115,42 @@ export function SongWiki({ track }: SongWikiProps) {
                 音乐百科
             </h3>
             <div className="flex flex-wrap gap-x-8 gap-y-4 px-2">
-                {wikiData.styles.length > 0 && (
+                {wikiData?.styles && wikiData.styles.length > 0 && (
                     <div className="flex flex-col gap-1">
                         <span className="text-[12px] text-white/50">曲风</span>
                         <span className="text-[14px] font-medium text-white">{wikiData.styles.join(" / ")}</span>
                     </div>
                 )}
-                {wikiData.language && (
+                {wikiData?.language && (
                     <div className="flex flex-col gap-1">
                         <span className="text-[12px] text-white/50">语种</span>
                         <span className="text-[14px] font-medium text-white">{wikiData.language}</span>
                     </div>
                 )}
-                {wikiData.bpm && (
+                {wikiData?.bpm && (
                     <div className="flex flex-col gap-1">
                         <span className="text-[12px] text-white/50">BPM</span>
                         <span className="text-[14px] font-medium text-white">{wikiData.bpm}</span>
                     </div>
                 )}
+                {publishData && (
+                    <div className="flex flex-col gap-1">
+                        <span className="text-[12px] text-white/50">发行时间</span>
+                        <span className="text-[14px] font-medium text-white">{publishData.dateStr}</span>
+                    </div>
+                )}
             </div>
         </div>
     )
+}
+
+/** 将毫秒时间戳格式化为本地日期字符串，无效时返回 null */
+function formatPublishTime(ms: number): PublishTimeData | null {
+    if (!ms || ms <= 0) return null
+    const d = new Date(ms)
+    if (isNaN(d.getTime())) return null
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return { publishTime: ms, dateStr: `${y}-${m}-${day}` }
 }

@@ -60,6 +60,42 @@ class NeteaseSongWikiService {
     }
 
     /**
+     * 获取歌曲发行时间（毫秒时间戳）
+     * 进程内缓存：避免同一首歌反复请求
+     */
+    private publishTimeCache = new Map<string, number>()
+    private inflightPublishTime = new Map<string, Promise<number>>()
+
+    public async fetchPublishTime(id: string | number): Promise<number> {
+        const key = String(id)
+
+        if (this.publishTimeCache.has(key)) {
+            return this.publishTimeCache.get(key) || 0
+        }
+        const inflight = this.inflightPublishTime.get(key)
+        if (inflight) return inflight
+
+        const task = (async () => {
+            try {
+                const resp = await fetch(`${urlService.baseUrl}/song/publish-time?id=${id}`)
+                if (!resp.ok) return 0
+                const data = await resp.json()
+                const pub = data.status === 200 ? (data.publishTime || 0) : 0
+                this.publishTimeCache.set(key, pub)
+                return pub
+            } catch (error) {
+                console.error('[SongWikiService] 获取歌曲发行时间失败:', error)
+                return 0
+            }
+        })().finally(() => {
+            this.inflightPublishTime.delete(key)
+        })
+
+        this.inflightPublishTime.set(key, task)
+        return task
+    }
+
+    /**
      * 仅获取歌曲语种（轻量、带缓存），用于听歌语言统计
      * 命中缓存（含空字符串）则直接返回，未命中时复用 fetchSongWiki 并解析 creativeType==='language'
      */

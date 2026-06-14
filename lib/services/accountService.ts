@@ -12,6 +12,7 @@ export interface BindingInfo {
 export interface AccountBindings {
     netease: BindingInfo
     kugou: BindingInfo
+    qq: BindingInfo
 }
 
 class AccountService {
@@ -83,6 +84,23 @@ class AccountService {
         }
     }
 
+    public async unbindQq(token: string): Promise<boolean> {
+        try {
+            const response = await fetch(`${urlService.baseUrl}/accounts/qq/unbind`, {
+                method: "POST",
+                headers: this.getHeaders(token),
+                body: JSON.stringify({
+                    timestamp: Math.floor(Date.now() / 1000)
+                })
+            })
+            const result = await response.json()
+            return result.code === 200
+        } catch (e) {
+            console.error("[AccountService] unbindQq failed:", e)
+            return false
+        }
+    }
+
     public async getNeteaseQRKey(): Promise<string | null> {
         try {
             const response = await fetch(`${urlService.baseUrl}/login/qr/key`)
@@ -135,6 +153,30 @@ class AccountService {
             return await response.json()
         } catch (e) {
             console.error("[AccountService] checkKugouQR failed:", e)
+            return { code: 500, message: "检查失败" }
+        }
+    }
+
+    public async getQqQRData(): Promise<any> {
+        try {
+            const response = await fetch(`${urlService.baseUrl}/qq/login/qr/create`)
+            const result = await response.json()
+            if (result.code === 200) {
+                return result.data
+            }
+            return null
+        } catch (e) {
+            console.error("[AccountService] getQqQRData failed:", e)
+            return null
+        }
+    }
+
+    public async checkQqQR(ptqrtoken: string, qrsig: string, userId: number): Promise<any> {
+        try {
+            const response = await fetch(`${urlService.baseUrl}/qq/login/qr/check?ptqrtoken=${ptqrtoken}&qrsig=${qrsig}&userId=${userId}`)
+            return await response.json()
+        } catch (e) {
+            console.error("[AccountService] checkQqQR failed:", e)
             return { code: 500, message: "检查失败" }
         }
     }

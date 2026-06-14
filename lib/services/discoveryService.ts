@@ -1,19 +1,24 @@
 import { Track } from "../models/track"
 import { urlService } from "./urlService"
 import { MusicSource } from "./audioSourceService"
+import type { ToplistSource, RecommendSource } from "../store/useLayoutStore"
 
 export interface Toplist {
     id: number
     name: string
     coverImgUrl: string
     description: string
+    source?: MusicSource
     tracks: Array<{
         id: string | number
+        /** QQ 音乐特有：songmid，用于获取播放链接 */
+        mid?: string
         name: string
         artists: string
         album: string
         picUrl: string
         duration?: number
+        source?: MusicSource
     }>
 }
 
@@ -108,25 +113,48 @@ class DiscoveryService {
         return data
     }
 
-    public async getToplists(forceRefresh: boolean = false): Promise<Toplist[]> {
+    public async getToplists(forceRefresh: boolean = false, source: ToplistSource = 'netease'): Promise<Toplist[]> {
+        const isQQ = source === 'qq'
         const fetcher = async () => {
             try {
-                const response = await fetch(`${urlService.baseUrl}/toplists`)
+                const endpoint = isQQ
+                    ? `${urlService.baseUrl}/qq/toplists`
+                    : `${urlService.baseUrl}/toplists`
+                const response = await fetch(endpoint)
                 const result = await response.json()
-                return result.toplists || []
+                let toplists = result.toplists || []
+                // QQ 榜单歌曲 id 默认是数字 songid，需要改用可播放的 songmid（字段名为 mid）
+                if (isQQ) {
+                    toplists = (toplists as Toplist[]).map(list => ({
+                        ...list,
+                        // 给榜单本身打上来源标记，便于后续区分
+                        source: MusicSource.QQ,
+                        tracks: list.tracks.map(t => ({
+                            ...t,
+                            // mid 是 songmid（字母数字混合），作为 Track.id 才能被 /qq/song 正确解析
+                            id: (t as any).mid || t.id,
+                            source: MusicSource.QQ,
+                        }))
+                    }))
+                }
+                return toplists
             } catch (e) {
                 console.error("[DiscoveryService] getToplists fetch failed:", e)
                 return []
             }
         }
-        const data = await this.getWithCache<Toplist[]>(this.getCacheKey('toplists'), fetcher, forceRefresh)
+        const cacheKey = this.getCacheKey(isQQ ? 'toplists_qq' : 'toplists')
+        const data = await this.getWithCache<Toplist[]>(cacheKey, fetcher, forceRefresh)
         return data || []
     }
 
-    public async getRecommendForYou(token: string, forceRefresh: boolean = false): Promise<RecommendData | null> {
+    public async getRecommendForYou(token: string, forceRefresh: boolean = false, source: RecommendSource = 'netease'): Promise<RecommendData | null> {
+        const isQQ = source === 'qq'
+        const endpoint = isQQ ? '/qq/recommend/for_you' : '/recommend/for_you'
+        const cacheKey = isQQ ? 'recommend_for_you_qq' : 'recommend_for_you'
         const fetcher = async () => {
             try {
-                const response = await fetch(`${urlService.baseUrl}/recommend/for_you`, {
+                const response = await fetch(`${urlService.baseUrl}${endpoint}`, {
                     headers: this.getHeaders(token)
                 })
                 const result = await response.json()
@@ -139,10 +167,65 @@ class DiscoveryService {
                 return null
             }
         }
-        return this.getWithCache<RecommendData | null>(this.getCacheKey('recommend_for_you', token), fetcher, forceRefresh)
+        return this.getWithCache<RecommendData | null>(this.getCacheKey(cacheKey, token), fetcher, forceRefresh)
     }
 
-    public async getPlaylistDetail(id: string | number, limit: number = 200, token?: string): Promise<PlaylistDetail | null> {
+    /**
+     * 获取歌单/榜单详情。
+     * @param source 'netease' | 'qq'：数据来源平台
+     * @param qqKind 'toplist' | 'playlist'：仅当 source='qq' 时生效。
+     *        - 'toplist'（默认）：id 是榜单 topId（如 3/4/26），走 /qq/toplist/:topId
+     *        - 'playlist'：id 是歌单 dissid/content_id（如推荐歌单），走 /qq/playlist?id=
+     */
+    public async getPlaylistDetail(id: string | number, limit: number = 200, token?: string, source: ToplistSource = 'netease', qqKind: 'toplist' | 'playlist' = 'toplist'): Promise<PlaylistDetail | null> {
+        if (source === 'qq') {
+            // QQ 歌单详情走 /qq/playlist?id=<dissid>，后端返回结构（data.playlist）与网易云一致
+            if (qqKind === 'playlist') {
+                try {
+                    const response = await fetch(`${urlService.baseUrl}/qq/playlist?id=${id}&limit=${limit}`)
+                    const result = await response.json()
+                    if (result.success) {
+                        return result.data.playlist
+                    }
+                    return null
+                } catch (e) {
+                    console.error("[DiscoveryService] getQQPlaylistDetail failed:", e)
+                    return null
+                }
+            }
+            // QQ 榜单「查看全部」走 /qq/toplist/:topId，返回扁平结构，需适配为 PlaylistDetail
+            try {
+                const response = await fetch(`${urlService.baseUrl}/qq/toplist/${id}?limit=${limit}`)
+                const result = await response.json()
+                if (result.status === 200) {
+                    const tracks = (result.tracks || []).map((t: any) => ({
+                        ...t,
+                        // mid 是 songmid（可播放），作为 id 供 convertToTrack 使用
+                        id: t.mid || t.id,
+                        source: MusicSource.QQ
+                    }))
+                    return {
+                        id: result.id,
+                        name: result.name,
+                        coverImgUrl: result.coverImgUrl,
+                        description: result.description || '',
+                        creator: result.creator || 'QQ音乐',
+                        trackCount: result.trackCount || tracks.length,
+                        playCount: result.playCount || 0,
+                        createTime: result.createTime || 0,
+                        updateTime: result.updateTime || 0,
+                        tags: result.tags || [],
+                        source: MusicSource.QQ,
+                        tracks
+                    }
+                }
+                return null
+            } catch (e) {
+                console.error("[DiscoveryService] getQQToplistDetail failed:", e)
+                return null
+            }
+        }
+
         try {
             const response = await fetch(`${urlService.baseUrl}/playlist?id=${id}&limit=${limit}`, {
                 headers: this.getHeaders(token)
@@ -217,6 +300,20 @@ class DiscoveryService {
         } else {
             album = albumData.name || ""
             if (albumData.picUrl) picUrl = albumData.picUrl
+        }
+
+        // QQ 音乐歌曲：id 必须用 songmid（非数字），否则后端会按数字 songid 处理导致播放失败
+        const isQQ = song.source === MusicSource.QQ || !!song.mid
+        if (isQQ) {
+            return {
+                id: song.mid || song.id,
+                name: song.name,
+                artists: artists,
+                album: album,
+                picUrl: picUrl,
+                source: MusicSource.QQ,
+                duration: (song.dt || song.duration || 0) / (song.dt ? 1000 : 1)
+            }
         }
 
         return {

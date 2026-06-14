@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+/** 首页「全部榜单」的数据来源平台 */
+export type ToplistSource = 'netease' | 'qq'
+
+/** 首页「为你推荐」的数据来源平台 */
+export type RecommendSource = 'netease' | 'qq'
+
 interface LayoutState {
     isSidebarCollapsed: boolean
     devModeUnlocked: boolean
@@ -8,6 +14,8 @@ interface LayoutState {
     taskbarPlayerPosition: 'left' | 'center' | 'right'
     isLiquidGlassVisible: boolean
     showDailyRecommendPopup: boolean
+    toplistSource: ToplistSource
+    recommendSource: RecommendSource
     _settingsClickCount: number
     _lastSettingsClickTime: number
     _recommendPopupTrigger: number
@@ -20,6 +28,8 @@ interface LayoutState {
     showLiquidGlass: () => void
     hideLiquidGlass: () => void
     setShowDailyRecommendPopup: (show: boolean) => void
+    setToplistSource: (source: ToplistSource) => void
+    setRecommendSource: (source: RecommendSource) => void
     triggerRecommendPopup: () => void
 }
 
@@ -32,6 +42,8 @@ export const useLayoutStore = create<LayoutState>()(
             taskbarPlayerPosition: 'center',
             isLiquidGlassVisible: false,
             showDailyRecommendPopup: true,
+            toplistSource: 'netease',
+            recommendSource: 'netease',
             _settingsClickCount: 0,
             _recommendPopupTrigger: 0,
             _lastSettingsClickTime: 0,
@@ -58,6 +70,8 @@ export const useLayoutStore = create<LayoutState>()(
             showLiquidGlass: () => set({ isLiquidGlassVisible: true }),
             hideLiquidGlass: () => set({ isLiquidGlassVisible: false }),
             setShowDailyRecommendPopup: (show: boolean) => set({ showDailyRecommendPopup: show }),
+            setToplistSource: (toplistSource: ToplistSource) => set({ toplistSource }),
+            setRecommendSource: (recommendSource: RecommendSource) => set({ recommendSource }),
             triggerRecommendPopup: () => set((state) => ({ _recommendPopupTrigger: state._recommendPopupTrigger + 1 })),
         }),
         {
@@ -68,6 +82,8 @@ export const useLayoutStore = create<LayoutState>()(
                 isTaskbarPlayerEnabled: state.isTaskbarPlayerEnabled,
                 taskbarPlayerPosition: state.taskbarPlayerPosition,
                 showDailyRecommendPopup: state.showDailyRecommendPopup,
+                toplistSource: state.toplistSource,
+                recommendSource: state.recommendSource,
             }),
         }
     )

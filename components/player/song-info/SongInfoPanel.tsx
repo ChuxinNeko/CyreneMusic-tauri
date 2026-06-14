@@ -4,6 +4,7 @@ import React from "react"
 import { usePlayerStore } from "@/lib/store/usePlayerStore"
 import { SongBasicInfo } from "./SongBasicInfo"
 import { SongWiki } from "./SongWiki"
+import { SongComments } from "./SongComments"
 import { SongListeningStats } from "./SongListeningStats"
 import { SongSimilarSongs } from "./SongSimilarSongs"
 import { SongRelatedPlaylists } from "./SongRelatedPlaylists"
@@ -20,6 +21,9 @@ export function SongInfoPanel() {
 
                 {/* 音乐百科 (仅网易云) */}
                 <SongWiki track={currentTrack} />
+
+                {/* 歌曲评论 (仅网易云) */}
+                <SongComments track={currentTrack} />
 
                 {/* 听歌足迹 */}
                 <SongListeningStats track={currentTrack} />

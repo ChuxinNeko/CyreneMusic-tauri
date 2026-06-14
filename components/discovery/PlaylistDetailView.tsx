@@ -11,6 +11,7 @@ import { Playlist, PlaylistTrack } from "@/lib/models/playlist"
 import { playerService } from "@/lib/services/playerService"
 import { usePlayerStore } from "@/lib/store/usePlayerStore"
 import { Track } from "@/lib/models/track"
+import type { ToplistSource } from "@/lib/store/useLayoutStore"
 import {
     Dialog,
     DialogContent,
@@ -26,9 +27,13 @@ interface PlaylistDetailViewProps {
     token?: string
     type?: 'discovery' | 'personal'
     onRemoveLocally?: (id: string | number) => void
+    /** 榜单/歌单来源平台，决定走哪个后端端点（默认网易云） */
+    toplistSource?: ToplistSource
+    /** QQ 来源时区分：'toplist'=榜单详情（默认），'playlist'=歌单详情（如推荐歌单） */
+    playlistType?: 'toplist' | 'playlist'
 }
 
-export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRemoveLocally }: PlaylistDetailViewProps) {
+export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRemoveLocally, toplistSource = 'netease', playlistType = 'toplist' }: PlaylistDetailViewProps) {
     const [playlist, setPlaylist] = useState<PlaylistDetail | null>(null)
     const [loading, setLoading] = useState(true)
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
@@ -80,13 +85,13 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                     })
                 }
             } else {
-                const data = await discoveryService.getPlaylistDetail(id, 200, token)
+                const data = await discoveryService.getPlaylistDetail(id, 200, token, toplistSource, playlistType)
                 setPlaylist(data)
             }
             setLoading(false)
         }
         fetchDetail()
-    }, [id, token, type])
+    }, [id, token, type, toplistSource, playlistType])
 
     if (loading) {
         return (
@@ -109,22 +114,24 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
 
     const handlePlayAll = () => {
         if (playlist.tracks.length > 0) {
+            const fallbackSource = toplistSource === 'qq' ? 'qq' : 'netease'
             const tracks: Track[] = playlist.tracks.map(t => discoveryService.convertToTrack({
                 ...t,
-                source: (t as any).source || 'netease'
+                source: (t as any).source || fallbackSource
             }))
             playerService.playWithQueue(tracks[0], tracks)
         }
     }
 
     const handlePlayTrack = (track: any) => {
+        const fallbackSource = toplistSource === 'qq' ? 'qq' : 'netease'
         const tracks: Track[] = playlist.tracks.map(t => discoveryService.convertToTrack({
             ...t,
-            source: (t as any).source || 'netease'
+            source: (t as any).source || fallbackSource
         }))
         const trackObj = discoveryService.convertToTrack({
             ...track,
-            source: track.source || 'netease'
+            source: track.source || fallbackSource
         })
         playerService.playWithQueue(trackObj, tracks)
     }
@@ -309,7 +316,8 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
 
                 <div className="space-y-[1px]">
                     {filteredTracks.map((track, index) => {
-                        const isCurrent = currentTrack?.id === track.id && currentTrack?.source === 'netease'
+                        const trackSource = (track as any).source || (toplistSource === 'qq' ? 'qq' : 'netease')
+                        const isCurrent = currentTrack?.id === track.id && currentTrack?.source === trackSource
                         return (
                             <div
                                 key={track.id}

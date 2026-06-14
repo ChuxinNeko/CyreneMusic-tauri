@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { discoveryService, RecommendData, Toplist } from "@/lib/services/discoveryService"
 import { accountService } from "@/lib/services/accountService"
 import { useAuthStore } from "@/lib/store/useAuthStore"
+import { useLayoutStore } from "@/lib/store/useLayoutStore"
 import { Loader2, Music2, Trophy, Play, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { GreetingHeader } from "@/components/discovery/GreetingHeader"
@@ -57,6 +58,8 @@ function HomeContent() {
   const [toplists, setToplists] = useState<Toplist[]>([])
   const [randomTracks, setRandomTracks] = useState<any[]>([])
   const { token } = useAuthStore()
+  const toplistSource = useLayoutStore(s => s.toplistSource)
+  const recommendSource = useLayoutStore(s => s.recommendSource)
 
   const checkBinding = useCallback(async () => {
     if (!token) {
@@ -67,7 +70,10 @@ function HomeContent() {
     }
 
     try {
-      const bound = await accountService.isNeteaseBound(token)
+      const bindings = await accountService.getBindings(token)
+      const bound = recommendSource === 'qq'
+        ? !!bindings?.qq?.bound
+        : !!bindings?.netease?.bound
       setIsBound(bound)
       if (!bound) {
         setActiveTab("leaderboard")
@@ -78,7 +84,7 @@ function HomeContent() {
       console.error("Check binding failed:", error)
     }
     setLoading(false)
-  }, [token])
+  }, [token, recommendSource])
 
   const fetchData = useCallback(async (forceRefresh: boolean = false) => {
     if (forceRefresh) setIsRefreshing(true)
@@ -86,7 +92,7 @@ function HomeContent() {
     
     if (!isBound || !token) {
       try {
-        const toplistRes = await discoveryService.getToplists(forceRefresh)
+        const toplistRes = await discoveryService.getToplists(forceRefresh, toplistSource)
         setToplists(toplistRes)
       } catch (error) {
         console.error("Fetch toplists failed:", error)
@@ -98,8 +104,8 @@ function HomeContent() {
 
     try {
       const [toplistRes, recommendRes] = await Promise.all([
-        discoveryService.getToplists(forceRefresh),
-        discoveryService.getRecommendForYou(token, forceRefresh)
+        discoveryService.getToplists(forceRefresh, toplistSource),
+        discoveryService.getRecommendForYou(token, forceRefresh, recommendSource)
       ])
       setToplists(toplistRes)
       setRecommendData(recommendRes)
@@ -108,7 +114,7 @@ function HomeContent() {
     }
     setLoading(false)
     setIsRefreshing(false)
-  }, [isBound, token])
+  }, [isBound, token, toplistSource, recommendSource])
 
   useEffect(() => {
     checkBinding()
@@ -117,6 +123,11 @@ function HomeContent() {
   useEffect(() => {
     fetchData()
   }, [fetchData])
+
+  // 用户切换榜单来源时，清空随机曲目并强制刷新
+  useEffect(() => {
+    setRandomTracks([])
+  }, [toplistSource])
 
   const handleRefresh = useCallback(() => {
     fetchData(true)
@@ -208,7 +219,7 @@ function HomeContent() {
 
         <TabsContent value="recommend" className="border-none p-0 outline-none focus-visible:ring-0">
           {selectedPlaylistId ? (
-            <PlaylistDetailView id={selectedPlaylistId} onBack={() => router.back()} token={token || undefined} />
+            <PlaylistDetailView id={selectedPlaylistId} onBack={() => router.back()} token={token || undefined} toplistSource={recommendSource} playlistType="playlist" />
           ) : isDailyView && recommendData ? (
             <DailySongsDetailView
               songs={recommendData.dailySongs}
@@ -238,7 +249,7 @@ function HomeContent() {
 
         <TabsContent value="leaderboard" className="border-none p-0 outline-none">
           {selectedPlaylistId ? (
-            <PlaylistDetailView id={selectedPlaylistId} onBack={() => router.back()} token={token || undefined} />
+            <PlaylistDetailView id={selectedPlaylistId} onBack={() => router.back()} token={token || undefined} toplistSource={toplistSource} playlistType="toplist" />
           ) : (
             <LeaderboardView
               toplists={toplists}

@@ -29,7 +29,7 @@ export function SongRecommendPopup() {
     const coverUrlRef = useRef("")
 
     const { token } = useAuthStore()
-    const { showDailyRecommendPopup, _recommendPopupTrigger } = useLayoutStore()
+    const { showDailyRecommendPopup, _recommendPopupTrigger, toplistSource } = useLayoutStore()
 
     const fetchRecommendSongs = useCallback(async (): Promise<Track[]> => {
         try {
@@ -48,7 +48,7 @@ export function SongRecommendPopup() {
             }
 
             // 未绑定或获取失败：从排行榜随机
-            const toplists = await discoveryService.getToplists()
+            const toplists = await discoveryService.getToplists(false, toplistSource)
             const allTracks = toplists.flatMap(list => list.tracks)
             if (allTracks.length > 0) {
                 const shuffled = [...allTracks].sort(() => 0.5 - Math.random())
@@ -60,7 +60,7 @@ export function SongRecommendPopup() {
             console.error("[SongRecommendPopup] fetchRecommendSongs failed:", e)
             return []
         }
-    }, [token])
+    }, [token, toplistSource])
 
     const showPopup = useCallback(async () => {
         if (isFetchingRef.current) return

@@ -87,6 +87,27 @@ export function parseLyrics(track: { id?: string | number; yrc?: string; lyric?:
                     }
                 }
 
+                // QQ QRC 逐字格式: word(startMs,durMs)（文字在前、括号在后、2 个绝对毫秒）
+                // 仅对 QQ 生效（source 守卫），网易云 YRC 与汽水逐字逻辑不受影响。
+                // QRC 的 startMs 是绝对时间，与 YRC 一致，不叠加行内 offset。
+                const hasQrcVerbatim = track?.source === 'qq' && /\([^()]*\d+,\d+[^()]*\)/.test(lineStr);
+                if (hasQrcVerbatim && words.length === 0) {
+                    const qrcWordRegex = /([^(<\[\]]*?)\((\d+),(\d+)\)/g;
+                    let qrcMatch;
+                    while ((qrcMatch = qrcWordRegex.exec(lineStr)) !== null) {
+                        const wText = qrcMatch[1];
+                        if (!wText || !wText.trim()) continue;
+                        const wStart = parseInt(qrcMatch[2]) + INTRO_DELAY;
+                        const wDur = parseInt(qrcMatch[3]);
+                        words.push({
+                            text: wText,
+                            startTime: wStart,
+                            endTime: wStart + wDur,
+                            duration: wDur
+                        });
+                    }
+                }
+
                 // 网易云 YRC 逐字格式: (absTime,duration,flag)word（absTime 是绝对时间）
                 const hasVerbatimData = lineStr.includes('(') && lineStr.includes(')');
                 if (hasVerbatimData && words.length === 0) {
