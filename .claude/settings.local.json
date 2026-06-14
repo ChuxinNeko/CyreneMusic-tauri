@@ -8,7 +8,9 @@
       "Bash(bunx tsc *)",
       "Bash(tee /tmp/tsc.log)",
       "Read(//tmp/**)",
-      "Bash(cargo check *)"
+      "Bash(cargo check *)",
+      "Bash(awk '/^name = \"tauri\"$/{f=1} f&&/^version/{print; f=0}' src-tauri/Cargo.lock)",
+      "Bash(echo \"---exit:$?---\")"
     ]
   }
 }
