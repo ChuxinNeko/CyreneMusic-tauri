@@ -44,6 +44,7 @@ import { EqualizerPanel } from "./EqualizerPanel"
 import { AudioVisualizer } from "./AudioVisualizer"
 import { AddToPlaylistDialog } from "./AddToPlaylistDialog"
 import { playlistService } from "@/lib/services/playlistService"
+import { LYRIC_FONT_OPTIONS } from "@/lib/constants/fonts"
 import { Slider } from "@/components/ui/slider"
 import { useAudioSourceStore, useActiveSource } from "@/lib/store/useAudioSourceStore"
 import { AudioQuality } from "@/lib/services/audioSourceService"
@@ -93,6 +94,8 @@ export function FullscreenPlayer() {
     const toggleAudioVisualization = usePlayerStore(s => s.toggleAudioVisualization)
     const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
     const setLyricFontSize = usePlayerStore(s => s.setLyricFontSize)
+    const lyricFontFamily = usePlayerStore(s => s.lyricFontFamily)
+    const setLyricFontFamily = usePlayerStore(s => s.setLyricFontFamily)
     const lyricBlurStrength = usePlayerStore(s => s.lyricBlurStrength)
     const setLyricBlurStrength = usePlayerStore(s => s.setLyricBlurStrength)
     const desktopLyricFontSize = usePlayerStore(s => s.desktopLyricFontSize)
@@ -149,6 +152,55 @@ export function FullscreenPlayer() {
     // 音频频率数据通过 ref 直接注入 WebGL，避免触发 React 重绘
     const bgRef = React.useRef<any>(null)
 
+    // 专辑封面 3D 倾斜：ref 直接操作 DOM，避免高频 mousemove 触发 React 重渲染
+    const coverTiltRef = React.useRef<HTMLDivElement>(null)
+    const tiltRAFRef = React.useRef<number>(0)
+    const tiltTargetRef = React.useRef({ rx: 0, ry: 0 })
+    const TILT_MAX = 8            // 最大倾斜角度（度）—— 温和
+    const TILT_PERSPECTIVE = 1000
+
+    const applyCoverTilt = () => {
+        tiltRAFRef.current = 0
+        const el = coverTiltRef.current
+        if (!el) return
+        const { rx, ry } = tiltTargetRef.current
+        el.style.transform = `perspective(${TILT_PERSPECTIVE}px) rotateX(${rx}deg) rotateY(${ry}deg) scale(1.02)`
+    }
+
+    const handleCoverMouseMove = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        const el = coverTiltRef.current
+        if (!el) return
+        const rect = el.getBoundingClientRect()
+        // 鼠标相对中心的归一化坐标 (-0.5 ~ 0.5)
+        const px = (e.clientX - rect.left) / rect.width - 0.5
+        const py = (e.clientY - rect.top) / rect.height - 0.5
+        tiltTargetRef.current = {
+            rx: -py * 2 * TILT_MAX,   // 上下 → 绕 X 轴（取负让顶部向远离方向倾）
+            ry: px * 2 * TILT_MAX,    // 左右 → 绕 Y 轴
+        }
+        if (!tiltRAFRef.current) {
+            tiltRAFRef.current = requestAnimationFrame(applyCoverTilt)
+        }
+    }, [])
+
+    const handleCoverMouseEnter = React.useCallback(() => {
+        const el = coverTiltRef.current
+        if (el) el.style.transition = 'transform 80ms ease-out'
+    }, [])
+
+    const handleCoverMouseLeave = React.useCallback(() => {
+        if (tiltRAFRef.current) {
+            cancelAnimationFrame(tiltRAFRef.current)
+            tiltRAFRef.current = 0
+        }
+        tiltTargetRef.current = { rx: 0, ry: 0 }
+        const el = coverTiltRef.current
+        if (el) {
+            el.style.transition = 'transform 400ms cubic-bezier(0.16, 1, 0.3, 1)'
+            el.style.transform = `perspective(${TILT_PERSPECTIVE}px) rotateX(0deg) rotateY(0deg) scale(1)`
+        }
+    }, [])
+
     // 频率数据采集循环（使用 rAF 与 WebGL 渲染器的 tick 自然同步，避免 setInterval 抖动）
     React.useEffect(() => {
         if (!isVisible || !isPlaying || !audioVisualization) {
@@ -168,6 +220,11 @@ export function FullscreenPlayer() {
             cancelAnimationFrame(handle)
         }
     }, [isVisible, isPlaying, audioVisualization])
+
+    // 封面倾斜 rAF 清理
+    React.useEffect(() => () => {
+        if (tiltRAFRef.current) cancelAnimationFrame(tiltRAFRef.current)
+    }, [])
 
     React.useEffect(() => {
         const updateMaximizedState = async () => {
@@ -615,6 +672,23 @@ export function FullscreenPlayer() {
                         <DropdownMenuSeparator className="bg-white/10" />
                         <div className="px-2 py-1.5">
                             <div className="flex items-center text-sm font-medium mb-2 opacity-80">
+                                <Type className="mr-2 h-4 w-4" /> 歌词字体
+                            </div>
+                            <select
+                                value={lyricFontFamily}
+                                onChange={(e) => setLyricFontFamily(e.target.value)}
+                                className="w-full bg-white/10 text-white text-sm rounded-md px-2 py-1.5 outline-none cursor-pointer appearance-none [&>option]:text-black"
+                            >
+                                {LYRIC_FONT_OPTIONS.map(f => (
+                                    <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
+                                        {f.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <DropdownMenuSeparator className="bg-white/10" />
+                        <div className="px-2 py-1.5">
+                            <div className="flex items-center text-sm font-medium mb-2 opacity-80">
                                 <Type className="mr-2 h-4 w-4" /> 歌词字号
                             </div>
                             <Slider
@@ -763,6 +837,23 @@ export function FullscreenPlayer() {
                                 <DropdownMenuSeparator className="bg-white/10" />
                                 <div className="px-2 py-1.5">
                                     <div className="flex items-center text-sm font-medium mb-2 opacity-80">
+                                        <Type className="mr-2 h-4 w-4" /> 歌词字体
+                                    </div>
+                                    <select
+                                        value={lyricFontFamily}
+                                        onChange={(e) => setLyricFontFamily(e.target.value)}
+                                        className="w-full bg-white/10 text-white text-sm rounded-md px-2 py-1.5 outline-none cursor-pointer appearance-none [&>option]:text-black"
+                                    >
+                                        {LYRIC_FONT_OPTIONS.map(f => (
+                                            <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
+                                                {f.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <DropdownMenuSeparator className="bg-white/10" />
+                                <div className="px-2 py-1.5">
+                                    <div className="flex items-center text-sm font-medium mb-2 opacity-80">
                                         <Type className="mr-2 h-4 w-4" /> 歌词字号
                                     </div>
                                     <Slider
@@ -852,7 +943,13 @@ export function FullscreenPlayer() {
                                     : "relative aspect-square w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink transition-all duration-700"
                             }
                             >
-                                <div className={isImmersiveMode ? "relative w-full h-full overflow-hidden" : "relative w-full h-full rounded-[20px] overflow-hidden transition-transform duration-500 hover:scale-[1.02] bg-white/5 border border-white/10"}
+                                <div
+                                    ref={coverTiltRef}
+                                    onMouseMove={!isMobile ? handleCoverMouseMove : undefined}
+                                    onMouseEnter={!isMobile ? handleCoverMouseEnter : undefined}
+                                    onMouseLeave={!isMobile ? handleCoverMouseLeave : undefined}
+                                    style={{ transformStyle: 'preserve-3d' }}
+                                    className={isImmersiveMode ? "relative w-full h-full overflow-hidden" : "relative w-full h-full rounded-[20px] overflow-hidden transition-transform duration-500 bg-white/5 border border-white/10"}
                                 >
                                     {currentTrack?.picUrl ? (
                                         <img src={currentTrack.picUrl} alt={currentTrack.name} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${dynamicCoverUrl && isVideoLoaded ? 'opacity-0' : 'opacity-100'}`} />

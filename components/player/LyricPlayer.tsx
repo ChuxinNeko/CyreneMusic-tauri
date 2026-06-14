@@ -143,6 +143,7 @@ export const LyricPlayer = React.memo(function LyricPlayer() {
     const isPlaying = usePlayerStore(s => s.isPlaying)
     const showTranslation = usePlayerStore(s => s.showTranslation)
     const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
+    const lyricFontFamily = usePlayerStore(s => s.lyricFontFamily)
     const lyricBlurStrength = usePlayerStore(s => s.lyricBlurStrength)
     const containerRef = useRef<HTMLDivElement>(null)
     const linesHelperRef = useRef<LyricLineHelper[]>([])
@@ -479,13 +480,13 @@ export const LyricPlayer = React.memo(function LyricPlayer() {
                     >
                         <div className="lyricMainLine flex flex-wrap">
                             {line.words.map((word, wIndex) => (
-                                <span key={wIndex} className="lyricWord inline-block font-bold leading-tight whitespace-pre-wrap" style={{ paddingLeft: '0.1em', paddingRight: '0.1em', marginLeft: '-0.1em', marginRight: '-0.1em', fontFamily: 'MiSans, sans-serif', color: 'var(--lyric-color, rgba(255,255,255,0.4))', transition: 'var(--lyric-color-transition, color 800ms linear)', fontSize: `clamp(${lyricFontSize * 0.6}px, 2.8vw, ${lyricFontSize}px)`, willChange: 'mask-position, transform', transform: 'translateZ(0)' }}>
+                                <span key={wIndex} className="lyricWord inline-block font-bold leading-tight whitespace-pre-wrap" style={{ paddingLeft: '0.1em', paddingRight: '0.1em', marginLeft: '-0.1em', marginRight: '-0.1em', fontFamily: lyricFontFamily, color: 'var(--lyric-color, rgba(255,255,255,0.4))', transition: 'var(--lyric-color-transition, color 800ms linear)', fontSize: `clamp(${lyricFontSize * 0.6}px, 2.8vw, ${lyricFontSize}px)`, willChange: 'mask-position, transform', transform: 'translateZ(0)' }}>
                                     {word.text}
                                 </span>
                             ))}
                         </div>
                         {showTranslation && line.translation && (
-                            <div className="lyricTranslation mt-1 font-medium leading-snug" style={{ fontFamily: 'MiSans, sans-serif', color: 'var(--trans-color, rgba(255,255,255,0.2))', transition: 'var(--lyric-color-transition, color 800ms linear)', fontSize: `clamp(${lyricFontSize * 0.35}px, 1.4vw, ${lyricFontSize * 0.55}px)` }}>
+                            <div className="lyricTranslation mt-1 font-medium leading-snug" style={{ fontFamily: lyricFontFamily, color: 'var(--trans-color, rgba(255,255,255,0.2))', transition: 'var(--lyric-color-transition, color 800ms linear)', fontSize: `clamp(${lyricFontSize * 0.35}px, 1.4vw, ${lyricFontSize * 0.55}px)` }}>
                                 {line.translation}
                             </div>
                         )}

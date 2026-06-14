@@ -111,6 +111,28 @@ fn get_best_taskbar_x(taskbar_rect: &RECT, player_width: u32, position: Option<&
 
     data.spans.sort_by_key(|s| s.left);
 
+    // left 模式：放在任务栏左侧第一段足够宽的空白区正中央
+    // （Win11 开始菜单居中布局下，即"天气/小组件"与居中"图标组"之间的空白，
+    //   从左往右扫描时会跳过紧贴左缘的天气组件，落点正好在两者中间）
+    if pos_str == "left" {
+        let mut scan_x = taskbar_rect.left;
+        for span in &data.spans {
+            let gap = span.left - scan_x;
+            if gap >= player_width as i32 {
+                return scan_x + (gap - player_width as i32) / 2;
+            }
+            if span.right > scan_x {
+                scan_x = span.right;
+            }
+        }
+        // 扫描到末尾仍未找到合适空白：退回到末段空白居中；再不行则贴最左
+        let tail_gap = taskbar_rect.right - scan_x;
+        if tail_gap >= player_width as i32 {
+            return scan_x + (tail_gap - player_width as i32) / 2;
+        }
+        return taskbar_rect.left + 8;
+    }
+
     let mut current_x = taskbar_rect.left;
     let mut max_gap = 0;
     let mut best_x = current_x;
@@ -133,10 +155,8 @@ fn get_best_taskbar_x(taskbar_rect: &RECT, player_width: u32, position: Option<&
     }
 
     if max_gap >= player_width as i32 {
-        match pos_str {
-            "left" => best_x + 20,
-            _ => best_x + (max_gap - player_width as i32) / 2, // 默认居中
-        }
+        // left / right 已在前面提前返回，这里只处理默认的居中
+        best_x + (max_gap - player_width as i32) / 2
     } else {
         TASKBAR_X_OFFSET
     }

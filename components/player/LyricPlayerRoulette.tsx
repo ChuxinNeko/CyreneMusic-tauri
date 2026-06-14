@@ -14,6 +14,7 @@ export const LyricPlayerRoulette = React.memo(function LyricPlayerRoulette() {
     const currentTrack = usePlayerStore(s => s.currentTrack)
     const showTranslation = usePlayerStore(s => s.showTranslation)
     const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
+    const lyricFontFamily = usePlayerStore(s => s.lyricFontFamily)
     const containerRef = useRef<HTMLDivElement>(null)
     const requestRef = useRef<number>(0)
     const currentIndexRef = useRef(0)
@@ -121,7 +122,7 @@ export const LyricPlayerRoulette = React.memo(function LyricPlayerRoulette() {
                             <div
                                 className="font-bold leading-tight whitespace-pre-wrap"
                                 style={{
-                                    fontFamily: "MiSans, sans-serif",
+                                    fontFamily: lyricFontFamily,
                                     fontSize: `clamp(${lyricFontSize * 0.7}px, 2.8vw, ${lyricFontSize}px)`,
                                     color: isActive ? "rgba(255,255,255,1)" : "rgba(255,255,255,0.4)",
                                     textShadow: isActive ? "0 0 12px rgba(255,255,255,0.15)" : "none",
@@ -134,7 +135,7 @@ export const LyricPlayerRoulette = React.memo(function LyricPlayerRoulette() {
                                 <div
                                     className="font-medium leading-snug mt-0.5"
                                     style={{
-                                        fontFamily: "MiSans, sans-serif",
+                                        fontFamily: lyricFontFamily,
                                         fontSize: `clamp(${lyricFontSize * 0.35}px, 1.4vw, ${lyricFontSize * 0.55}px)`,
                                         color: isActive ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.25)",
                                         transition: "color 600ms ease-out",

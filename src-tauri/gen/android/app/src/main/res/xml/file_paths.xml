@@ -4,4 +4,7 @@
   <cache-path name="my_cache" path="." />
   <external-cache-path name="my_external_cache" path="." />
   <files-path name="my_files" path="." />
+  <!-- 更新包下载目录 getExternalFilesDir(DIRECTORY_DOWNLOADS) 位于此根下，
+       缺失会导致 FileProvider.getUriForFile 抛异常、安装器无法拉起 -->
+  <external-files-path name="my_external_files" path="." />
 </paths>

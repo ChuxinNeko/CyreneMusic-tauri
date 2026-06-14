@@ -261,6 +261,7 @@ async fn open_recommend_popup(app: tauri::AppHandle) -> Result<(), String> {
     .focused(false)
     .decorations(false)
     .always_on_top(true)
+    .background_color(Color(0, 0, 0, 0))
     .skip_taskbar(true)
     .shadow(true)
     .inner_size(popup_width, popup_height)

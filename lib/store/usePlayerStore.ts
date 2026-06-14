@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { Track } from '../models/track'
+import { DEFAULT_LYRIC_FONT } from '../constants/fonts'
 
 export enum RepeatMode {
     Off = 'off',
@@ -50,6 +51,7 @@ interface PlayerState {
     audioVisualization: boolean
     // Lyric Appearance
     lyricFontSize: number
+    lyricFontFamily: string
     lyricBlurStrength: number
 
     // Desktop Lyric Appearance
@@ -82,6 +84,7 @@ interface PlayerState {
     toggleTranslation: () => void
     toggleAudioVisualization: () => void
     setLyricFontSize: (size: number) => void
+    setLyricFontFamily: (font: string) => void
     setLyricBlurStrength: (strength: number) => void
 
     setDesktopLyricFontSize: (size: number) => void
@@ -115,6 +118,7 @@ export const usePlayerStore = create<PlayerState>()(
             showTranslation: true,
             audioVisualization: true,
             lyricFontSize: 34,
+            lyricFontFamily: DEFAULT_LYRIC_FONT,
             lyricBlurStrength: 6,
             desktopLyricFontSize: 40,
             desktopLyricColor: '#ffffff',
@@ -187,6 +191,7 @@ export const usePlayerStore = create<PlayerState>()(
             toggleTranslation: () => set((state) => ({ showTranslation: !state.showTranslation })),
             toggleAudioVisualization: () => set((state) => ({ audioVisualization: !state.audioVisualization })),
             setLyricFontSize: (size) => set({ lyricFontSize: size }),
+            setLyricFontFamily: (font) => set({ lyricFontFamily: font }),
             setLyricBlurStrength: (strength) => set({ lyricBlurStrength: strength }),
             setDesktopLyricFontSize: (desktopLyricFontSize) => set({ desktopLyricFontSize }),
             setDesktopLyricColor: (desktopLyricColor) => set({ desktopLyricColor }),
@@ -240,6 +245,7 @@ export const usePlayerStore = create<PlayerState>()(
                 progress: state.progress,
                 audioVisualization: state.audioVisualization,
                 lyricFontSize: state.lyricFontSize,
+                lyricFontFamily: state.lyricFontFamily,
                 lyricBlurStrength: state.lyricBlurStrength,
                 desktopLyricFontSize: state.desktopLyricFontSize,
                 desktopLyricColor: state.desktopLyricColor,

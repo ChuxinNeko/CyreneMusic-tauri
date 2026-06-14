@@ -9,6 +9,7 @@ export const LyricPlayerSingleLine = React.memo(function LyricPlayerSingleLine()
     const currentTrack = usePlayerStore(s => s.currentTrack)
     const showTranslation = usePlayerStore(s => s.showTranslation)
     const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
+    const lyricFontFamily = usePlayerStore(s => s.lyricFontFamily)
     const singleLineAnimation = usePlayerStore(s => s.singleLineAnimation)
     const requestRef = useRef<number>(0)
     const currentIndexRef = useRef(-1)
@@ -107,7 +108,7 @@ export const LyricPlayerSingleLine = React.memo(function LyricPlayerSingleLine()
                             <span 
                                 className="inline-block font-bold leading-tight whitespace-pre-wrap text-white" 
                                 style={{ 
-                                    fontFamily: 'MiSans, sans-serif', 
+                                    fontFamily: lyricFontFamily, 
                                     fontSize: `clamp(${lyricFontSize * 0.8}px, 4vw, ${lyricFontSize * 1.5}px)`,
                                     textShadow: "0 4px 16px rgba(0,0,0,0.3)"
                                 }}
@@ -119,7 +120,7 @@ export const LyricPlayerSingleLine = React.memo(function LyricPlayerSingleLine()
                             <div 
                                 className="mt-3 font-medium leading-snug text-white/70" 
                                 style={{ 
-                                    fontFamily: 'MiSans, sans-serif', 
+                                    fontFamily: lyricFontFamily, 
                                     fontSize: `clamp(${lyricFontSize * 0.4}px, 2vw, ${lyricFontSize * 0.75}px)`,
                                     textShadow: "0 2px 8px rgba(0,0,0,0.3)"
                                 }}

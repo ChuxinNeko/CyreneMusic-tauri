@@ -4,7 +4,11 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(git log *)",
       "WebSearch",
-      "Read(//c/Users/22376/.cargo/registry/src/**)"
+      "Read(//c/Users/22376/.cargo/registry/src/**)",
+      "Bash(bunx tsc *)",
+      "Bash(tee /tmp/tsc.log)",
+      "Read(//tmp/**)",
+      "Bash(cargo check *)"
     ]
   }
 }
