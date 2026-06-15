@@ -22,7 +22,7 @@ export function SongInfoPanel() {
                 {/* 音乐百科 (仅网易云) */}
                 <SongWiki track={currentTrack} />
 
-                {/* 歌曲评论 (仅网易云) */}
+                {/* 歌曲评论 (网易云 / QQ) */}
                 <SongComments track={currentTrack} />
 
                 {/* 听歌足迹 */}

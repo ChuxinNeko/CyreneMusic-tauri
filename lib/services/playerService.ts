@@ -53,6 +53,12 @@ class PlayerService {
     private static instance: PlayerService
     private howl: Howl | null = null
     private progressInterval: any = null
+    // 进度计时代次：每次切歌/初始化新 Howl 时自增，旧计时器据此自毁，杜绝过期回调写入进度
+    private playGeneration = 0
+    // 进度“武装”机制：切歌后 html5 音频池可能复用 <audio> 元素并短暂回报上一首的播放位置，
+    // 在读数回到预期起点附近之前不写入进度，防止进度条在新旧进度间来回抽搐
+    private progressArmed = false
+    private progressArmStart = 0
     private fadeDuration = 500 // 500ms cross-fade
     private androidMediaBridgeBound = false
     private fallbackQualityUrl: string | null = null // 播放失败时的备选 (通常为 320k) URL
@@ -211,7 +217,7 @@ class PlayerService {
         howl.on('play', () => {
             usePlayerStore.getState().setIsPlaying(true)
             usePlayerStore.getState().setIsLoading(false)
-            this.startProgressTimer()
+            this.startProgressTimer(howl)
             this.broadcastState()
             this.syncAndroidMediaNotification(true)
             this.syncThumbbarState(true)
@@ -273,7 +279,12 @@ class PlayerService {
                 console.log(`[PlayerService] 尝试加载 320k URL: ${nextUrl}`)
                 this.fallbackQualityUrl = null // 确保只重试一次，防止无限重试
                 usePlayerStore.getState().setIsLoading(true)
-                this.initHowl(nextUrl)
+                // 修复：initHowl 需要 track 参数，缺失会在内部访问 track.id 时抛错导致降级失效。
+                // 此降级针对当前正在播放的曲目，取 store 中的 currentTrack。
+                const fallbackTrack = usePlayerStore.getState().currentTrack
+                if (fallbackTrack) {
+                    this.initHowl(nextUrl, fallbackTrack)
+                }
                 return
             }
 
@@ -355,12 +366,38 @@ class PlayerService {
         })
     }
 
-    private startProgressTimer() {
+    private startProgressTimer(howl?: Howl) {
         this.stopProgressTimer()
+
+        // 绑定到具体的 Howl 实例与代次，确保只有“当前曲目”的计时器能写入进度
+        const activeHowl = howl ?? this.howl
+        if (!activeHowl) return
+        const generation = this.playGeneration
+        // 切歌后 html5 <audio> 元素短暂回报上一首位置，先解除武装，待读数回到起点附近再开始写入
+        this.progressArmed = false
+        // 容差：读数与预期起点相差不超过 3 秒即视为新曲目已真正开始播放
+        const ARM_TOLERANCE_SECONDS = 3
+
         this.progressInterval = setInterval(() => {
-            if (this.howl && this.howl.playing()) {
-                const currentTime = this.howl.seek() as number
-                const duration = this.howl.duration()
+            // 已切歌（Howl 被替换或代次更新）：旧计时器自毁，绝不写入过期进度
+            if (activeHowl !== this.howl || generation !== this.playGeneration) {
+                this.stopProgressTimer()
+                return
+            }
+
+            if (activeHowl.playing()) {
+                const currentTime = activeHowl.seek() as number
+                const duration = activeHowl.duration()
+
+                // 武装前：过滤掉音频池复用残留的上一首离开位置，只接受接近起点的读数
+                if (!this.progressArmed) {
+                    if (Math.abs(currentTime - this.progressArmStart) <= ARM_TOLERANCE_SECONDS) {
+                        this.progressArmed = true
+                    } else {
+                        return
+                    }
+                }
+
                 if (duration) {
                     usePlayerStore.getState().setCurrentTime(currentTime)
                     usePlayerStore.getState().setProgress(currentTime / duration)
@@ -1003,6 +1040,11 @@ class PlayerService {
             oldHowl.unload()
         }
 
+        // 新一代播放：自增代次令旧进度计时器自毁，并设定本曲目的预期起点用于“武装”过滤
+        this.playGeneration++
+        this.progressArmed = false
+        this.progressArmStart = resumeTime !== undefined && resumeTime > 0 ? resumeTime : 0
+
         this.howl = new Howl({
             src: [url],
             html5: true,
@@ -1103,6 +1145,10 @@ class PlayerService {
         if (this.howl) {
             this.howl.seek(time)
             usePlayerStore.getState().setCurrentTime(time)
+
+            // 用户主动定位：以此为新的预期起点并立即武装，使进度计时器接受该位置附近的后续读数
+            this.progressArmStart = time
+            this.progressArmed = true
 
             if (typeof window !== 'undefined') {
                 emit('player:time-sync', {

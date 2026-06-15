@@ -16,7 +16,7 @@ use windows::Win32::Foundation::{BOOL, HWND, LPARAM};
 /// 悬浮模式的窗口尺寸
 const TASKBAR_WIDTH: u32 = 280;
 const FLOATING_WIDTH: u32 = 380;
-const FLOATING_HEIGHT: u32 = 60;
+const FLOATING_HEIGHT: u32 = 50;
 const TASKBAR_X_OFFSET: i32 = 260;
 
 /// 获取任务栏矩形区域

@@ -70,7 +70,7 @@ export default function TaskbarPlayerPage() {
             await invoke("unpin_taskbar_player")
             // 从前端再次确认窗口尺寸
             const win = getCurrentWindow()
-            await win.setSize({ type: "Logical", width: 380, height: 60 })
+            await win.setSize({ type: "Logical", width: 380, height: 50 })
             setMode("floating")
             modeRef.current = "floating"
         } catch (e) {

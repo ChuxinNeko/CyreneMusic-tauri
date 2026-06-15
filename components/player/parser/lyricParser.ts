@@ -22,7 +22,9 @@ export function parseLyrics(track: { id?: string | number; yrc?: string; lyric?:
 
     try {
         const rawLines = lyricSource.split('\n').filter(l => l.trim());
-        const lrcRegex = /^\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/;
+        // 兼容 QQ 等平台的时间戳分隔符：毫秒前可能是 '.' 或 ':'，且毫秒部分可缺省
+        // 例如标准 [00:17.32]、QQ 纯音乐占位 [00:00:00]、无毫秒 [00:17]
+        const lrcRegex = /^\[(\d{2}):(\d{2})(?:[.:](\d{2,3}))?\](.*)/;
         const yrcLineRegex = /^\[(\d+),(\d+)\]/;
         const yrcWordRegex = /\((\d+),(\d+),\d+\)([^(\[]+)/g;
 
@@ -55,7 +57,7 @@ export function parseLyrics(track: { id?: string | number; yrc?: string; lyric?:
             if (lrcMatch) {
                 const mins = parseInt(lrcMatch[1]);
                 const secs = parseInt(lrcMatch[2]);
-                const ms = parseInt(lrcMatch[3].padEnd(3, '0').slice(0, 3));
+                const ms = lrcMatch[3] ? parseInt(lrcMatch[3].padEnd(3, '0').slice(0, 3)) : 0;
                 timeMs = (mins * 60 + secs) * 1000 + ms + INTRO_DELAY + globalOffset;
                 const text = lrcMatch[4].trim();
                 if (!text) return null;
@@ -154,13 +156,13 @@ export function parseLyrics(track: { id?: string | number; yrc?: string; lyric?:
         const translationSource = hasYrc ? track?.ytlrc : track?.tlyric;
         if (translationSource && translationSource.trim().length > 0) {
             const tLines = translationSource.split('\n').filter(l => l.trim());
-            const tLrcRegex = /^\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)/;
+            const tLrcRegex = /^\[(\d{2}):(\d{2})(?:[.:](\d{2,3}))?\](.*)/;
             const translationMap: { time: number, text: string }[] = [];
 
             for (const tLine of tLines) {
                 const m = tLine.match(tLrcRegex);
                 if (m) {
-                    const ms = parseInt(m[3].padEnd(3, '0').slice(0, 3));
+                    const ms = m[3] ? parseInt(m[3].padEnd(3, '0').slice(0, 3)) : 0;
                     const tMs = (parseInt(m[1]) * 60 + parseInt(m[2])) * 1000 + ms + INTRO_DELAY + globalOffset;
                     translationMap.push({ time: tMs, text: m[4].trim() });
                 }

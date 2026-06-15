@@ -1,11 +1,10 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
     User,
     Loader2,
-    ChevronRight,
     Footprints,
     ChevronLeft
 } from "lucide-react"
@@ -56,37 +55,6 @@ export default function ProfilePage() {
     useEffect(() => {
         fetchData()
     }, [isLoggedIn])
-
-    const selectedPlaylistName = useMemo(() => {
-        if (!selectedPlaylistId) return null
-        const found = playlists.find(p => String(p.id) === String(selectedPlaylistId))
-        return found?.name || "歌单"
-    }, [selectedPlaylistId, playlists])
-
-    const breadcrumb = selectedPlaylistId ? (
-        <div className="flex items-center gap-1 min-w-0">
-            <span
-                className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                onClick={() => setSelectedPlaylistId(null)}
-            >
-                个人中心
-            </span>
-            <ChevronRight className="h-7 w-7 lg:h-8 lg:w-8 text-muted-foreground shrink-0" />
-            <span className="text-foreground truncate">
-                {selectedPlaylistName}
-            </span>
-        </div>
-    ) : (
-        <span>个人中心</span>
-    )
-
-    const titleBar = (
-        <div className="hidden lg:block px-6 lg:px-10 pt-6 lg:pt-10 max-w-7xl w-full mx-auto">
-            <h1 className="text-3xl font-extrabold tracking-tight lg:text-4xl flex items-center min-w-0">
-                {breadcrumb}
-            </h1>
-        </div>
-    )
 
     const renderBody = () => {
         if (!isLoggedIn) {
@@ -175,8 +143,7 @@ export default function ProfilePage() {
 
     return (
         <ScrollArea className="h-full [&_[data-radix-scroll-area-viewport]>div]:!block">
-            {titleBar}
-            <div className={selectedPlaylistId ? "lg:mt-8" : "mt-6 lg:mt-8"}>
+            <div className={selectedPlaylistId ? "lg:mt-8 sm:px-6 lg:px-10" : "mt-6 lg:mt-8"}>
                 {renderBody()}
             </div>
         </ScrollArea>

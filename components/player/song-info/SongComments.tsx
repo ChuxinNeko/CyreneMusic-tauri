@@ -7,11 +7,17 @@ import {
     CommentItem,
     SongComments,
 } from "@/lib/services/neteaseCommentService"
+import { qqCommentService } from "@/lib/services/qqCommentService"
 import { Heart, Loader2, ChevronRight } from "lucide-react"
 
 interface SongCommentsProps {
     track: Track | null
 }
+
+/** 支持展示评论的音源 */
+const SUPPORTED_SOURCES = ["netease", "qq"] as const
+const isCommentSupported = (track: Track | null): boolean =>
+    !!track && (SUPPORTED_SOURCES as readonly string[]).includes(track.source)
 
 /** 单页评论数量 */
 const PAGE_SIZE = 20
@@ -36,8 +42,10 @@ export function SongComments({ track }: SongCommentsProps) {
     // 最新评论分页（不含首页，从第 2 页开始）
     const [latestPage, setLatestPage] = useState<CommentItem[]>([])
     const [offset, setOffset] = useState(0)
-    // before 分页游标（用于超过 5000 条评论后的翻页）
+    // before 分页游标（用于超过 5000 条评论后的翻页，仅网易云）
     const beforeRef = useRef<number>(0)
+    // 页码游标（QQ 按页码分页，记录下一页页码）
+    const pageRef = useRef<number>(0)
 
     const [isLoading, setIsLoading] = useState(false)
     const [isLoadingMore, setIsLoadingMore] = useState(false)
@@ -46,12 +54,30 @@ export function SongComments({ track }: SongCommentsProps) {
     // 用于强制重新触发 effect（切换展开状态时重新拉取）
     const reqIdRef = useRef(0)
 
+    /** 按音源拉取指定页评论（网易云用 offset/before，QQ 用页码） */
+    const fetchBySource = useCallback(
+        (track: Track, isFirst: boolean): Promise<SongComments | null> => {
+            if (track.source === "qq") {
+                const page = isFirst ? 0 : pageRef.current
+                return qqCommentService.fetchSongComments(track.id, PAGE_SIZE, page)
+            }
+            // 默认走网易云
+            return neteaseCommentService.fetchSongComments(
+                track.id,
+                PAGE_SIZE,
+                isFirst ? 0 : offset,
+                isFirst ? 0 : beforeRef.current,
+            )
+        },
+        [offset],
+    )
+
     /** 加载第一页（热门评论 + 最新评论首页） */
     useEffect(() => {
         const reqId = ++reqIdRef.current
         const fetchFirst = async () => {
-            // 仅网易云音源
-            if (!track || track.source !== "netease") {
+            // 仅支持的音源（网易云 / QQ）
+            if (!isCommentSupported(track)) {
                 setFirstPage(null)
                 setLatestPage([])
                 return
@@ -60,17 +86,13 @@ export function SongComments({ track }: SongCommentsProps) {
             setIsLoading(true)
             setError(null)
             try {
-                const data = await neteaseCommentService.fetchSongComments(
-                    track.id,
-                    PAGE_SIZE,
-                    0,
-                    0,
-                )
+                const data = await fetchBySource(track!, true)
                 if (reqId !== reqIdRef.current) return // 已被新请求取代
                 if (data) {
                     setFirstPage(data)
                     setLatestPage([])
                     setOffset(PAGE_SIZE)
+                    pageRef.current = 1
                     beforeRef.current =
                         data.comments.length > 0
                             ? data.comments[data.comments.length - 1].time
@@ -87,6 +109,8 @@ export function SongComments({ track }: SongCommentsProps) {
             }
         }
         fetchFirst()
+        // fetchBySource 依赖 offset，但首页加载只应随 track 变化触发
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [track])
 
     /** 加载更多最新评论 */
@@ -94,15 +118,11 @@ export function SongComments({ track }: SongCommentsProps) {
         if (!track || isLoadingMore || !firstPage?.more) return
         setIsLoadingMore(true)
         try {
-            const data = await neteaseCommentService.fetchSongComments(
-                track.id,
-                PAGE_SIZE,
-                offset,
-                beforeRef.current,
-            )
+            const data = await fetchBySource(track, false)
             if (data) {
                 setLatestPage((prev) => [...prev, ...data.comments])
                 setOffset((prev) => prev + PAGE_SIZE)
+                pageRef.current += 1
                 if (data.comments.length > 0) {
                     beforeRef.current = data.comments[data.comments.length - 1].time
                 }
@@ -114,7 +134,7 @@ export function SongComments({ track }: SongCommentsProps) {
         } finally {
             setIsLoadingMore(false)
         }
-    }, [track, offset, isLoadingMore, firstPage])
+    }, [track, isLoadingMore, firstPage, fetchBySource])
 
     // 加载中
     if (isLoading) {
@@ -125,8 +145,8 @@ export function SongComments({ track }: SongCommentsProps) {
         )
     }
 
-    // 非网易云 / 无评论
-    if (!track || track.source !== "netease") return null
+    // 非支持音源 / 无评论
+    if (!isCommentSupported(track)) return null
     if (error) {
         return (
             <div className="w-full max-w-xl mx-auto mb-8 px-2">

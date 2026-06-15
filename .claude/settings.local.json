@@ -10,7 +10,11 @@
       "Read(//tmp/**)",
       "Bash(cargo check *)",
       "Bash(awk '/^name = \"tauri\"$/{f=1} f&&/^version/{print; f=0}' src-tauri/Cargo.lock)",
-      "Bash(echo \"---exit:$?---\")"
+      "Bash(echo \"---exit:$?---\")",
+      "Bash(npx tsc *)",
+      "Bash(curl -s \"https://music.nekofun.top/lyrics/qq?id=840202\")",
+      "Bash(curl -s \"https://music.nekofun.top/lyrics/qq?id=003u9Xfg0KLHNF\")",
+      "Bash(node -e ' *)"
     ]
   }
 }
