@@ -11,6 +11,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import { SearchBox } from "./SearchBox"
 
 import { useWindowMaterialStore, updateWindowMaterialTheme } from "@/lib/store/useWindowMaterialStore"
+import { useUIThemeStore } from "@/lib/store/useUIThemeStore"
 
 function SearchArea() {
     const searchParams = useSearchParams()
@@ -45,6 +46,7 @@ export function TitleBar() {
     const { user, isLoggedIn, logout } = useAuthStore()
     const router = useRouter()
     const { material } = useWindowMaterialStore()
+    const { currentTheme } = useUIThemeStore()
 
     React.useEffect(() => {
         const updateMaximizedState = async () => {
@@ -84,7 +86,7 @@ export function TitleBar() {
     }
 
     return (
-        <div className="sticky top-0 z-50 pt-[max(env(safe-area-inset-top),32px)] md:pt-[env(safe-area-inset-top)] bg-transparent border-b">
+        <div className={`sticky top-0 z-50 pt-[max(env(safe-area-inset-top),32px)] md:pt-[env(safe-area-inset-top)] bg-transparent ${currentTheme === 'fluent' ? '' : 'border-b'}`}>
             <div data-tauri-drag-region className="h-14 flex items-center px-4 select-none bg-transparent">
                 {/* Left Section: Navigation */}
                 <div className="hidden md:flex items-center gap-1 z-10 mr-4" data-tauri-drag-region>
@@ -129,7 +131,7 @@ export function TitleBar() {
                                         </Avatar>
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-48 mt-1 rounded-xl shadow-xl border-muted-foreground/10 p-1.5 animate-in fade-in zoom-in-95 duration-200">
+                                <DropdownMenuContent align="end" className={`w-48 mt-1 border-muted-foreground/10 p-1.5 animate-in fade-in zoom-in-95 duration-200 ${currentTheme === 'fluent' ? 'bg-popover/80 backdrop-blur-2xl rounded-lg shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)]' : 'bg-popover rounded-xl shadow-xl'}`}>
                                     <div className="flex items-center gap-2 px-2 py-2 mb-1">
                                         <Avatar className="h-10 w-10 border border-muted">
                                             <AvatarImage src={user?.avatarUrl} />

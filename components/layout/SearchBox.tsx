@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { urlService } from "@/lib/services/urlService"
+import { useUIThemeStore } from "@/lib/store/useUIThemeStore"
 
 function useDebounce<T>(value: T, delay: number): T {
     const [debouncedValue, setDebouncedValue] = React.useState<T>(value);
@@ -34,6 +35,7 @@ export function SearchBox() {
     const debouncedKeyword = useDebounce(keyword, 300)
     const [isFocused, setIsFocused] = React.useState(false)
     const containerRef = React.useRef<HTMLDivElement>(null)
+    const { currentTheme } = useUIThemeStore()
 
     React.useEffect(() => {
         const stored = localStorage.getItem(SEARCH_HISTORY_KEY)
@@ -159,7 +161,10 @@ export function SearchBox() {
                 <Input
                     type="search"
                     placeholder="搜索音乐、视频、歌词..."
-                    className="w-full bg-muted/50 pl-10 h-9 rounded-full border-none focus-visible:ring-1 transition-all focus-visible:bg-muted z-20 relative text-sm"
+                    className={currentTheme === 'fluent' 
+                        ? "w-full pl-10 h-9 rounded-md border-none bg-muted/40 focus-visible:bg-muted/60 focus-visible:ring-1 focus-visible:ring-primary/50 transition-all z-20 relative text-sm shadow-inner"
+                        : "w-full bg-muted/50 pl-10 h-9 rounded-full border-none focus-visible:ring-1 transition-all focus-visible:bg-muted z-20 relative text-sm"
+                    }
                     value={keyword}
                     onChange={(e) => {
                         setKeyword(e.target.value)
@@ -185,7 +190,7 @@ export function SearchBox() {
             </form>
 
             {isFocused && (keyword.trim() ? suggestions.length > 0 : history.length > 0) && (
-                <div className="absolute top-[calc(100%+8px)] left-0 w-full min-w-[300px] bg-background border border-border/50 rounded-xl shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className={`absolute top-[calc(100%+8px)] left-0 w-full min-w-[300px] border border-border/50 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 ${currentTheme === 'fluent' ? 'bg-background/80 backdrop-blur-2xl rounded-lg shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)]' : 'bg-background rounded-xl shadow-xl'}`}>
                     <div className="p-3">
                         {!keyword.trim() ? (
                             <>

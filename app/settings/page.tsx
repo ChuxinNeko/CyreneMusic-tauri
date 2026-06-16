@@ -24,6 +24,8 @@ import { useTheme } from "next-themes"
 import { useLayoutStore } from "@/lib/store/useLayoutStore"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
+import { FluentProvider, webLightTheme, webDarkTheme, Text, Switch as FluentSwitch, Card as FluentCard, CardHeader as FluentCardHeader, Select } from "@fluentui/react-components"
+import { useUIThemeStore } from "@/lib/store/useUIThemeStore"
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense } from "react"
@@ -63,6 +65,7 @@ function SettingsPageContent() {
     const activeSource = useActiveSource()
     const { quality, sources } = useAudioSourceStore()
     const { theme } = useTheme()
+    const { currentTheme } = useUIThemeStore()
     const { showDailyRecommendPopup, setShowDailyRecommendPopup, triggerRecommendPopup, toplistSource, setToplistSource, recommendSource, setRecommendSource } = useLayoutStore()
 
     useEffect(() => {
@@ -227,11 +230,59 @@ function SettingsPageContent() {
         }
     }
 
-const SettingsItemGroup = ({ children }: { children: React.ReactNode }) => (
-    <div className="flex flex-col border border-border/40 rounded-xl overflow-hidden bg-card/60 backdrop-blur-xl shadow-sm ring-1 ring-black/5 dark:ring-white/5 divide-y divide-border/40">
-        {children}
-    </div>
-);
+interface SettingsSectionHeaderProps {
+    icon: React.ElementType;
+    title: string;
+    description: string;
+}
+
+const SettingsSectionHeader = ({ icon: Icon, title, description }: SettingsSectionHeaderProps) => {
+    const { currentTheme } = useUIThemeStore();
+
+    if (currentTheme === "fluent") {
+        return (
+            <div className="space-y-1">
+                <h2 className="text-base font-semibold tracking-tight flex items-center gap-2">
+                    <Icon className="h-4 w-4 text-neutral-700 dark:text-neutral-300" />
+                    {title}
+                </h2>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                    {description}
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-1">
+            <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                <Icon className="h-5 w-5 text-primary" />
+                {title}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+                {description}
+            </p>
+        </div>
+    );
+};
+
+const SettingsItemGroup = ({ children }: { children: React.ReactNode }) => {
+    const { currentTheme } = useUIThemeStore();
+
+    if (currentTheme === "fluent") {
+        return (
+            <div className="flex flex-col gap-1.5">
+                {children}
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex flex-col border border-border/40 rounded-xl overflow-hidden bg-card/60 backdrop-blur-xl shadow-sm ring-1 ring-black/5 dark:ring-white/5 divide-y divide-border/40">
+            {children}
+        </div>
+    );
+};
 
 interface SettingsItemProps {
     icon: React.ElementType;
@@ -239,9 +290,30 @@ interface SettingsItemProps {
     description?: React.ReactNode;
     onClick: () => void;
     rightElement?: React.ReactNode;
+    fluentRightElement?: React.ReactNode;
 }
 
-const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }: SettingsItemProps) => {
+const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement, fluentRightElement }: SettingsItemProps) => {
+    const { currentTheme } = useUIThemeStore();
+    
+    if (currentTheme === "fluent") {
+        return (
+            <FluentCard 
+                orientation="horizontal" 
+                appearance="subtle" 
+                onClick={onClick}
+                className="w-full cursor-pointer bg-white/95 dark:bg-[#2d2d2d]/85 backdrop-blur-2xl hover:bg-neutral-50 dark:hover:bg-[#383838]/85 border border-black/[0.05] dark:border-white/[0.08] shadow-sm rounded-lg transition-colors"
+            >
+                <FluentCardHeader
+                    image={<Icon className="h-5 w-5 ml-1 mr-2 text-neutral-700 dark:text-neutral-300" />}
+                    header={<Text className="block truncate font-medium">{title}</Text>}
+                    description={description ? <Text size={200} className="block truncate text-neutral-500 dark:text-neutral-400">{description}</Text> : undefined}
+                    action={fluentRightElement || rightElement || <ChevronRight className="h-4 w-4 text-neutral-400" />}
+                />
+            </FluentCard>
+        );
+    }
+
     return (
         <div
             className="group flex items-center justify-between p-4 bg-transparent hover:bg-accent/40 cursor-pointer transition-colors duration-200"
@@ -267,7 +339,7 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
     );
 };
 
-    return (
+    const content = (
         <div className="h-full flex flex-col p-6 space-y-6">
             <div className="flex items-center space-x-2 h-8">
                 <h1 className="text-2xl font-bold flex items-center">
@@ -279,28 +351,12 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
                 {view === "main" && (
                     <div className="space-y-8 max-w-2xl mx-auto animate-in fade-in slide-in-from-left-4 duration-300 pb-10">
                         <section className="space-y-3">
-                            <div className="space-y-1">
-                                <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-                                    <User className="h-5 w-5 text-primary" />
-                                    账号
-                                </h2>
-                                <p className="text-sm text-muted-foreground">
-                                    管理您的个人资料及同步设置
-                                </p>
-                            </div>
+                            <SettingsSectionHeader icon={User} title="账号" description="管理您的个人资料及同步设置" />
                             <UserCard className="rounded-xl" onLoginClick={() => setAuthDialogOpen(true)} />
                         </section>
 
                         <section className="space-y-3">
-                            <div className="space-y-1">
-                                <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-                                    <Palette className="h-5 w-5 text-primary" />
-                                    界面
-                                </h2>
-                                <p className="text-sm text-muted-foreground">
-                                    个性化视觉与交互体验
-                                </p>
-                            </div>
+                            <SettingsSectionHeader icon={Palette} title="界面" description="个性化视觉与交互体验" />
 
                             <SettingsItemGroup>
                                 <SettingsItem
@@ -337,20 +393,35 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
                                             />
                                         </div>
                                     }
+                                    fluentRightElement={
+                                        <div className="flex items-center gap-3">
+                                            {!showDailyRecommendPopup && (
+                                                <button
+                                                    className="text-xs text-blue-500 hover:text-blue-600 font-medium transition-colors whitespace-nowrap"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        triggerRecommendPopup()
+                                                        toast.success("正在加载推荐歌曲...")
+                                                    }}
+                                                >
+                                                    显示一次
+                                                </button>
+                                            )}
+                                            <FluentSwitch
+                                                checked={showDailyRecommendPopup}
+                                                onChange={(_, data) => {
+                                                    setShowDailyRecommendPopup(data.checked)
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                            />
+                                        </div>
+                                    }
                                 />
                             </SettingsItemGroup>
                         </section>
 
                         <section className="space-y-3">
-                            <div className="space-y-1">
-                                <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-                                    <Server className="h-5 w-5 text-primary" />
-                                    服务
-                                </h2>
-                                <p className="text-sm text-muted-foreground">
-                                    配置后端连接及数据来源
-                                </p>
-                            </div>
+                            <SettingsSectionHeader icon={Server} title="服务" description="配置后端连接及数据来源" />
 
                             <SettingsItemGroup>
                                 <SettingsItem
@@ -397,6 +468,23 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
                                             ))}
                                         </div>
                                     }
+                                    fluentRightElement={
+                                        <div onClick={(e) => e.stopPropagation()}>
+                                            <Select
+                                                size="small"
+                                                value={toplistSource}
+                                                onChange={(_, data) => {
+                                                    const src = data.value as "netease" | "qq"
+                                                    setToplistSource(src)
+                                                    toast.success(src === 'qq' ? '已切换为 QQ 音乐榜单' : '已切换为网易云音乐榜单')
+                                                }}
+                                                style={{ width: 80 }}
+                                            >
+                                                <option value="netease">网易云</option>
+                                                <option value="qq">QQ 音乐</option>
+                                            </Select>
+                                        </div>
+                                    }
                                 />
                                 <SettingsItem
                                     icon={Sparkles}
@@ -424,6 +512,23 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
                                             ))}
                                         </div>
                                     }
+                                    fluentRightElement={
+                                        <div onClick={(e) => e.stopPropagation()}>
+                                            <Select
+                                                size="small"
+                                                value={recommendSource}
+                                                onChange={(_, data) => {
+                                                    const src = data.value as "netease" | "qq"
+                                                    setRecommendSource(src)
+                                                    toast.success(src === 'qq' ? '已切换为 QQ音乐推荐' : '已切换为网易云音乐推荐')
+                                                }}
+                                                style={{ width: 80 }}
+                                            >
+                                                <option value="netease">网易云</option>
+                                                <option value="qq">QQ 音乐</option>
+                                            </Select>
+                                        </div>
+                                    }
                                 />
                                 <SettingsItem
                                     icon={Info}
@@ -435,15 +540,7 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
                         </section>
 
                         <section className="space-y-3">
-                            <div className="space-y-1">
-                                <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-                                    <Music2 className="h-5 w-5 text-primary" />
-                                    播放
-                                </h2>
-                                <p className="text-sm text-muted-foreground">
-                                    自定义音乐播放体验
-                                </p>
-                            </div>
+                            <SettingsSectionHeader icon={Music2} title="播放" description="自定义音乐播放体验" />
 
                             <SettingsItemGroup>
                                 <SettingsItem
@@ -672,6 +769,17 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement }:
             <UpdateDialog updateInfo={updateInfo} open={showUpdateDialog} onOpenChange={setShowUpdateDialog} />
         </div>
     )
+
+    if (currentTheme === "fluent") {
+        return (
+            <FluentProvider theme={theme === "dark" ? webDarkTheme : webLightTheme} style={{ height: "100%", backgroundColor: "transparent" }}>
+                {content}
+            </FluentProvider>
+        )
+    }
+
+    return content
+
 }
 
 export default function SettingsPage() {

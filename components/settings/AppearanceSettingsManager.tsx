@@ -2,7 +2,7 @@
 
 import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
-import { Monitor, Moon, Sun, Layers, Square, Sparkles } from "lucide-react"
+import { Monitor, Moon, Sun, Layers, Square, Sparkles, Palette } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
@@ -15,9 +15,11 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { useLayoutStore } from "@/lib/store/useLayoutStore"
 import { emit } from "@tauri-apps/api/event"
+import { useUIThemeStore, UI_THEMES } from "@/lib/store/useUIThemeStore"
 
 export function AppearanceSettingsManager() {
     const { theme, setTheme } = useTheme()
+    const { currentTheme: uiTheme, setTheme: setUITheme } = useUIThemeStore()
     const [mounted, setMounted] = useState(false)
     const [isDesktop, setIsDesktop] = useState(false)
     const { material, systemSupport, setMaterial, setSystemSupport } = useWindowMaterialStore()
@@ -169,6 +171,49 @@ export function AppearanceSettingsManager() {
                         )
                     })}
                 </div>
+
+                {/* UI 组件主题选择 - 仅桌面端显示 */}
+                {isDesktop && (
+                <div className="space-y-4 pt-4 border-t">
+                    <div className="space-y-1">
+                        <h3 className="text-base font-semibold flex items-center gap-2">
+                            <Palette className="h-5 w-5 text-primary" />
+                            组件风格
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                            切换应用的 UI 组件库风格，不同风格带来不同的视觉体验。
+                        </p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {UI_THEMES.map((option) => {
+                            const isSelected = uiTheme === option.id
+                            return (
+                                <Label
+                                    key={option.id}
+                                    htmlFor={`ui-${option.id}`}
+                                    className={cn(
+                                        "flex flex-col items-center justify-between rounded-xl border-2 p-4 cursor-pointer transition-all hover:bg-accent",
+                                        isSelected
+                                            ? "border-primary bg-primary/5"
+                                            : "border-muted bg-popover"
+                                    )}
+                                    onClick={() => setUITheme(option.id)}
+                                >
+                                    <div className="mb-3 p-3 rounded-full bg-background shadow-sm border">
+                                        <Palette className={cn("h-6 w-6", isSelected ? "text-primary" : "text-muted-foreground")} />
+                                    </div>
+                                    <div className="space-y-1 text-center">
+                                        <div className="font-semibold text-base">{option.name}</div>
+                                        <div className="text-xs text-muted-foreground line-clamp-2">
+                                            {option.description}
+                                        </div>
+                                    </div>
+                                </Label>
+                            )
+                        })}
+                    </div>
+                </div>
+                )}
 
                 {/* 窗口材质选择 - 仅桌面端显示 */}
                 {isDesktop && (

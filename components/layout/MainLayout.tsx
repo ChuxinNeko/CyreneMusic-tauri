@@ -20,6 +20,7 @@ import {
     applyWindowMaterial,
 } from "@/lib/store/useWindowMaterialStore"
 import { LiquidGlassOverlay } from "./LiquidGlassOverlay"
+import { useUIThemeStore } from "@/lib/store/useUIThemeStore"
 
 export function MainLayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
@@ -33,6 +34,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
     const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
     const [showUpdateDialog, setShowUpdateDialog] = useState(false)
     const { material, setSystemSupport } = useWindowMaterialStore()
+    const { currentTheme } = useUIThemeStore()
     
     // Check if we are on a detail view (playlist, daily, album, or artist)
     const isPlaylistDetail = !!searchParams.get("playlist") || 
@@ -120,7 +122,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
                     <div className={isPlaylistDetail ? 'hidden md:block' : 'block'}>
                         <TitleBar />
                     </div>
-                    <main className={`flex-1 overflow-auto pb-[calc(80px+0rem)] md:pb-4 ${isPlaylistDetail ? 'pt-0' : ''}`}>
+                    <main className={`flex-1 overflow-auto ${currentTheme === 'fluent' ? `${isTransparent ? 'bg-card/30 dark:bg-card/20' : 'bg-card/90 dark:bg-card/60'} rounded-tl-xl border-t border-l border-border/30 shadow-sm` : ''} pb-[calc(80px+0rem)] md:pb-4 ${isPlaylistDetail ? 'pt-0' : ''}`}>
                         {children}
                     </main>
                 </div>

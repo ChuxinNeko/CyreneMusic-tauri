@@ -209,3 +209,7 @@
     grid-template-rows: repeat(4, 1fr) !important;
   }
 }
+
+
+.fui-Switch [class*='thumb'], .fui-Switch [class*='indicator'] { transition: all 0.2s cubic-bezier(0.33, 1, 0.68, 1) !important; }
+.fui-Switch * { transition: all 0.2s cubic-bezier(0.33, 1, 0.68, 1); }
