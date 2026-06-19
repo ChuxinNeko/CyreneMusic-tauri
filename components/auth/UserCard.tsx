@@ -12,7 +12,6 @@ import {
     Button as FluentButton,
     Text,
     Avatar as FluentAvatar,
-    Badge as FluentBadge,
 } from "@fluentui/react-components"
 
 interface UserCardProps {
@@ -68,8 +67,8 @@ export function UserCard({ onLoginClick, className }: UserCardProps) {
         const name = user?.username ?? ""
         return (
             <FluentCard className={cn(cardClass, "p-6")} appearance="subtle">
-                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-                    <div className="relative">
+                <div className="flex items-center gap-6">
+                    <div className="relative shrink-0">
                         {user?.avatarUrl ? (
                             <Avatar className="h-[72px] w-[72px] border-2 border-black/[0.05] dark:border-white/[0.08] shadow-md rounded-full">
                                 <AvatarImage src={user?.avatarUrl} alt={name} className="object-cover" />
@@ -87,43 +86,34 @@ export function UserCard({ onLoginClick, className }: UserCardProps) {
                         )}
                     </div>
 
-                    <div className="flex-1 flex flex-col items-center sm:items-start space-y-3 text-center sm:text-left min-w-0">
-                        <div className="space-y-1 w-full">
-                            <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-                                <Text as="h3" className="text-2xl font-bold tracking-tight truncate max-w-[200px]">
-                                    {name}
-                                </Text>
-                                {user?.isSponsor && (
-                                    <FluentBadge appearance="filled" color="warning">
-                                        SPONSOR
-                                    </FluentBadge>
-                                )}
+                    <div className="flex-1 flex flex-col space-y-1 min-w-0">
+                        <Text as="h3" className="text-2xl font-bold tracking-tight truncate max-w-[200px]">
+                            {name}
+                        </Text>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-neutral-500 dark:text-neutral-400">
+                            <div className="flex items-center gap-1.5">
+                                <Mail className="w-3.5 h-3.5" />
+                                <span className="truncate max-w-[150px]">{user?.email}</span>
                             </div>
-                            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1.5 text-sm text-neutral-500 dark:text-neutral-400">
+                            {user?.ipLocation && (
                                 <div className="flex items-center gap-1.5">
-                                    <Mail className="w-3.5 h-3.5" />
-                                    <span className="truncate max-w-[150px]">{user?.email}</span>
+                                    <MapPin className="w-3.5 h-3.5" />
+                                    <span>IP: {user.ipLocation}</span>
                                 </div>
-                                {user?.ipLocation && (
-                                    <div className="flex items-center gap-1.5">
-                                        <MapPin className="w-3.5 h-3.5" />
-                                        <span>IP: {user.ipLocation}</span>
-                                    </div>
-                                )}
-                            </div>
+                            )}
                         </div>
+                    </div>
 
-                        <div className="flex items-center gap-2 pt-1">
-                            <FluentButton
-                                appearance="outline"
-                                size="small"
-                                className="rounded-md"
-                                onClick={logout}
-                                icon={<LogOut className="w-3.5 h-3.5" />}
-                            >
-                                退出登录
-                            </FluentButton>
-                        </div>
+                    <div className="shrink-0">
+                        <FluentButton
+                            appearance="outline"
+                            size="small"
+                            className="rounded-md"
+                            onClick={logout}
+                            icon={<LogOut className="w-3.5 h-3.5" />}
+                        >
+                            退出登录
+                        </FluentButton>
                     </div>
                 </div>
             </FluentCard>

@@ -13,6 +13,9 @@ import { useAuthStore } from "@/lib/store/useAuthStore"
 import { AuthDialog } from "@/components/auth/AuthDialog"
 import { UserCard } from "@/components/auth/UserCard"
 import { useActiveSource } from "@/lib/store/useAudioSourceStore"
+import { AudioQuality } from "@/lib/services/audioSourceService"
+import { lxMusicRuntimeService } from "@/lib/services/lxMusicRuntimeService"
+import { AudioSourceType } from "@/lib/models/audioSourceConfig"
 import { AudioSourceManager } from "@/components/settings/AudioSourceManager"
 import { AccountBindingManager } from "@/components/settings/AccountBindingManager"
 import { QualitySettingsDialog } from "@/components/settings/QualitySettingsDialog"
@@ -24,7 +27,9 @@ import { useTheme } from "next-themes"
 import { useLayoutStore } from "@/lib/store/useLayoutStore"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
-import { FluentProvider, webLightTheme, webDarkTheme, Text, Switch as FluentSwitch, Card as FluentCard, CardHeader as FluentCardHeader, Select } from "@fluentui/react-components"
+import { FluentProvider, webLightTheme, webDarkTheme, Text, Switch as FluentSwitch, Card as FluentCard, CardHeader as FluentCardHeader } from "@fluentui/react-components"
+import { RwuiSelect } from "@/components/rwui/RwuiSelect"
+import { RwuiSwitch } from "@/components/rwui/RwuiSwitch"
 import { useUIThemeStore } from "@/lib/store/useUIThemeStore"
 
 import { useRouter, useSearchParams } from "next/navigation"
@@ -63,7 +68,7 @@ function SettingsPageContent() {
     const [checkingUpdate, setCheckingUpdate] = useState(false)
     const [updateCheckResult, setUpdateCheckResult] = useState<"latest" | "found" | null>(null)
     const activeSource = useActiveSource()
-    const { quality, sources } = useAudioSourceStore()
+    const { quality, setQuality, sources } = useAudioSourceStore()
     const { theme } = useTheme()
     const { currentTheme } = useUIThemeStore()
     const { showDailyRecommendPopup, setShowDailyRecommendPopup, triggerRecommendPopup, toplistSource, setToplistSource, recommendSource, setRecommendSource } = useLayoutStore()
@@ -111,6 +116,37 @@ function SettingsPageContent() {
             setCheckingUpdate(false)
         }
     }
+
+    const qualityLabels: Record<string, { label: string }> = {
+        [AudioQuality.Standard]: { label: "标准" },
+        [AudioQuality.ExHigh]: { label: "极高" },
+        [AudioQuality.Lossless]: { label: "无损" },
+        [AudioQuality.HiRes]: { label: "Hi-Res" },
+        '128k': { label: "标准" },
+        '320k': { label: "极高" },
+        'flac': { label: "无损" },
+        'flac24bit': { label: "Hi-Res" },
+    }
+
+    const qualityOptions = (() => {
+        const isLxMusic = activeSource?.type === AudioSourceType.LxMusic
+        let options: { value: string; label: string }[] = [
+            { value: AudioQuality.Standard, label: "标准" },
+            { value: AudioQuality.ExHigh, label: "极高" },
+            { value: AudioQuality.Lossless, label: "无损" },
+            { value: AudioQuality.HiRes, label: "Hi-Res" },
+        ]
+        if (isLxMusic) {
+            const supported = lxMusicRuntimeService.currentScript?.supportedQualities
+            if (supported && supported.length > 0) {
+                options = supported.map(q => ({
+                    value: q,
+                    label: qualityLabels[q]?.label || q.toUpperCase(),
+                }))
+            }
+        }
+        return options
+    })()
 
     // Breadcrumb logic
     const getBreadcrumb = () => {
@@ -407,13 +443,14 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement, f
                                                     显示一次
                                                 </button>
                                             )}
-                                            <FluentSwitch
-                                                checked={showDailyRecommendPopup}
-                                                onChange={(_, data) => {
-                                                    setShowDailyRecommendPopup(data.checked)
-                                                }}
-                                                onClick={(e) => e.stopPropagation()}
-                                            />
+                                            <div onClick={(e) => e.stopPropagation()} className="rwui-scope" data-theme={document.documentElement.getAttribute("data-theme")}>
+                                                <RwuiSwitch
+                                                    checked={showDailyRecommendPopup}
+                                                    onChange={(checked) => {
+                                                        setShowDailyRecommendPopup(checked)
+                                                    }}
+                                                />
+                                            </div>
                                         </div>
                                     }
                                 />
@@ -470,19 +507,19 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement, f
                                     }
                                     fluentRightElement={
                                         <div onClick={(e) => e.stopPropagation()}>
-                                            <Select
-                                                size="small"
+                                            <RwuiSelect
+                                                data={[
+                                                    { label: "网易云", value: "netease" },
+                                                    { label: "QQ 音乐", value: "qq" },
+                                                ]}
                                                 value={toplistSource}
-                                                onChange={(_, data) => {
-                                                    const src = data.value as "netease" | "qq"
+                                                onChange={(value) => {
+                                                    const src = value as "netease" | "qq"
                                                     setToplistSource(src)
                                                     toast.success(src === 'qq' ? '已切换为 QQ 音乐榜单' : '已切换为网易云音乐榜单')
                                                 }}
                                                 style={{ width: 80 }}
-                                            >
-                                                <option value="netease">网易云</option>
-                                                <option value="qq">QQ 音乐</option>
-                                            </Select>
+                                            />
                                         </div>
                                     }
                                 />
@@ -514,19 +551,19 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement, f
                                     }
                                     fluentRightElement={
                                         <div onClick={(e) => e.stopPropagation()}>
-                                            <Select
-                                                size="small"
+                                            <RwuiSelect
+                                                data={[
+                                                    { label: "网易云", value: "netease" },
+                                                    { label: "QQ 音乐", value: "qq" },
+                                                ]}
                                                 value={recommendSource}
-                                                onChange={(_, data) => {
-                                                    const src = data.value as "netease" | "qq"
+                                                onChange={(value) => {
+                                                    const src = value as "netease" | "qq"
                                                     setRecommendSource(src)
                                                     toast.success(src === 'qq' ? '已切换为 QQ音乐推荐' : '已切换为网易云音乐推荐')
                                                 }}
                                                 style={{ width: 80 }}
-                                            >
-                                                <option value="netease">网易云</option>
-                                                <option value="qq">QQ 音乐</option>
-                                            </Select>
+                                            />
                                         </div>
                                     }
                                 />
@@ -548,6 +585,16 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement, f
                                     title="音质选择"
                                     description={`当前选择: ${quality === 'standard' || quality === '128k' ? '标准' : quality === 'exhigh' || quality === '320k' ? '极高' : quality === 'lossless' || quality === 'flac' ? '无损' : quality === 'hires' || quality === 'flac24bit' ? 'Hi-Res' : quality.toUpperCase()}`}
                                     onClick={() => setQualityDialogOpen(true)}
+                                    fluentRightElement={
+                                        <div onClick={(e) => e.stopPropagation()}>
+                                            <RwuiSelect
+                                                data={qualityOptions}
+                                                value={quality}
+                                                onChange={(value) => setQuality(value as AudioQuality)}
+                                                style={{ width: 100 }}
+                                            />
+                                        </div>
+                                    }
                                 />
                                 <SettingsItem
                                     icon={Music2}

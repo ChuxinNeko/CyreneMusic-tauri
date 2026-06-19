@@ -78,7 +78,6 @@ export function FluentSidebar() {
     ]
 
     const utilityItems = [
-        { icon: Settings, label: "设置", href: "/settings", onClick: handleSettingsClick },
         { icon: HelpCircle, label: "支持", href: "/support" },
         ...(devModeUnlocked ? [{ icon: Code, label: "DEV", href: "/dev" }] : []),
     ]
@@ -160,11 +159,22 @@ export function FluentSidebar() {
                             href={item.href}
                             isActive={isLinkActive(item.href)}
                             isCollapsed={isSidebarCollapsed}
-                            onClick={'onClick' in item ? (item as any).onClick : undefined}
                         />
                     ))}
                 </div>
             </ScrollArea>
+
+            {/* 底部固定区域 - 设置项，留出播放器空间 */}
+            <div className="px-2 pb-1 pt-2 border-t border-border/50">
+                <FluentSidebarItem
+                    icon={Settings}
+                    label="设置"
+                    href="/settings"
+                    isActive={isLinkActive("/settings")}
+                    isCollapsed={isSidebarCollapsed}
+                    onClick={handleSettingsClick}
+                />
+            </div>
         </motion.div>
     )
 }

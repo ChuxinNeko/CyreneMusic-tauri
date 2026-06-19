@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { Music2, Activity, Layers, Languages, Type, Disc, Droplets, Monitor, Baseline, Palette, ImagePlus, Loader2 } from "lucide-react"
+import { Activity, Layers, Languages, Type, Disc, Droplets, Monitor, Baseline, Palette, ImagePlus, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { invoke } from "@tauri-apps/api/core"
 import { emit } from "@tauri-apps/api/event"
@@ -15,6 +15,11 @@ import { usePlayerStore, LyricDisplayStyle, SingleLineAnimation, PlayerBgType } 
 import { LYRIC_FONT_OPTIONS } from "@/lib/constants/fonts"
 import { backgroundService } from "@/lib/services/backgroundService"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useUIThemeStore } from "@/lib/store/useUIThemeStore"
+import { Card as FluentCard, CardHeader as FluentCardHeader, Text, Button as FluentButton } from "@fluentui/react-components"
+import { RwuiSwitch } from "@/components/rwui/RwuiSwitch"
+import { RwuiSlider } from "@/components/rwui/RwuiSlider"
+import { RwuiSelect } from "@/components/rwui/RwuiSelect"
 
 export function PlayerSettingsManager() {
     const isMobile = useIsMobile()
@@ -65,6 +70,7 @@ export function PlayerSettingsManager() {
 
     const [mounted, setMounted] = React.useState(false)
     const [isImporting, setIsImporting] = React.useState(false)
+    const [desktopLyricOpen, setDesktopLyricOpen] = React.useState(false)
     React.useEffect(() => { setMounted(true) }, [])
 
     const customBgUrl = customBgPath ? convertFileSrc(customBgPath) : null
@@ -145,6 +151,368 @@ export function PlayerSettingsManager() {
         { label: "默认动态背景", value: "webgl" },
         { label: "自定义图片", value: "image" },
     ]
+
+    const { currentTheme } = useUIThemeStore()
+    const isFluent = currentTheme === "fluent"
+
+    const FluentHorizontalCard = ({ icon: Icon, title, description, action }: {
+        icon: React.ElementType
+        title: string
+        description?: string
+        action?: React.ReactNode
+    }) => {
+        const HeaderComponent = FluentCardHeader as any
+        return (
+        <FluentCard
+            orientation="horizontal"
+            appearance="subtle"
+            className="w-full bg-white/95 dark:bg-[#2d2d2d]/85 backdrop-blur-2xl border border-black/[0.05] dark:border-white/[0.08] shadow-sm rounded-lg transition-colors"
+        >
+            <HeaderComponent
+                image={<Icon className="h-5 w-5 ml-1 mr-2 text-neutral-700 dark:text-neutral-300" />}
+                header={<Text className="block truncate font-medium">{title}</Text>}
+                description={description ? <Text size={200} className="block truncate text-neutral-500 dark:text-neutral-400">{description}</Text> : undefined}
+                action={action}
+            />
+        </FluentCard>
+        )
+    }
+
+    if (isFluent) {
+        return (
+            <div className="flex flex-col gap-8">
+                {/* 显示模式 */}
+                <section className="space-y-3">
+                    <div className="space-y-1">
+                        <h2 className="text-base font-semibold tracking-tight flex items-center gap-2">
+                            <Layers className="h-4 w-4 text-neutral-700 dark:text-neutral-300" />
+                            显示模式
+                        </h2>
+                        <p className="text-sm text-neutral-500 dark:text-neutral-400">控制播放器的视觉表现</p>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                        <FluentHorizontalCard
+                            icon={Activity}
+                            title="音频律动"
+                            description="让背景随音频频率动态变化"
+                            action={
+                                <div className="rwui-scope" data-theme={document.documentElement.getAttribute("data-theme")}>
+                                    <RwuiSwitch checked={mounted ? audioVisualization : false} onChange={toggleAudioVisualization} />
+                                </div>
+                            }
+                        />
+                        <FluentHorizontalCard
+                            icon={Layers}
+                            title="沉浸模式"
+                            description="用大尺寸封面铺满播放器"
+                            action={
+                                <div className="rwui-scope" data-theme={document.documentElement.getAttribute("data-theme")}>
+                                    <RwuiSwitch checked={mounted ? isImmersiveMode : false} onChange={setIsImmersiveMode} />
+                                </div>
+                            }
+                        />
+                        <FluentHorizontalCard
+                            icon={Languages}
+                            title="显示翻译"
+                            description="歌词下方显示翻译行"
+                            action={
+                                <div className="rwui-scope" data-theme={document.documentElement.getAttribute("data-theme")}>
+                                    <RwuiSwitch checked={mounted ? showTranslation : false} onChange={toggleTranslation} />
+                                </div>
+                            }
+                        />
+                    </div>
+                </section>
+
+                {/* 歌词样式 */}
+                <section className="space-y-3">
+                    <div className="space-y-1">
+                        <h2 className="text-base font-semibold tracking-tight flex items-center gap-2">
+                            <Disc className="h-4 w-4 text-neutral-700 dark:text-neutral-300" />
+                            歌词样式
+                        </h2>
+                        <p className="text-sm text-neutral-500 dark:text-neutral-400">自定义歌词的显示方式</p>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                        <FluentHorizontalCard
+                            icon={Disc}
+                            title="歌词样式"
+                            description="选择歌词的滚动展示方式"
+                            action={
+                                <div onClick={(e) => e.stopPropagation()}>
+                                    <RwuiSelect
+                                        data={lyricStyles.map(s => ({ label: s.label, value: s.value }))}
+                                        value={mounted ? lyricDisplayStyle : undefined}
+                                        onChange={(v) => setLyricDisplayStyle(v as LyricDisplayStyle)}
+                                        style={{ width: 100 }}
+                                    />
+                                </div>
+                            }
+                        />
+                        {mounted && lyricDisplayStyle === LyricDisplayStyle.SingleLine && (
+                            <FluentHorizontalCard
+                                icon={Disc}
+                                title="单行动画"
+                                description="单行歌词模式下的切换动画"
+                                action={
+                                    <div onClick={(e) => e.stopPropagation()}>
+                                        <RwuiSelect
+                                            data={singleLineAnims.map(a => ({ label: a.label, value: a.value }))}
+                                            value={singleLineAnimation}
+                                            onChange={(v) => setSingleLineAnimation(v as SingleLineAnimation)}
+                                            style={{ width: 100 }}
+                                        />
+                                    </div>
+                                }
+                            />
+                        )}
+                    </div>
+                </section>
+
+                {/* 歌词排版 */}
+                <section className="space-y-3">
+                    <div className="space-y-1">
+                        <h2 className="text-base font-semibold tracking-tight flex items-center gap-2">
+                            <Type className="h-4 w-4 text-neutral-700 dark:text-neutral-300" />
+                            歌词排版
+                        </h2>
+                        <p className="text-sm text-neutral-500 dark:text-neutral-400">调整歌词的字体与模糊效果</p>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                        <FluentHorizontalCard
+                            icon={Type}
+                            title="歌词字体"
+                            description="选择歌词显示的字体"
+                            action={
+                                <div onClick={(e) => e.stopPropagation()}>
+                                    <RwuiSelect
+                                        data={LYRIC_FONT_OPTIONS.map(f => ({ label: f.label, value: f.value }))}
+                                        value={mounted ? lyricFontFamily : undefined}
+                                        onChange={(v) => setLyricFontFamily(v)}
+                                        style={{ width: 140 }}
+                                    />
+                                </div>
+                            }
+                        />
+                        <FluentHorizontalCard
+                            icon={Baseline}
+                            title="歌词字号"
+                            description={`${lyricFontSize}px`}
+                            action={
+                                <RwuiSlider
+                                    value={lyricFontSize}
+                                    min={20}
+                                    max={60}
+                                    step={1}
+                                    onChange={setLyricFontSize}
+                                    width={180}
+                                    showPopupValue={false}
+                                />
+                            }
+                        />
+                        <FluentHorizontalCard
+                            icon={Droplets}
+                            title="背景模糊"
+                            description={`${lyricBlurStrength}px`}
+                            action={
+                                <RwuiSlider
+                                    value={lyricBlurStrength}
+                                    min={0}
+                                    max={20}
+                                    step={1}
+                                    onChange={setLyricBlurStrength}
+                                    width={180}
+                                    showPopupValue={false}
+                                />
+                            }
+                        />
+                    </div>
+                </section>
+
+                {/* 播放器背景 */}
+                <section className="space-y-3">
+                    <div className="space-y-1">
+                        <h2 className="text-base font-semibold tracking-tight flex items-center gap-2">
+                            <ImagePlus className="h-4 w-4 text-neutral-700 dark:text-neutral-300" />
+                            播放器背景
+                        </h2>
+                        <p className="text-sm text-neutral-500 dark:text-neutral-400">自定义全屏播放器的背景效果</p>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                        <FluentHorizontalCard
+                            icon={ImagePlus}
+                            title="背景类型"
+                            description={mounted && playerBgType === "image" ? "自定义图片" : "默认动态背景"}
+                            action={
+                                <div onClick={(e) => e.stopPropagation()}>
+                                    <RwuiSelect
+                                        data={bgTypes.map(t => ({ label: t.label, value: t.value }))}
+                                        value={mounted ? playerBgType : undefined}
+                                        onChange={(v) => handleSwitchBgType(v as PlayerBgType)}
+                                        style={{ width: 140 }}
+                                    />
+                                </div>
+                            }
+                        />
+                        {mounted && playerBgType === "image" && (
+                            <>
+                                <FluentHorizontalCard
+                                    icon={ImagePlus}
+                                    title="更换图片"
+                                    description={customBgPath ? "已设置自定义背景" : "选择一张图片作为背景"}
+                                    action={
+                                        <div onClick={(e) => e.stopPropagation()}>
+                                            <FluentButton
+                                                appearance="outline"
+                                                size="small"
+                                                className="rounded-md"
+                                                onClick={handleSelectImage}
+                                                disabled={isImporting}
+                                                icon={isImporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
+                                            >
+                                                {customBgPath ? "更换" : "选择"}
+                                            </FluentButton>
+                                        </div>
+                                    }
+                                />
+                                <FluentHorizontalCard
+                                    icon={Droplets}
+                                    title="模糊度"
+                                    description={`${customBgBlur}px`}
+                                    action={
+                                        <RwuiSlider
+                                            value={customBgBlur}
+                                            min={0}
+                                            max={40}
+                                            step={1}
+                                            onChange={setCustomBgBlur}
+                                            width={180}
+                                            showPopupValue={false}
+                                        />
+                                    }
+                                />
+                                <FluentHorizontalCard
+                                    icon={Monitor}
+                                    title="亮度"
+                                    description={`${customBgBrightness}%`}
+                                    action={
+                                        <RwuiSlider
+                                            value={customBgBrightness}
+                                            min={20}
+                                            max={100}
+                                            step={1}
+                                            onChange={setCustomBgBrightness}
+                                            width={180}
+                                            showPopupValue={false}
+                                        />
+                                    }
+                                />
+                                <FluentHorizontalCard
+                                    icon={Layers}
+                                    title="缩放"
+                                    description={`${customBgScale}%`}
+                                    action={
+                                        <RwuiSlider
+                                            value={customBgScale}
+                                            min={100}
+                                            max={130}
+                                            step={1}
+                                            onChange={setCustomBgScale}
+                                            width={180}
+                                            showPopupValue={false}
+                                        />
+                                    }
+                                />
+                                <FluentHorizontalCard
+                                    icon={Palette}
+                                    title="遮罩"
+                                    description={`${customBgOverlay}%`}
+                                    action={
+                                        <RwuiSlider
+                                            value={customBgOverlay}
+                                            min={0}
+                                            max={80}
+                                            step={1}
+                                            onChange={setCustomBgOverlay}
+                                            width={180}
+                                            showPopupValue={false}
+                                        />
+                                    }
+                                />
+                            </>
+                        )}
+                    </div>
+                </section>
+
+                {/* 桌面歌词（仅桌面端） */}
+                {mounted && !isMobile && (
+                    <section className="space-y-3">
+                        <div className="space-y-1">
+                            <h2 className="text-base font-semibold tracking-tight flex items-center gap-2">
+                                <Monitor className="h-4 w-4 text-neutral-700 dark:text-neutral-300" />
+                                桌面歌词
+                            </h2>
+                            <p className="text-sm text-neutral-500 dark:text-neutral-400">设置桌面悬浮歌词窗口</p>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <FluentHorizontalCard
+                                icon={Monitor}
+                                title="桌面歌词"
+                                description="在桌面上显示悬浮歌词"
+                                action={
+                                    <div className="rwui-scope" data-theme={document.documentElement.getAttribute("data-theme")}>
+                                        <RwuiSwitch checked={desktopLyricOpen} onChange={async (v) => { setDesktopLyricOpen(v); if (v) { openDesktopLyric() } else { try { await invoke('close_desktop_lyric') } catch (e) { console.error('Failed to close desktop lyric:', e) } } }} />
+                                    </div>
+                                }
+                            />
+                            <FluentHorizontalCard
+                                icon={Baseline}
+                                title="桌面歌词字号"
+                                description={`${desktopLyricFontSize}px`}
+                                action={
+                                    <RwuiSlider
+                                        value={desktopLyricFontSize}
+                                        min={20}
+                                        max={80}
+                                        step={1}
+                                        onChange={(v) => { setDesktopLyricFontSize(v); syncDesktopSettings({ desktopLyricFontSize: v }) }}
+                                        width={180}
+                                        showPopupValue={false}
+                                    />
+                                }
+                            />
+                            <FluentHorizontalCard
+                                icon={Palette}
+                                title="桌面歌词颜色"
+                                description={desktopLyricColor}
+                                action={
+                                    <input
+                                        type="color"
+                                        value={desktopLyricColor}
+                                        className="w-8 h-8 p-0 border border-black/[0.05] dark:border-white/[0.08] rounded cursor-pointer bg-transparent"
+                                        onChange={(e) => { setDesktopLyricColor(e.target.value); syncDesktopSettings({ desktopLyricColor: e.target.value }) }}
+                                    />
+                                }
+                            />
+                            <FluentHorizontalCard
+                                icon={Palette}
+                                title="桌面歌词描边"
+                                description={desktopLyricStrokeColor}
+                                action={
+                                    <input
+                                        type="color"
+                                        value={desktopLyricStrokeColor}
+                                        className="w-8 h-8 p-0 border border-black/[0.05] dark:border-white/[0.08] rounded cursor-pointer bg-transparent"
+                                        onChange={(e) => { setDesktopLyricStrokeColor(e.target.value); syncDesktopSettings({ desktopLyricStrokeColor: e.target.value }) }}
+                                    />
+                                }
+                            />
+                        </div>
+                    </section>
+                )}
+            </div>
+        )
+    }
 
     return (
         <Card className="border-none shadow-none bg-transparent">

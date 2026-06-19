@@ -34,7 +34,26 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
     const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
     const [showUpdateDialog, setShowUpdateDialog] = useState(false)
     const { material, setSystemSupport } = useWindowMaterialStore()
-    const { currentTheme } = useUIThemeStore()
+    const { currentTheme, setTheme, enforceTheme } = useUIThemeStore()
+
+    // 根据设备类型修正默认主题（不影响用户手动选择）
+    useEffect(() => {
+        const MOBILE_BREAKPOINT = 768
+        const enforceDefaultTheme = () => {
+            const { currentTheme, userSelected } = useUIThemeStore.getState()
+            if (window.innerWidth < MOBILE_BREAKPOINT) {
+                if (currentTheme !== "shadcn") {
+                    enforceTheme("shadcn")
+                }
+            } else if (!userSelected && currentTheme !== "fluent") {
+                enforceTheme("fluent")
+            }
+        }
+        enforceDefaultTheme()
+        const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+        mql.addEventListener("change", enforceDefaultTheme)
+        return () => mql.removeEventListener("change", enforceDefaultTheme)
+    }, [enforceTheme])
     
     // Check if we are on a detail view (playlist, daily, album, or artist)
     const isPlaylistDetail = !!searchParams.get("playlist") || 

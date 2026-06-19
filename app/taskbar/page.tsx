@@ -283,7 +283,7 @@ export default function TaskbarPlayerPage() {
 
                 {/* 封面 */}
                 <div
-                    className="w-10 h-10 flex-shrink-0 cursor-pointer overflow-hidden rounded-md shadow-md border border-black/5"
+                    className="w-8 h-8 flex-shrink-0 cursor-pointer overflow-hidden rounded-md shadow-md border border-black/5"
                     onClick={showMainWindow}
                 >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -358,7 +358,7 @@ export default function TaskbarPlayerPage() {
             `}</style>
 
             <div
-                className="group relative w-10 h-10 flex-shrink-0 cursor-pointer overflow-hidden rounded-md shadow-sm border border-white/10"
+                className="group relative w-8 h-8 flex-shrink-0 cursor-pointer overflow-hidden rounded-md shadow-sm border border-white/10"
                 onClick={showMainWindow}
             >
                 {/* eslint-disable-next-line @next/next/no-img-element */}

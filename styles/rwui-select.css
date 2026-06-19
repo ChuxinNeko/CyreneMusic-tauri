@@ -1,0 +1,390 @@
+/*
+ * Scoped react-windows-ui Select styles
+ * All selectors are prefixed with .rwui-scope to prevent global CSS pollution.
+ * Only includes styles needed for Select/SelectNative components.
+ */
+
+/* ===== Theme Variables (scoped) ===== */
+
+.rwui-scope {
+  color-scheme: light;
+
+  --color-danger-default: #C50500;
+  --color-success-default: #2C8B2C;
+  --color-scheme-absolute: #FFF;
+  --color-background-default: #FFF;
+  --color-button-default: #FEFEFEDD;
+  --color-button-border-top-default: rgba(0,0,0,0.08);
+  --color-button-border-bottom-defult: rgba(0,0,0,0.2);
+  --color-button-border-bottom-success: rgba(44, 139, 44, 0.4);
+  --color-button-border-bottom-danger: rgba(197, 5, 0, 0.4);
+  --color-button-border-outline: rgba(0,0,0,0.2);
+  --color-card-bg-default: #FBFBFBDD;
+  --color-dropdown-menu-bg: 248, 248, 248;
+  --color-foreground-default: #FFF;
+  --color-foreground-dark: #EEEEEE;
+  --color-input-bg-default: #FFFFFF99;
+  --color-input-bg-hover: #F2F2F2B3;
+  --color-input-bg-focused: #FFFFFF;
+  --color-input-border-default: #55555544;
+  --color-input-border-focused: #3B3B3B44;
+  --color-input-border-bottom: #666;
+  --color-input-border-strong: #8A8A8A;
+  --color-input-placeholder: #828282;
+  --color-ui-active-default: #D8D8D8;
+  --color-model-ui-bg: 255, 255, 255;
+  --color-model-footer-bg: rgba(221, 221, 221, 0.6);
+  --color-navbar-bg-default: #F3F3F3;
+  --color-primary-adaptive: var(--PrimaryColor, #0078D4);
+  --color-progress-bg: #E2E2E2;
+  --color-scroll-thumb: #777777DD;
+  --color-scroll-thumb-active: #77777799;
+  --color-scroll-thumb-hover: #777777EE;
+  --color-slider-thumb-bg: #FFF;
+  --color-slider-tick-bg: #777777DD;
+  --color-switch-ui: #575757;
+  --color-text-default: #000000;
+  --color-ui-border-default: #E3E3E399;
+  --color-ui-hover-default: #EEEEEED1;
+  --color-ui-hover-strong: #E1E0E088;
+}
+
+.rwui-scope[data-theme="dark"],
+[data-theme="dark"] .rwui-scope {
+  color-scheme: dark;
+
+  --color-danger-default: #FF99A3;
+  --color-success-default: #6ACB5D;
+  --color-scheme-absolute: #000;
+  --color-background-default: #111;
+  --color-button-default: #3E3E3EBF;
+  --color-button-border-top-default: rgba(117,117,117,0.22);
+  --color-button-border-bottom-defult: rgba(0,0,0,0.08);
+  --color-button-border-bottom-success: rgba(0,0,0,0.08);
+  --color-button-border-bottom-danger: rgba(0,0,0,0.08);
+  --color-button-border-outline: rgba(117,117,117,0.22);
+  --color-card-bg-default: #272727DD;
+  --color-dropdown-menu-bg: 26, 26, 26;
+  --color-foreground-default: #2B2B2B;
+  --color-foreground-dark: #444444;
+  --color-input-bg-default: #292929B3;
+  --color-input-bg-hover: #363636B3;
+  --color-input-bg-focused: #131313;
+  --color-input-border-default: #37373744;
+  --color-input-border-focused: #3B3B3B;
+  --color-input-border-bottom: #999;
+  --color-input-border-strong: #9A9A9A;
+  --color-input-placeholder: #D1D1D1;
+  --color-ui-active-default: #262626;
+  --color-model-ui-bg: 43, 43, 43;
+  --color-model-footer-bg: rgba(20, 20, 20, 0.6);
+  --color-navbar-bg-default: #202020;
+  --color-primary-adaptive: var(--PrimaryColorLight, #4CC2FF);
+  --color-progress-bg: #484848;
+  --color-scroll-thumb: #EEEEEE99;
+  --color-scroll-thumb-active: #DDDDDD77;
+  --color-scroll-thumb-hover: #DDDDDD99;
+  --color-slider-thumb-bg: #454545;
+  --color-slider-tick-bg: #DDDDDDDD;
+  --color-switch-ui: #FFFFFF;
+  --color-text-default: #FFFFFF;
+  --color-ui-border-default: #32323299;
+  --color-ui-hover-default: #44444477;
+  --color-ui-hover-strong: #37373788;
+}
+
+/* ===== Animations (scoped) ===== */
+
+@keyframes rwui_transition_dropdown {
+  0% {
+    transform: translate3d(0, -10px, 0);
+    pointer-events: none;
+    opacity: 0;
+  }
+  100% {
+    transform: translate3d(0, 0px, 0);
+    pointer-events: auto;
+    opacity: 1;
+  }
+}
+
+@keyframes rwui_transition_dropdown_reverse {
+  0% {
+    transform: translate3d(0, 10px, 0);
+    pointer-events: none;
+    opacity: 0;
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+    pointer-events: auto;
+    opacity: 1;
+  }
+}
+
+/* ===== Base Styles (scoped) ===== */
+
+.rwui-scope .input-btn-default {
+  cursor: pointer;
+  font-size: 14px;
+  border: 1px solid;
+  user-select: none;
+  border-radius: 5px;
+  color: var(--color-text-default);
+  background-color: var(--color-button-default);
+  border-color: rgba(0,0,0,0.08);
+  border-bottom-color: var(--color-button-border-bottom-defult);
+  border-top-color: var(--color-button-border-top-default);
+}
+
+.rwui-scope .input-btn-default:hover {
+  opacity: 0.85;
+  filter: brightness(0.9);
+}
+
+.rwui-scope .input-btn-default:active {
+  filter: brightness(0.8);
+}
+
+.rwui-scope .ui-dropdown-ul-default {
+  top: 100%;
+  padding: 0;
+  cursor: auto;
+  z-index: 999;
+  display: none;
+  margin: 5px 0;
+  width: inherit;
+  max-height: 37vh;
+  list-style: none;
+  overflow-y: auto;
+  border: 1px solid;
+  overflow-x: hidden;
+  visibility: hidden;
+  position: absolute;
+  -webkit-tap-highlight-color: transparent;
+  background: rgba(var(--color-dropdown-menu-bg), 1.0);
+  border-radius: 6px;
+  box-shadow: 0 2px 5px #22222244;
+  border-color: var(--color-ui-border-default);
+}
+
+.rwui-scope .ui-dropdown-ul-default.ui-backdrop-blur {
+  backdrop-filter: blur(12px);
+  background: rgba(var(--color-dropdown-menu-bg), 0.86);
+}
+
+.rwui-scope .ui-dropdown-ul-default.show {
+  display: initial;
+  visibility: visible;
+  animation-fill-mode: both;
+  animation-duration: 0.367s;
+  animation-name: rwui_transition_dropdown;
+  animation-timing-function: cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+.rwui-scope .ui-dropdown-ul-default.show.reverse {
+  animation-name: rwui_transition_dropdown_reverse;
+}
+
+.rwui-scope .ui-dropdown-ul-default li {
+  display: flex;
+  line-height: 1;
+  font-size: 14px;
+  cursor: pointer;
+  position: relative;
+  align-items: center;
+  color: var(--color-text-default);
+  -webkit-tap-highlight-color: transparent;
+  margin: 5px;
+  padding: 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.rwui-scope .ui-dropdown-ul-default li:active {
+  opacity: 0.7;
+}
+
+.rwui-scope .ui-dropdown-ul-default li:hover {
+  background-color: var(--color-ui-hover-strong);
+}
+
+.rwui-scope .ui-dropdown-ul-default li i::before {
+  line-height: 0;
+  padding-inline-end: 8px;
+}
+
+/* ===== Select Component Styles ===== */
+
+.rwui-scope .ui-menu-select {
+  padding: 0;
+  width: fit-content;
+  user-select: none;
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.rwui-scope .ui-menu-select span,
+.rwui-scope .ui-menu-select::after {
+  padding-left: 10px;
+  align-items: center;
+  display: inline-flex;
+}
+
+.rwui-scope .ui-menu-select::after {
+  display: none;
+}
+
+.rwui-scope .ui-menu-title {
+  height: 32px;
+  outline: none;
+  padding-left: 10px;
+  padding-right: 32px;
+  appearance: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background-repeat: no-repeat;
+  background-position-x: calc(100% - 10px);
+  background-position-y: center;
+  background-image: url('data:image/svg+xml,<svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3.14645 5.64645C3.34171 5.45118 3.65829 5.45118 3.85355 5.64645L8 9.79289L12.1464 5.64645C12.3417 5.45118 12.6583 5.45118 12.8536 5.64645C13.0488 5.84171 13.0488 6.15829 12.8536 6.35355L8.35355 10.8536C8.15829 11.0488 7.84171 11.0488 7.64645 10.8536L3.14645 6.35355C2.95118 6.15829 2.95118 5.84171 3.14645 5.64645Z" fill="%23000000"/></svg>');
+}
+
+.rwui-scope[data-theme="dark"] .ui-menu-title,
+[data-theme="dark"] .rwui-scope .ui-menu-title {
+  background-image: url('data:image/svg+xml,<svg width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3.14645 5.64645C3.34171 5.45118 3.65829 5.45118 3.85355 5.64645L8 9.79289L12.1464 5.64645C12.3417 5.45118 12.6583 5.45118 12.8536 5.64645C13.0488 5.84171 13.0488 6.15829 12.8536 6.35355L8.35355 10.8536C8.15829 11.0488 7.84171 11.0488 7.64645 10.8536L3.14645 6.35355C2.95118 6.15829 2.95118 5.84171 3.14645 5.64645Z" fill="%23ffffff"/></svg>');
+}
+
+/* Select menu list items */
+.rwui-scope .ui-menu-list-item.selected span {
+  background-color: var(--color-ui-hover-strong);
+}
+
+.rwui-scope .ui-menu-list-item.selected span::before {
+  width: 3px;
+  height: 18px;
+  content: "";
+  position: absolute;
+  left: 0;
+  border-radius: 50px;
+  background-color: var(--color-primary-adaptive);
+}
+
+.rwui-scope .ui-menu-list-item.hidden {
+  display: none;
+}
+
+.rwui-scope .ui-menu-list-item span:active::before {
+  height: 10.5px;
+}
+
+/* SelectNative styles */
+.rwui-scope .ui-select-menu select {
+  height: 32px;
+  appearance: none;
+  padding: 0 35px 0 10px;
+}
+
+.rwui-scope .ui-select-menu select:focus {
+  outline: none;
+}
+
+.rwui-scope .ui-select-menu select[disabled] {
+  cursor: not-allowed !important;
+  filter: contrast(0.6) !important;
+}
+
+.rwui-scope .ui-select-menu option {
+  background-color: var(--color-background-default);
+}
+
+/* Modal open scroll lock (scoped to rwui-scope body class) */
+.rwui-scope.modal-open {
+  overflow: hidden;
+}
+
+/* ===== Switch Component Styles ===== */
+
+.rwui-scope .ui-switch-container {
+  user-select: none;
+  align-items: center;
+  display: inline-flex;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rwui-scope .ui-switch-container .ui-switch {
+  -webkit-user-drag: none;
+  box-sizing: border-box;
+  align-items: center;
+  appearance: none;
+  block-size: 20px;
+  border-radius: 20px;
+  display: inline-flex;
+  inline-size: 40px;
+  line-height: 20px;
+  margin: 0;
+  outline: none;
+  position: relative;
+  user-select: none;
+  border: 1px solid var(--color-switch-ui);
+  cursor: pointer;
+}
+
+.rwui-scope .ui-switch-container .ui-switch:before {
+  background: var(--color-switch-ui);
+  block-size: 12px;
+  border-radius: 7px;
+  content: "";
+  inline-size: 12px;
+  inset-inline-start: 3px;
+  position: absolute;
+  transition: 100ms ease-out;
+  will-change: translate;
+}
+
+.rwui-scope .ui-switch-container .ui-switch:hover {
+  background-color: var(--color-ui-hover-default);
+}
+
+.rwui-scope .ui-switch-container .ui-switch:hover:before {
+  block-size: 14px;
+  inline-size: 14px;
+}
+
+.rwui-scope .ui-switch-container .ui-switch:active:before {
+  block-size: 14px;
+  inline-size: 17px;
+}
+
+.rwui-scope .ui-switch-container .ui-switch:checked {
+  border: none;
+  background-color: var(--color-primary-adaptive);
+}
+
+.rwui-scope .ui-switch-container .ui-switch:checked:before {
+  background: var(--color-background-default);
+  transform: translate(20px);
+}
+
+.rwui-scope .ui-switch-container .ui-switch:checked:active::before {
+  margin-inline-start: -4px;
+}
+
+.rwui-scope .ui-switch-container .ui-switch:checked ~ span::before {
+  display: block;
+  content: attr(data-on) !important;
+}
+
+.rwui-scope .ui-switch-container > span::before {
+  content: attr(data-off);
+}
+
+.rwui-scope .ui-switch-container .ui-switch-label {
+  padding-inline-end: 8px;
+}
+
+.rwui-scope .ui-switch-container .ui-switch-label:last-child {
+  padding-inline-end: 0;
+  padding-inline-start: 8px;
+}

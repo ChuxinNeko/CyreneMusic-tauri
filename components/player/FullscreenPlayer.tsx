@@ -970,7 +970,7 @@ export function FullscreenPlayer() {
             <div className={`relative z-10 grid flex-1 min-h-0 w-full max-w-[1700px] mx-auto overflow-hidden transition-all duration-700 ease-in-out ${isLyricsFolded ? 'grid-cols-1 max-w-[800px]' : (lyricDisplayStyle === LyricDisplayStyle.SingleLine && !isMobile ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[45%_55%]')}`}>
 
                 {/* Left Column (Desktop & Mobile) */}
-                <div className={`flex flex-col items-center h-full min-h-0 overflow-hidden w-full transition-all duration-700 ease-in-out ${isLyricsFolded ? 'px-4' : 'px-[4vw] lg:px-[6vw]'} ${!isMobile && lyricDisplayStyle === LyricDisplayStyle.SingleLine ? 'hidden' : ''}`}>
+                <div className={`flex flex-col items-center h-full min-h-0 overflow-hidden w-full transition-all duration-700 ease-in-out ${isLyricsFolded ? 'px-4' : 'px-[2vw] lg:px-[4vw]'} ${!isMobile && lyricDisplayStyle === LyricDisplayStyle.SingleLine ? 'hidden' : ''}`}>
                     {/* Top flexible spacer to balance vertical position */}
                     {!isMobile && <div className="flex-[0.8] min-h-[2vh] shrink-0" />}
 
@@ -983,7 +983,7 @@ export function FullscreenPlayer() {
                             <div className={
                                 isImmersiveMode
                                     ? 'hidden'
-                                    : "relative aspect-square w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink transition-all duration-700"
+                                    : "relative z-[1] aspect-square w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink transition-all duration-700"
                             }
                             >
                                 <div
@@ -991,7 +991,11 @@ export function FullscreenPlayer() {
                                     onMouseMove={!isMobile ? handleCoverMouseMove : undefined}
                                     onMouseEnter={!isMobile ? handleCoverMouseEnter : undefined}
                                     onMouseLeave={!isMobile ? handleCoverMouseLeave : undefined}
-                                    style={{ transformStyle: 'preserve-3d' }}
+                                    style={{
+                                        transformStyle: 'preserve-3d',
+                                        // 从顶部旋转：封面倾斜时上边缘固定不动，不会翘出容器被裁剪
+                                        transformOrigin: 'center top',
+                                    }}
                                     className={isImmersiveMode ? "relative w-full h-full overflow-hidden" : "relative w-full h-full rounded-[20px] overflow-hidden transition-transform duration-500 bg-white/5 border border-white/10"}
                                 >
                                     {currentTrack?.picUrl ? (

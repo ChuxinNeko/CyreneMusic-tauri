@@ -20,6 +20,7 @@ import { playerService } from "@/lib/services/playerService"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense } from "react"
 import { toast } from "sonner"
+import { useWindowMaterialStore } from "@/lib/store/useWindowMaterialStore"
 
 function HomeContent() {
   const router = useRouter()
@@ -60,6 +61,8 @@ function HomeContent() {
   const { token } = useAuthStore()
   const toplistSource = useLayoutStore(s => s.toplistSource)
   const recommendSource = useLayoutStore(s => s.recommendSource)
+  const { material } = useWindowMaterialStore()
+  const isTransparent = material === "mica" || material === "acrylic"
 
   const checkBinding = useCallback(async () => {
     if (!token) {
@@ -188,10 +191,10 @@ function HomeContent() {
   return (
     <div className={`h-full pb-8 lg:px-8 max-w-7xl mx-auto ${(selectedPlaylistId || isDailyView) ? 'px-0 pt-0' : 'px-4 pt-2'}`}>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className={`flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-10 ${(!selectedPlaylistId && !isDailyView) ? 'py-2' : 'hidden'}`}>
+        <div className={`flex items-center justify-between ${isTransparent ? 'bg-background/10 dark:bg-background/5 backdrop-blur-sm' : 'bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60'} sticky top-0 z-10 ${(!selectedPlaylistId && !isDailyView) ? 'py-2' : 'hidden'}`}>
           {!selectedPlaylistId && !isDailyView ? (
             <div className="flex items-center w-full justify-between pr-2">
-              <TabsList className="bg-muted/50 p-1">
+              <TabsList className={`${isTransparent ? 'bg-muted/30' : 'bg-muted/50'} p-1`}>
                 {isBound && (
                   <TabsTrigger value="recommend" className="gap-2 px-6">
                     <Music2 className="h-4 w-4" />

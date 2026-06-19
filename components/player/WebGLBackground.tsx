@@ -30,7 +30,6 @@ export const WebGLBackground = forwardRef<WebGLBackgroundRef, WebGLBackgroundPro
 
             const canvas = document.createElement("canvas");
             canvas.style.pointerEvents = "none";
-            canvas.style.zIndex = "-1";
             canvas.style.contain = "strict";
             canvas.style.width = "100%";
             canvas.style.height = "100%";

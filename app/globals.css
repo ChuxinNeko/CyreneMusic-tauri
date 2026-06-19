@@ -213,3 +213,47 @@
 
 .fui-Switch [class*='thumb'], .fui-Switch [class*='indicator'] { transition: all 0.2s cubic-bezier(0.33, 1, 0.68, 1) !important; }
 .fui-Switch * { transition: all 0.2s cubic-bezier(0.33, 1, 0.68, 1); }
+
+/* ===== 全局自定义滚动条 ===== */
+
+/* WebKit (Chrome, Edge, Safari, Tauri WebView2) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(0 0 0 / 15%);
+  border-radius: 100px;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0 0 0 / 28%);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: oklch(1 0 0 / 18%);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: oklch(1 0 0 / 32%);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0 0 0 / 15%) transparent;
+}
+
+.dark * {
+  scrollbar-color: oklch(1 0 0 / 18%) transparent;
+}

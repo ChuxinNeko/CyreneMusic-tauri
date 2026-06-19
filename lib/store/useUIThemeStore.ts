@@ -26,21 +26,52 @@ export const UI_THEMES: UIThemeConfig[] = [
 
 interface UIThemeState {
     currentTheme: UIThemeId
+    userSelected: boolean
     setTheme: (theme: UIThemeId) => void
+    enforceTheme: (theme: UIThemeId) => void
+}
+
+const getDefaultTheme = (): UIThemeId => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+        return "shadcn"
+    }
+    return "fluent"
 }
 
 export const useUIThemeStore = create<UIThemeState>()(
     persist(
         (set) => ({
-            currentTheme: "shadcn",
+            currentTheme: getDefaultTheme(),
+            userSelected: false,
             setTheme: (theme) => {
+                set({ currentTheme: theme, userSelected: true })
+                document.documentElement.setAttribute("data-ui-theme", theme)
+            },
+            enforceTheme: (theme) => {
                 set({ currentTheme: theme })
-                // Apply theme class to document
                 document.documentElement.setAttribute("data-ui-theme", theme)
             },
         }),
         {
             name: "ui-theme-storage",
+            merge: (persistedState, currentState) => {
+                const persisted = persistedState as Partial<UIThemeState> | undefined
+                if (!persisted) return currentState
+                // 用户未手动选择过主题时，根据当前设备重新计算默认值
+                if (!persisted.userSelected) {
+                    return {
+                        ...currentState,
+                        ...persisted,
+                        currentTheme: getDefaultTheme(),
+                    }
+                }
+                return { ...currentState, ...persisted }
+            },
+            onRehydrateStorage: () => (state) => {
+                if (state) {
+                    document.documentElement.setAttribute("data-ui-theme", state.currentTheme)
+                }
+            },
         }
     )
 )
