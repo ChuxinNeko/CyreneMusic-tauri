@@ -189,6 +189,56 @@ class AccountService {
             return false
         }
     }
+
+    public async sendNeteaseCaptcha(phone: string, ctcode: string = "86"): Promise<{ code: number; message?: string }> {
+        try {
+            const response = await fetch(`${urlService.baseUrl}/captcha/sent`, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({ phone, ctcode }).toString(),
+            })
+            return await response.json()
+        } catch (e) {
+            console.error("[AccountService] sendNeteaseCaptcha failed:", e)
+            return { code: 500, message: "网络错误" }
+        }
+    }
+
+    public async verifyNeteaseCaptcha(phone: string, captcha: string, ctcode: string = "86"): Promise<{ code: number; message?: string }> {
+        try {
+            const response = await fetch(`${urlService.baseUrl}/captcha/verify`, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({ phone, captcha, ctcode }).toString(),
+            })
+            return await response.json()
+        } catch (e) {
+            console.error("[AccountService] verifyNeteaseCaptcha failed:", e)
+            return { code: 500, message: "网络错误" }
+        }
+    }
+
+    public async loginNeteaseByCellphone(
+        token: string,
+        phone: string,
+        captcha: string,
+        ctcode: string = "86",
+    ): Promise<{ code: number; message?: string }> {
+        try {
+            const response = await fetch(`${urlService.baseUrl}/login/cellphone`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Authorization": `Bearer ${token}`,
+                },
+                body: new URLSearchParams({ phone, captcha, ctcode }).toString(),
+            })
+            return await response.json()
+        } catch (e) {
+            console.error("[AccountService] loginNeteaseByCellphone failed:", e)
+            return { code: 500, message: "网络错误" }
+        }
+    }
 }
 
 export const accountService = AccountService.getInstance()

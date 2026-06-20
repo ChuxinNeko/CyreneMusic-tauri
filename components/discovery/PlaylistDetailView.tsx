@@ -119,6 +119,7 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                 ...t,
                 source: (t as any).source || fallbackSource
             }))
+            usePlayerStore.getState().setSourcePlaylistId(fallbackSource === 'netease' ? String(playlist.id) : null)
             playerService.playWithQueue(tracks[0], tracks)
         }
     }
@@ -133,6 +134,7 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
             ...track,
             source: track.source || fallbackSource
         })
+        usePlayerStore.getState().setSourcePlaylistId(fallbackSource === 'netease' ? String(playlist.id) : null)
         playerService.playWithQueue(trackObj, tracks)
     }
 

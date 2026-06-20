@@ -498,30 +498,77 @@ fn android_lyric_notification_hide() -> Result<(), String> {
     })
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AndroidInstallResult {
+    success: bool,
+    error_code: String,
+    message: String,
+    needs_permission: bool,
+}
+
 #[cfg(target_os = "android")]
 #[tauri::command]
-fn android_install_apk(file_path: String) -> Result<(), String> {
-    with_android_activity(|env, activity| {
-        let path_arg = env
-            .new_string(&file_path)
-            .map_err(|e| format!("Create path string fail: {}", e))?;
-        let path_obj = jni::objects::JObject::from(path_arg);
+fn android_install_apk(file_path: String) -> Result<AndroidInstallResult, String> {
+    use jni::objects::JValue;
 
-        env.call_method(
+    let ctx = ndk_context::android_context();
+    let vm = unsafe { jni::JavaVM::from_raw(ctx.vm() as *mut _) }
+        .map_err(|e| format!("Get JVM fail: {}", e))?;
+    let mut env_guard = vm
+        .attach_current_thread()
+        .map_err(|e| format!("Attach thread fail: {}", e))?;
+    let env = &mut *env_guard;
+    let activity = unsafe { jni::objects::JObject::from_raw(ctx.context() as *mut _) };
+
+    let path_arg = env
+        .new_string(&file_path)
+        .map_err(|e| format!("Create path string fail: {}", e))?;
+    let path_obj = jni::objects::JObject::from(path_arg);
+
+    let result = env
+        .call_method(
             &activity,
-            "installApk",
-            "(Ljava/lang/String;)V",
-            &[jni::objects::JValue::Object(&path_obj)],
+            "installApkSync",
+            "(Ljava/lang/String;)Ljava/lang/String;",
+            &[JValue::Object(&path_obj)],
         )
-        .map_err(|e| format!("Call installApk fail: {:?}", e))?;
+        .map_err(|e| format!("Call installApkSync fail: {:?}", e))?;
 
-        Ok(())
+    let jstr: jni::objects::JString = result
+        .l()
+        .map_err(|e| format!("Extract result object fail: {:?}", e))?
+        .into();
+    let result_str: String = env
+        .get_string(&jstr)
+        .map_err(|e| format!("Get result string fail: {:?}", e))?
+        .into();
+
+    let parsed: serde_json::Value = serde_json::from_str(&result_str)
+        .map_err(|e| format!("Parse install result JSON fail: {}", e))?;
+
+    Ok(AndroidInstallResult {
+        success: parsed.get("success").and_then(|v| v.as_bool()).unwrap_or(false),
+        error_code: parsed
+            .get("errorCode")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        message: parsed
+            .get("message")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+        needs_permission: parsed
+            .get("needsPermission")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false),
     })
 }
 
 #[cfg(not(target_os = "android"))]
 #[tauri::command]
-fn android_install_apk(_file_path: String) -> Result<(), String> {
+fn android_install_apk(_file_path: String) -> Result<AndroidInstallResult, String> {
     Err("Not supported on this platform".to_string())
 }
 

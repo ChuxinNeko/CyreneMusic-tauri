@@ -14,7 +14,13 @@
       "Bash(npx tsc *)",
       "Bash(curl -s \"https://music.nekofun.top/lyrics/qq?id=840202\")",
       "Bash(curl -s \"https://music.nekofun.top/lyrics/qq?id=003u9Xfg0KLHNF\")",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(grep -A1 '^name = \"tauri\"$' src-tauri/Cargo.lock)",
+      "Bash(grep -noE \"\\\\.\\(get|post|put|delete\\)\\\\\\(\\\\s*[\\\\\"'\\\\`][^\\\\\"'\\\\`]+\" routes/netease.ts)",
+      "Bash(sed -E \"s/\\\\.\\(get|post|put|delete\\)\\\\\\(\\\\s*[\\\\\"'\\\\`]/ \\\\1 /\")",
+      "Bash(grep -cnE \"\\\\.\\(get|post|put|delete\\)\\\\\\(\\\\s*[\\\\\"'\\\\`][^\\\\\"'\\\\`]+\" routes/netease.ts)",
+      "Bash(awk -F: '$1>958')",
+      "Bash(grep -cE \"\\\\.\\(get|post|put|delete\\)\\\\\\(\\\\s*[\\\\\"'\\\\`]\" routes/netease.ts)"
     ]
   }
 }

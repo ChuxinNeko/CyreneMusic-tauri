@@ -45,10 +45,14 @@ export function PlayerBar() {
     const isDraggingVolume = React.useRef(false)
 
     React.useEffect(() => {
+        if (!currentTrack) {
+            setLocalProgress(0)
+            return
+        }
         if (!isDraggingProgress.current) {
             setLocalProgress(progress || 0)
         }
-    }, [progress])
+    }, [progress, currentTrack])
 
     React.useEffect(() => {
         if (!isDraggingVolume.current) {
@@ -277,7 +281,7 @@ export function PlayerBar() {
                 <div className="absolute bottom-0 left-10 right-10 h-[2px] bg-secondary/50 overflow-hidden rounded-full pointer-events-none">
                     <div
                         className="h-full bg-primary transition-all duration-200"
-                        style={{ width: `${(localProgress / duration) * 100 || 0}%` }}
+                        style={{ width: `${localProgress * 100}%` }}
                     />
                 </div>
 

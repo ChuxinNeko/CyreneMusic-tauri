@@ -18,6 +18,7 @@ import { androidLyricService } from './androidLyricService'
 import { cacheService } from './cacheService'
 import { useCacheStore } from '../store/useCacheStore'
 import { audioProxyService } from './audioProxyService'
+import { heartModeService } from './heartModeService'
 import { toast } from 'sonner'
 
 import { listen, emit as tauriEmit } from '@tauri-apps/api/event'
@@ -75,6 +76,8 @@ class PlayerService {
     private currentSongForHistory: Track | null = null
     // 当前歌曲语言（仅 source==='netease' 时异步拉取，用于听歌语言统计）
     private currentSongLanguage: string | null = null
+    // 标记当前 playTrack 调用是否来自心动模式自动续播，用于区分用户手动点歌
+    private _fromHeartMode = false
 
     private constructor() {
         if (typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__) {
@@ -541,6 +544,17 @@ class PlayerService {
     }
 
     public async playTrack(track: Track, options?: { resumeTime?: number }) {
+        // 用户手动播放新歌（非心动模式自动续播）时，自动关闭心动模式
+        if (!this._fromHeartMode) {
+            const store = usePlayerStore.getState()
+            if (store.heartMode) {
+                store.setHeartMode(false)
+                heartModeService.stop()
+                console.log('[PlayerService] 检测到手动播放，已自动关闭心动模式')
+            }
+        }
+        this._fromHeartMode = false
+
         const requestId = `${track.source}_${track.id}_${Date.now()}`;
         this.currentPlayRequestId = requestId;
 
@@ -1080,8 +1094,23 @@ class PlayerService {
         usePlayerStore.getState().setIsLoading(false)
     }
 
-    public playNext() {
+    public async playNext() {
         const store = usePlayerStore.getState()
+
+        // 心动模式：从心动模式队列获取下一首
+        if (store.heartMode && store.currentTrack?.source === 'netease') {
+            const heartTrack = await heartModeService.getNextTrack()
+            if (heartTrack) {
+                heartModeService.updateSeed(heartTrack.id)
+                store.setCurrentTrack(heartTrack)
+                this._fromHeartMode = true
+                this.playTrack(heartTrack)
+                return
+            }
+            // 心动模式队列耗尽且续拉失败，回退到正常播放
+            console.warn('[PlayerService] 心动模式队列已耗尽，回退到正常播放')
+        }
+
         const { queue, repeatMode } = store
 
         if (queue.length === 0) return
@@ -1184,6 +1213,47 @@ class PlayerService {
             this.howl.volume(volume)
         }
         usePlayerStore.getState().setVolume(volume)
+    }
+
+    /**
+     * 彻底清除播放态：卸载音频、清空队列/历史、重置进度与心动模式
+     */
+    public resetPlayback() {
+        if (this.howl) {
+            this.howl.stop()
+            this.howl.unload()
+            this.howl = null
+        }
+        this.stopProgressTimer()
+        this.flushPlayHistory()
+        this.currentPlayRequestId = null
+        this.fallbackQualityUrl = null
+        this.currentPlayingUrl = null
+        this.nextRandomTrack = null
+        this.nextRandomTrack2 = null
+        this._fromHeartMode = false
+        this.currentSongListenedSeconds = 0
+        this.currentSongForHistory = null
+        this.currentSongLanguage = null
+
+        const store = usePlayerStore.getState()
+        if (store.heartMode) {
+            store.setHeartMode(false)
+            heartModeService.stop()
+        }
+        store.setSourcePlaylistId(null)
+        store.setQueue([])
+        store.setCurrentTrack(null)
+        store.setIsPlaying(false)
+        store.setIsLoading(false)
+        store.setProgress(0)
+        store.setCurrentTime(0)
+        store.setDuration(0)
+        store.setPlayError(null)
+
+        this.broadcastState()
+        this.syncAndroidMediaNotification(true)
+        console.log('[PlayerService] 播放态已清除')
     }
 
     private broadcastState() {

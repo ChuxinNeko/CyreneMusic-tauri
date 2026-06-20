@@ -8,7 +8,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.webkit.WebView
-import android.widget.Toast
+import org.json.JSONObject
 import androidx.activity.enableEdgeToEdge
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -60,7 +60,7 @@ class MainActivity : TauriActivity() {
       && packageManager.canRequestPackageInstalls()
     ) {
       pendingInstallPath = null
-      installApk(pending)
+      installApkSync(pending)
     }
   }
 
@@ -117,72 +117,71 @@ class MainActivity : TauriActivity() {
     AndroidLyricNotificationManager.hide(this)
   }
 
-  fun installApk(filePath: String) {
-    try {
-      runOnUiThread {
+  /**
+   * 同步安装 APK，供 Rust 通过 JNI 调用，返回 JSON 结果字符串。
+   * 必须同步返回（不使用 runOnUiThread），否则 JNI 调用立即返回 Ok，
+   * 主线程上的异常会被吞掉，前端无法感知失败原因。
+   */
+  fun installApkSync(filePath: String): String {
+    fun jsonResult(
+      success: Boolean,
+      code: String = "",
+      msg: String = "",
+      needsPerm: Boolean = false
+    ): String = JSONObject()
+      .put("success", success)
+      .put("errorCode", code)
+      .put("message", msg)
+      .put("needsPermission", needsPerm)
+      .toString()
+
+    return try {
+      val file = File(filePath)
+      if (!file.exists()) {
+        return jsonResult(false, "file_not_found", "安装包不存在：$filePath")
+      }
+
+      // Android 8.0+ 必须先获得"安装未知应用"权限
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+        && !packageManager.canRequestPackageInstalls()
+      ) {
+        pendingInstallPath = filePath
+        // 带 NEW_TASK flag 可在非主线程调用 startActivity
         try {
-          val file = File(filePath)
-          if (!file.exists()) {
-            toast("安装包不存在：$filePath")
-            return@runOnUiThread
-          }
-
-          // Android 8.0+ 必须先获得"安装未知应用"权限，否则系统会静默拦截
-          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-            && !packageManager.canRequestPackageInstalls()
-          ) {
-            pendingInstallPath = filePath
-            toast("请先允许「安装未知来源应用」权限")
-            try {
-              val settingsIntent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
-                .setData(Uri.parse("package:$packageName"))
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-              startActivity(settingsIntent)
-            } catch (e: Exception) {
-              e.printStackTrace()
-              toast("无法打开权限设置：${e.message}")
-            }
-            return@runOnUiThread
-          }
-
-          val intent = Intent(Intent.ACTION_VIEW).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-              Intent.FLAG_ACTIVITY_CLEAR_TOP or
-              Intent.FLAG_GRANT_READ_URI_PERMISSION
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-              val apkUri: Uri = FileProvider.getUriForFile(
-                this@MainActivity,
-                "$packageName.fileprovider",
-                file
-              )
-              setDataAndType(apkUri, "application/vnd.android.package-archive")
-            } else {
-              @Suppress("DEPRECATION")
-              setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive")
-            }
-          }
-
-          startActivity(intent)
-        } catch (e: ActivityNotFoundException) {
-          e.printStackTrace()
-          toast("未找到安装器：${e.message}")
-        } catch (e: SecurityException) {
-          e.printStackTrace()
-          toast("安装被系统拒绝：${e.message}")
+          startActivity(
+            Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+              .setData(Uri.parse("package:$packageName"))
+              .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+          )
         } catch (e: Exception) {
           e.printStackTrace()
-          toast("安装失败：${e.message}")
+          return jsonResult(false, "cannot_open_settings", "无法打开权限设置：${e.message}", true)
         }
+        return jsonResult(false, "no_install_permission", "需要授予「安装未知来源应用」权限", true)
       }
+
+      val intent = Intent(Intent.ACTION_VIEW).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+          Intent.FLAG_ACTIVITY_CLEAR_TOP or
+          Intent.FLAG_GRANT_READ_URI_PERMISSION
+        val apkUri: Uri = FileProvider.getUriForFile(
+          this@MainActivity,
+          "$packageName.fileprovider",
+          file
+        )
+        setDataAndType(apkUri, "application/vnd.android.package-archive")
+      }
+      startActivity(intent)
+      jsonResult(true)
+    } catch (e: ActivityNotFoundException) {
+      e.printStackTrace()
+      jsonResult(false, "activity_not_found", "未找到安装器：${e.message}")
+    } catch (e: SecurityException) {
+      e.printStackTrace()
+      jsonResult(false, "security", "安装被系统拒绝：${e.message}")
     } catch (e: Exception) {
       e.printStackTrace()
-      toast("安装APK失败：${e.message}")
-    }
-  }
-
-  private fun toast(message: String) {
-    runOnUiThread {
-      Toast.makeText(applicationContext, message, Toast.LENGTH_LONG).show()
+      jsonResult(false, "unknown", "安装失败：${e.message}")
     }
   }
 }

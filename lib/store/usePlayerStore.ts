@@ -76,6 +76,10 @@ interface PlayerState {
     customBgScale: number
     customBgOverlay: number
 
+    // Heart Mode (心动模式)
+    heartMode: boolean
+    sourcePlaylistId: string | null
+
     // Actions
     setCurrentTrack: (track: Track | null, preserveProgress?: boolean) => void
     updateTrackLyrics: (lyrics: Partial<Pick<Track, 'lyric' | 'yrc' | 'tlyric' | 'ytlrc' | 'chorus'>>) => void
@@ -114,6 +118,9 @@ interface PlayerState {
     setCustomBgBrightness: (brightness: number) => void
     setCustomBgScale: (scale: number) => void
     setCustomBgOverlay: (overlay: number) => void
+
+    setHeartMode: (enabled: boolean) => void
+    setSourcePlaylistId: (id: string | null) => void
 
     playNext: () => void
     playPrevious: () => void
@@ -154,6 +161,9 @@ export const usePlayerStore = create<PlayerState>()(
             customBgBrightness: 60,
             customBgScale: 110,
             customBgOverlay: 30,
+
+            heartMode: false,
+            sourcePlaylistId: null,
 
             setCurrentTrack: (track, preserveProgress = false) => {
                 const { currentTrack, history } = get()
@@ -234,6 +244,9 @@ export const usePlayerStore = create<PlayerState>()(
             setCustomBgBrightness: (customBgBrightness) => set({ customBgBrightness }),
             setCustomBgScale: (customBgScale) => set({ customBgScale }),
             setCustomBgOverlay: (customBgOverlay) => set({ customBgOverlay }),
+
+            setHeartMode: (enabled) => set({ heartMode: enabled }),
+            setSourcePlaylistId: (id) => set({ sourcePlaylistId: id }),
 
             playNext: () => {
                 const { queue, currentTrack, repeatMode } = get()

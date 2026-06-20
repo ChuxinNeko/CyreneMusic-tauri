@@ -13,6 +13,7 @@ import { useLayoutStore } from "@/lib/store/useLayoutStore"
 import { useAuthStore } from "@/lib/store/useAuthStore"
 import { urlService } from "@/lib/services/urlService"
 import { listeningStatsService } from "@/lib/services/listeningStatsService"
+import { playerService } from "@/lib/services/playerService"
 import {
     Dialog,
     DialogContent,
@@ -120,6 +121,38 @@ function ClearHistoryButton({ mobile = false }: { mobile?: boolean }) {
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setOpen(false)}>取消</Button>
                     <Button variant="destructive" onClick={handleClear}>确认清空</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+function ClearPlaybackStateButton({ mobile = false }: { mobile?: boolean }) {
+    const [open, setOpen] = useState(false)
+
+    const handleClear = () => {
+        playerService.resetPlayback()
+        setOpen(false)
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                    <Trash2 className="h-4 w-4" />
+                    清除播放态
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>确认清除播放态？</DialogTitle>
+                    <DialogDescription>
+                        将卸载当前音频、清空播放队列与当前曲目、重置进度与时长、关闭心动模式。此操作不可撤销，但不会删除服务器历史记录。
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)}>取消</Button>
+                    <Button variant="destructive" onClick={handleClear}>确认清除</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -368,6 +401,7 @@ function DesktopDevLayout({
                     <span className="truncate">开发者工具</span>
                 </h1>
                 <div className="flex items-center gap-2">
+                    <ClearPlaybackStateButton />
                     <ClearHistoryButton />
                     <Button variant="secondary" onClick={showLiquidGlass} className="gap-2">
                         <Sparkles className="h-4 w-4" />
@@ -422,6 +456,7 @@ function MobilePortraitDevLayout({
                         </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                        <ClearPlaybackStateButton />
                         <ClearHistoryButton />
                         <Button variant="secondary" onClick={showLiquidGlass} className="gap-2">
                             <Sparkles className="h-4 w-4" />

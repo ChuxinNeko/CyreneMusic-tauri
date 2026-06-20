@@ -44,6 +44,13 @@ interface UpdateDownloadResult {
     fileName: string
 }
 
+interface AndroidInstallResult {
+    success: boolean
+    errorCode: string
+    message: string
+    needsPermission: boolean
+}
+
 type DownloadStatus = "idle" | "downloading" | "completed" | "error"
 
 const formatBytes = (bytes: number) => {
@@ -210,22 +217,27 @@ export const UpdateDialog: React.FC<UpdateDialogProps> = ({
 
         try {
             if (downloadResult.fileName.toLowerCase().endsWith('.apk') || activeDownloadId?.startsWith('android')) {
-                try {
-                    await invoke("android_install_apk", { filePath: downloadResult.path })
-                    return
-                } catch (e) {
-                    if (String(e).includes("Not supported")) {
-                        await openPath(downloadResult.path)
-                        return
-                    }
-                    throw e
-                }
+                const result = await invoke<AndroidInstallResult>("android_install_apk", { filePath: downloadResult.path })
+
+                if (result.success) return
+
+                const hint = result.needsPermission
+                    ? `需要「安装未知来源应用」权限。已为您打开系统设置，请授权后返回应用，安装将自动继续。`
+                    : (result.message || "安装失败")
+                setDownloadError(hint)
+                setDownloadStatus("error")
+                return
             }
 
             await openPath(downloadResult.path)
         } catch (error) {
+            if (String(error).includes("Not supported")) {
+                await openPath(downloadResult.path)
+                return
+            }
             console.error("[UpdateDialog] 打开安装包失败:", error)
             setDownloadError(error instanceof Error ? error.message : String(error))
+            setDownloadStatus("error")
         }
     }
 

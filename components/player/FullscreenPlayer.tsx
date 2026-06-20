@@ -23,6 +23,7 @@ import {
     Palette,
     SlidersHorizontal,
     Heart,
+    Sparkles,
     Repeat,
     Repeat1,
     Shuffle,
@@ -46,6 +47,7 @@ import { EqualizerPanel } from "./EqualizerPanel"
 import { AudioVisualizer } from "./AudioVisualizer"
 import { AddToPlaylistDialog } from "./AddToPlaylistDialog"
 import { playlistService } from "@/lib/services/playlistService"
+import { heartModeService } from "@/lib/services/heartModeService"
 import { LYRIC_FONT_OPTIONS } from "@/lib/constants/fonts"
 import { BackgroundSettingsDialog } from "./BackgroundSettingsDialog"
 import { Slider } from "@/components/ui/slider"
@@ -119,6 +121,9 @@ export function FullscreenPlayer() {
     const setRepeatMode = usePlayerStore(s => s.setRepeatMode)
     const isTaskbarPlayerOpen = usePlayerStore(s => s.isTaskbarPlayerOpen)
     const setIsTaskbarPlayerOpen = usePlayerStore(s => s.setIsTaskbarPlayerOpen)
+    const heartMode = usePlayerStore(s => s.heartMode)
+    const setHeartMode = usePlayerStore(s => s.setHeartMode)
+    const sourcePlaylistId = usePlayerStore(s => s.sourcePlaylistId)
 
     // 自定义播放器背景
     const playerBgType = usePlayerStore(s => s.playerBgType)
@@ -339,10 +344,14 @@ export function FullscreenPlayer() {
     }, [checkPlaylistStatus])
 
     React.useEffect(() => {
+        if (!currentTrack) {
+            setLocalProgress(0)
+            return
+        }
         if (!isDraggingProgress.current) {
             setLocalProgress(progress || 0)
         }
-    }, [progress])
+    }, [progress, currentTrack])
 
     React.useEffect(() => {
         if (!isDraggingVolume.current) {
@@ -471,6 +480,26 @@ export function FullscreenPlayer() {
             .split(/[,\/&、，]/)
             .map(a => a.trim())
             .filter(Boolean)
+    }
+
+    const handleToggleHeartMode = async () => {
+        if (!currentTrack || currentTrack.source !== 'netease') return
+
+        if (heartMode) {
+            setHeartMode(false)
+            heartModeService.stop()
+            toast.success("已关闭心动模式")
+            return
+        }
+
+        try {
+            toast.loading("正在开启心动模式…", { id: "heart-mode-loading" })
+            await heartModeService.start(currentTrack.id, sourcePlaylistId)
+            setHeartMode(true)
+            toast.success("心动模式已开启", { id: "heart-mode-loading" })
+        } catch (e: any) {
+            toast.error(`开启心动模式失败: ${e.message}`, { id: "heart-mode-loading" })
+        }
     }
 
     const handleArtistClick = async (artistName?: string) => {
@@ -651,6 +680,16 @@ export function FullscreenPlayer() {
                             <ImageIcon className="mr-2 h-4 w-4" />
                             播放器背景…
                         </DropdownMenuItem>
+                        {currentTrack?.source === 'netease' && (
+                            <DropdownMenuCheckboxItem
+                                checked={heartMode}
+                                onCheckedChange={() => handleToggleHeartMode()}
+                                className="focus:bg-white/10 focus:text-white data-[state=checked]:bg-white/5"
+                            >
+                                <Sparkles className="mr-2 h-4 w-4" />
+                                心动模式
+                            </DropdownMenuCheckboxItem>
+                        )}
                         <DropdownMenuSeparator className="bg-white/10" />
                         <div className="px-2 py-1.5">
                             <div className="flex items-center text-sm font-medium mb-2 opacity-80">
@@ -823,6 +862,16 @@ export function FullscreenPlayer() {
                                     <ImageIcon className="mr-2 h-4 w-4" />
                                     播放器背景…
                                 </DropdownMenuItem>
+                                {currentTrack?.source === 'netease' && (
+                                    <DropdownMenuCheckboxItem
+                                        checked={heartMode}
+                                        onCheckedChange={() => handleToggleHeartMode()}
+                                        className="focus:bg-white/10 focus:text-white data-[state=checked]:bg-white/5"
+                                    >
+                                        <Sparkles className="mr-2 h-4 w-4" />
+                                        心动模式
+                                    </DropdownMenuCheckboxItem>
+                                )}
                                 <DropdownMenuSeparator className="bg-white/10" />
                                 <div className="px-2 py-1.5">
                                     <div className="flex items-center text-sm font-medium mb-2 opacity-80">
