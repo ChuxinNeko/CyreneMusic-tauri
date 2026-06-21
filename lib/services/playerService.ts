@@ -119,9 +119,10 @@ class PlayerService {
     }
 
     private setupRemoteControl() {
-        // Listen for commands from other windows (like Tray)
+        // Listen for commands from other windows (like Tray, TablePlayer)
         listen('player:command', (event) => {
-            const command = event.payload as string
+            const payload = event.payload
+            const command = typeof payload === 'string' ? payload : (payload as any)?.type
             console.log(`[PlayerService] Received remote command: ${command}`)
             switch (command) {
                 case 'toggle-play':

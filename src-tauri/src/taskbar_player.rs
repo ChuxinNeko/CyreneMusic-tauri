@@ -192,48 +192,43 @@ pub async fn get_taskbar_info() -> Result<TaskbarRect, String> {
 }
 
 /// 从任务栏固定模式切换为悬浮模式
-/// - 移除与任务栏的 Owner 关系
-/// - 调整窗口尺寸为悬浮模式大小
+/// 销毁旧窗口并重新创建一个干净的无 Owner 窗口，
+/// 避免 SetWindowLongPtrW 改变 Owner 后破坏 Windows 内部 z-order 管理
 #[cfg(target_os = "windows")]
 #[tauri::command]
 pub async fn unpin_taskbar_player(app: AppHandle) -> Result<(), String> {
-    let window = app
-        .get_webview_window("taskbar-player")
-        .ok_or("Taskbar player window not found")?;
+    // 记录当前窗口位置，用于新窗口定位
+    let current_pos = if let Some(window) = app.get_webview_window("taskbar-player") {
+        let pos = window.outer_position().unwrap_or(tauri::PhysicalPosition { x: 100, y: 100 });
+        // 销毁旧窗口
+        let _ = window.close();
+        pos
+    } else {
+        tauri::PhysicalPosition { x: 100, y: 100 }
+    };
 
-    // 移除 Owner 关系，使其成为独立窗口
-    if let Ok(my_hwnd_raw) = window.hwnd() {
-        unsafe {
-            SetWindowLongPtrW(
-                windows::Win32::Foundation::HWND(my_hwnd_raw.0 as *mut _),
-                GWLP_HWNDPARENT,
-                0,
-            );
-        }
-    }
-
-    // 悬浮模式下开启置顶
-    let _ = window.set_always_on_top(true);
-
-    // 获取当前窗口位置
-    let current_pos = window.outer_position().unwrap_or(tauri::PhysicalPosition { x: 100, y: 100 });
     let taskbar_rect = get_taskbar_rect().unwrap_or(RECT { left: 0, top: 0, right: 1920, bottom: 1080 });
-
-    // 计算新位置：移到任务栏上方
     let new_y = taskbar_rect.top - FLOATING_HEIGHT as i32 - 20;
-    let new_x = current_pos.x;
 
-    // 切换为悬浮窗口尺寸
-    window.set_size(tauri::Size::Physical(tauri::PhysicalSize {
-        width: FLOATING_WIDTH,
-        height: FLOATING_HEIGHT,
-    })).map_err(|e| format!("Failed to set size: {}", e))?;
-
-    // 移动到任务栏上方
-    window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
-        x: new_x,
-        y: if new_y < 0 { 100 } else { new_y },
-    })).map_err(|e| format!("Failed to set position: {}", e))?;
+    // 重新创建一个干净的悬浮窗口（无 Owner，与 song-recommend 相同的创建方式）
+    let window = WebviewWindowBuilder::new(
+        &app,
+        "taskbar-player",
+        WebviewUrl::App("taskbar".into()),
+    )
+    .title("Taskbar Player")
+    .resizable(false)
+    .focused(false)
+    .decorations(false)
+    .transparent(true)
+    .always_on_top(true)
+    .background_color(Color(0, 0, 0, 0))
+    .shadow(true)
+    .skip_taskbar(true)
+    .inner_size(FLOATING_WIDTH as f64, FLOATING_HEIGHT as f64)
+    .position(current_pos.x as f64, if new_y < 0 { 100.0 } else { new_y as f64 })
+    .build()
+    .map_err(|e| format!("Failed to create floating window: {}", e))?;
 
     // 通知前端已切换为悬浮模式
     let _ = window.emit("taskbar-player:mode-change", "floating");
@@ -248,22 +243,42 @@ pub async fn unpin_taskbar_player(_app: tauri::AppHandle) -> Result<(), String> 
 }
 
 /// 从悬浮模式切换回任务栏固定模式
-/// - 重新设置 Owner 为任务栏
-/// - 调整窗口尺寸并定位到任务栏
+/// 销毁旧窗口并重新创建一个以任务栏为 Owner 的窗口
 #[cfg(target_os = "windows")]
 #[tauri::command]
 pub async fn pin_taskbar_player(app: AppHandle, position: Option<String>) -> Result<(), String> {
-    let window = app
-        .get_webview_window("taskbar-player")
-        .ok_or("Taskbar player window not found")?;
+    // 销毁旧窗口
+    if let Some(window) = app.get_webview_window("taskbar-player") {
+        let _ = window.close();
+    }
 
     // 获取任务栏信息
     let taskbar_hwnd = get_taskbar_hwnd().ok_or("Failed to find taskbar")?;
     let taskbar_rect = get_taskbar_rect().ok_or("Failed to get taskbar rect")?;
-
     let taskbar_height = (taskbar_rect.bottom - taskbar_rect.top) as u32;
+    let target_x = get_best_taskbar_x(&taskbar_rect, TASKBAR_WIDTH, position.as_deref());
 
-    // 重新设置 Owner 为任务栏
+    // 重新创建窗口（任务栏模式：以任务栏为 Owner）
+    let window = WebviewWindowBuilder::new(
+        &app,
+        "taskbar-player",
+        WebviewUrl::App("taskbar".into()),
+    )
+    .title("Taskbar Player")
+    .resizable(false)
+    .focused(false)
+    .decorations(false)
+    .transparent(true)
+    .always_on_top(true)
+    .background_color(Color(0, 0, 0, 0))
+    .shadow(false)
+    .skip_taskbar(true)
+    .inner_size(TASKBAR_WIDTH as f64, taskbar_height as f64)
+    .position(target_x as f64, taskbar_rect.top as f64)
+    .build()
+    .map_err(|e| format!("Failed to create taskbar window: {}", e))?;
+
+    // 将窗口的 Owner 设置为任务栏
     if let Ok(my_hwnd_raw) = window.hwnd() {
         unsafe {
             SetWindowLongPtrW(
@@ -273,23 +288,6 @@ pub async fn pin_taskbar_player(app: AppHandle, position: Option<String>) -> Res
             );
         }
     }
-
-    // 恢复置顶，否则无法在任务栏上正常显示
-    let _ = window.set_always_on_top(true);
-
-    // 恢复为任务栏模式尺寸
-    window.set_size(tauri::Size::Physical(tauri::PhysicalSize {
-        width: TASKBAR_WIDTH,
-        height: taskbar_height,
-    })).map_err(|e| format!("Failed to set size: {}", e))?;
-
-    let target_x = get_best_taskbar_x(&taskbar_rect, TASKBAR_WIDTH, position.as_deref());
-
-    // 重新定位到任务栏
-    window.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
-        x: target_x,
-        y: taskbar_rect.top,
-    })).map_err(|e| format!("Failed to set position: {}", e))?;
 
     // 通知前端已切换为任务栏模式
     let _ = window.emit("taskbar-player:mode-change", "taskbar");

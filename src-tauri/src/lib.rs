@@ -18,6 +18,7 @@ mod taskbar_player;
 
 lazy_static::lazy_static! {
     static ref SYS: Mutex<System> = Mutex::new(System::new_all());
+    static ref TABLE_PLAYER_PINNED: Mutex<bool> = Mutex::new(false);
 }
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -341,6 +342,33 @@ async fn close_table_player(app: tauri::AppHandle) -> Result<(), String> {
         let _ = window.close();
     }
     Ok(())
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+async fn toggle_table_player_pin(app: tauri::AppHandle) -> Result<bool, String> {
+    let window = app
+        .get_webview_window("table-player")
+        .ok_or("table-player window not found")?;
+
+    let mut pinned = TABLE_PLAYER_PINNED.lock().map_err(|e| e.to_string())?;
+    *pinned = !*pinned;
+    let new_state = *pinned;
+
+    let _ = window.set_always_on_top(new_state);
+    // 置顶时将窗口提升到最前
+    if new_state {
+        let _ = window.set_focus();
+    }
+
+    Ok(new_state)
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+fn get_table_player_pin_state() -> Result<bool, String> {
+    let pinned = TABLE_PLAYER_PINNED.lock().map_err(|e| e.to_string())?;
+    Ok(*pinned)
 }
 
 #[cfg(desktop)]
@@ -844,7 +872,9 @@ pub fn run() {
                         open_recommend_popup,
                         close_recommend_popup,
                         open_table_player,
-                        close_table_player
+                        close_table_player,
+                        toggle_table_player_pin,
+                        get_table_player_pin_state
                     ]
                 }
                 #[cfg(not(target_os = "windows"))]
@@ -877,7 +907,9 @@ pub fn run() {
                         taskbar_player::hide_taskbar_drop_zone,
                         taskbar_player::is_left_mouse_button_pressed,
                         open_recommend_popup,
-                        close_recommend_popup
+                        close_recommend_popup,
+                        toggle_table_player_pin,
+                        get_table_player_pin_state
                     ]
                 }
             }
@@ -942,6 +974,15 @@ pub fn run() {
                     main_window.on_window_event(move |event| {
                         match event {
                             tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) => {
+                                // 如果 table-player 已置顶，跳过位置跟随和最小化隐藏
+                                let is_pinned = TABLE_PLAYER_PINNED
+                                    .lock()
+                                    .map(|v| *v)
+                                    .unwrap_or(false);
+                                if is_pinned {
+                                    return;
+                                }
+
                                 if let Some(table_player) = app_handle.get_webview_window("table-player") {
                                     if main_window_clone.is_minimized().unwrap_or(false) {
                                         let _ = table_player.hide();
@@ -999,35 +1040,70 @@ pub fn run() {
                     .on_tray_icon_event(move |tray, event| {
                         match event {
                             TrayIconEvent::Click {
-                                button: MouseButton::Left | MouseButton::Right,
+                                button: MouseButton::Left,
                                 button_state: MouseButtonState::Up,
                                 position,
                                 ..
                             } => {
                                 let app = tray.app_handle();
                                 if let Some(window) = app.get_webview_window("tray") {
-                                    // Get current inner size to calculate position dynamically
                                     let size = window.inner_size().unwrap_or(tauri::PhysicalSize {
                                         width: 200,
                                         height: 130,
                                     });
                                     let window_height = size.height as f64;
-
-                                    let click_x = position.x;
-                                    let click_y = position.y;
-
-                                    let x = click_x;
-                                    // Shift up by window height + small margin
-                                    let y = click_y - window_height - 10.0;
+                                    let y = position.y - window_height - 10.0;
 
                                     let _ = window.set_position(tauri::Position::Physical(
                                         tauri::PhysicalPosition {
-                                            x: x as i32,
+                                            x: position.x as i32,
                                             y: y as i32,
                                         },
                                     ));
                                     let _ = window.show();
                                     let _ = window.set_focus();
+                                } else {
+                                    let _ = tauri::WebviewWindowBuilder::new(
+                                        app,
+                                        "tray",
+                                        tauri::WebviewUrl::App("tray".into()),
+                                    )
+                                    .title("Tray Menu")
+                                    .resizable(false)
+                                    .focused(true)
+                                    .decorations(false)
+                                    .always_on_top(true)
+                                    .visible(false)
+                                    .skip_taskbar(true)
+                                    .inner_size(200.0, 120.0)
+                                    .build()
+                                    .unwrap();
+                                }
+                            }
+                            // 右键仅显示窗口，不调用 set_focus()，
+                            // 避免与 Windows 系统托盘原生右键消息泵冲突导致卡死
+                            TrayIconEvent::Click {
+                                button: MouseButton::Right,
+                                button_state: MouseButtonState::Up,
+                                position,
+                                ..
+                            } => {
+                                let app = tray.app_handle();
+                                if let Some(window) = app.get_webview_window("tray") {
+                                    let size = window.inner_size().unwrap_or(tauri::PhysicalSize {
+                                        width: 200,
+                                        height: 130,
+                                    });
+                                    let window_height = size.height as f64;
+                                    let y = position.y - window_height - 10.0;
+
+                                    let _ = window.set_position(tauri::Position::Physical(
+                                        tauri::PhysicalPosition {
+                                            x: position.x as i32,
+                                            y: y as i32,
+                                        },
+                                    ));
+                                    let _ = window.show();
                                 } else {
                                     let _ = tauri::WebviewWindowBuilder::new(
                                         app,
