@@ -129,7 +129,7 @@ export default function TrayPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => sendCommand('prev')}
+                            onPointerDown={() => sendCommand('prev')}
                         >
                             <SkipBack className="h-4 w-4" />
                         </Button>
@@ -137,7 +137,7 @@ export default function TrayPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => sendCommand('toggle-play')}
+                            onPointerDown={() => sendCommand('toggle-play')}
                         >
                             {isPlaying ? (
                                 <Pause className="h-4 w-4 fill-current" />
@@ -149,7 +149,7 @@ export default function TrayPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => sendCommand('next')}
+                            onPointerDown={() => sendCommand('next')}
                         >
                             <SkipForward className="h-4 w-4" />
                         </Button>
@@ -162,7 +162,7 @@ export default function TrayPage() {
             <Button
                 variant="ghost"
                 className="justify-start gap-2 h-9 px-2 font-normal"
-                onClick={showMainWindow}
+                onPointerDown={showMainWindow}
             >
                 <Monitor className="h-4 w-4" />
                 显示主界面
@@ -170,7 +170,7 @@ export default function TrayPage() {
             <Button
                 variant="ghost"
                 className="justify-start gap-2 h-9 px-2 font-normal"
-                onClick={openSettings}
+                onPointerDown={openSettings}
             >
                 <Settings className="h-4 w-4" />
                 设置
@@ -179,7 +179,7 @@ export default function TrayPage() {
             <Button
                 variant="ghost"
                 className="justify-start gap-2 h-9 px-2 font-normal hover:bg-destructive hover:text-destructive-foreground"
-                onClick={quitApp}
+                onPointerDown={quitApp}
             >
                 <Power className="h-4 w-4" />
                 退出

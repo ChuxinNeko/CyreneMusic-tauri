@@ -82,11 +82,11 @@ export function TitleBar() {
 
     const close = async () => {
         const appWindow = getCurrentWindow();
-        await appWindow.close();
+        await appWindow.hide();
     }
 
     return (
-        <div className={`sticky top-0 z-50 pt-[max(env(safe-area-inset-top),32px)] md:pt-[env(safe-area-inset-top)] bg-transparent ${currentTheme === 'fluent' ? '' : 'border-b'}`}>
+        <div className={`sticky top-0 z-50 pt-[max(env(safe-area-inset-top),32px)] md:pt-[env(safe-area-inset-top)] bg-muted/10 ${currentTheme === 'fluent' ? '' : 'border-b'}`}>
             <div data-tauri-drag-region className="h-14 flex items-center px-4 select-none bg-transparent">
                 {/* Left Section: Navigation */}
                 <div className="hidden md:flex items-center gap-1 z-10 mr-4" data-tauri-drag-region>

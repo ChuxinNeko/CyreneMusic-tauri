@@ -101,8 +101,14 @@ class PlayerService {
 
             if (typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__) {
                 const store = usePlayerStore.getState();
+                const layoutStore = useLayoutStore.getState();
+                
                 if (store.isTaskbarPlayerOpen) {
-                    invoke('open_taskbar_player', { position: store.taskbarPlayerPosition }).catch(console.error);
+                    invoke('open_taskbar_player', { position: layoutStore.taskbarPlayerPosition }).catch(console.error);
+                }
+                
+                if (layoutStore.isRightSidebarPlayerEnabled) {
+                    invoke('open_table_player').catch(console.error);
                 }
             }
         }
@@ -126,6 +132,11 @@ class PlayerService {
                     break
                 case 'prev':
                     this.playPrevious()
+                    break
+                case 'play-track':
+                    if (event.payload && (event.payload as any).track) {
+                        this.playTrack((event.payload as any).track)
+                    }
                     break
                 case 'request-sync':
                     if (typeof window !== 'undefined') {
@@ -158,6 +169,11 @@ class PlayerService {
                     }
                     break
             }
+        })
+
+        listen('player:seek', (event) => {
+            const time = event.payload as number
+            this.seek(time)
         })
     }
 

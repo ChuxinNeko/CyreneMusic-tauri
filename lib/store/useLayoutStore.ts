@@ -16,6 +16,8 @@ interface LayoutState {
     showDailyRecommendPopup: boolean
     toplistSource: ToplistSource
     recommendSource: RecommendSource
+    isImmersivePlaylistEnabled: boolean
+    isRightSidebarPlayerEnabled: boolean
     _settingsClickCount: number
     _lastSettingsClickTime: number
     _recommendPopupTrigger: number
@@ -31,6 +33,9 @@ interface LayoutState {
     setToplistSource: (source: ToplistSource) => void
     setRecommendSource: (source: RecommendSource) => void
     triggerRecommendPopup: () => void
+    setImmersivePlaylistEnabled: (enabled: boolean) => void
+    setRightSidebarPlayerEnabled: (enabled: boolean) => void
+    toggleRightSidebarPlayer: () => void
 }
 
 export const useLayoutStore = create<LayoutState>()(
@@ -44,6 +49,8 @@ export const useLayoutStore = create<LayoutState>()(
             showDailyRecommendPopup: true,
             toplistSource: 'netease',
             recommendSource: 'netease',
+            isImmersivePlaylistEnabled: true,
+            isRightSidebarPlayerEnabled: false,
             _settingsClickCount: 0,
             _recommendPopupTrigger: 0,
             _lastSettingsClickTime: 0,
@@ -52,6 +59,8 @@ export const useLayoutStore = create<LayoutState>()(
             toggleTaskbarPlayer: () => set((state) => ({ isTaskbarPlayerEnabled: !state.isTaskbarPlayerEnabled })),
             setTaskbarPlayerEnabled: (enabled: boolean) => set({ isTaskbarPlayerEnabled: enabled }),
             setTaskbarPlayerPosition: (position: 'left' | 'center' | 'right') => set({ taskbarPlayerPosition: position }),
+            toggleRightSidebarPlayer: () => set((state) => ({ isRightSidebarPlayerEnabled: !state.isRightSidebarPlayerEnabled })),
+            setRightSidebarPlayerEnabled: (enabled: boolean) => set({ isRightSidebarPlayerEnabled: enabled }),
             handleSettingsClick: () => {
                 const now = Date.now()
                 const { _settingsClickCount, _lastSettingsClickTime } = get()
@@ -73,6 +82,7 @@ export const useLayoutStore = create<LayoutState>()(
             setToplistSource: (toplistSource: ToplistSource) => set({ toplistSource }),
             setRecommendSource: (recommendSource: RecommendSource) => set({ recommendSource }),
             triggerRecommendPopup: () => set((state) => ({ _recommendPopupTrigger: state._recommendPopupTrigger + 1 })),
+            setImmersivePlaylistEnabled: (enabled: boolean) => set({ isImmersivePlaylistEnabled: enabled }),
         }),
         {
             name: 'cyrene-layout-store',
@@ -84,6 +94,8 @@ export const useLayoutStore = create<LayoutState>()(
                 showDailyRecommendPopup: state.showDailyRecommendPopup,
                 toplistSource: state.toplistSource,
                 recommendSource: state.recommendSource,
+                isImmersivePlaylistEnabled: state.isImmersivePlaylistEnabled,
+                isRightSidebarPlayerEnabled: state.isRightSidebarPlayerEnabled,
             }),
         }
     )

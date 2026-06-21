@@ -326,6 +326,41 @@ class DiscoveryService {
             duration: (song.dt || song.duration || 0) / (song.dt ? 1000 : 1)
         }
     }
+
+    public async getPlaylistComments(
+        playlistId: string | number,
+        limit: number = 20,
+        offset: number = 0,
+        before: number = 0,
+        /** 排序方式：0=按时间(默认)，1=按热度 */
+        sortType: 0 | 1 = 0,
+    ): Promise<{ code: number; total: number; more: boolean; moreHot: boolean; hotComments: any[]; comments: any[] } | null> {
+        try {
+            const params = new URLSearchParams({
+                id: String(playlistId),
+                limit: String(limit),
+                offset: String(offset),
+                before: String(before),
+                sortType: String(sortType),
+            })
+            const response = await fetch(`${urlService.baseUrl}/comment/playlist?${params}`)
+            const result = await response.json()
+            if (result.status === 200) {
+                return {
+                    code: result.code,
+                    total: result.total ?? 0,
+                    more: !!result.more,
+                    moreHot: !!result.moreHot,
+                    hotComments: result.hotComments || [],
+                    comments: result.comments || [],
+                }
+            }
+            return null
+        } catch (e) {
+            console.error("[DiscoveryService] getPlaylistComments failed:", e)
+            return null
+        }
+    }
 }
 
 export const discoveryService = DiscoveryService.getInstance()

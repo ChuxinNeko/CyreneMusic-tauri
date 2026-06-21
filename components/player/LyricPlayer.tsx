@@ -138,7 +138,7 @@ function InterludeDots({ interludeRef }: { interludeRef: React.RefObject<{ start
     )
 }
 
-export const LyricPlayer = React.memo(function LyricPlayer() {
+export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'center' }: { alignPosition?: 'center' | 'top-second' }) {
     const currentTrack = usePlayerStore(s => s.currentTrack)
     const isPlaying = usePlayerStore(s => s.isPlaying)
     const showTranslation = usePlayerStore(s => s.showTranslation)
@@ -284,7 +284,8 @@ export const LyricPlayer = React.memo(function LyricPlayer() {
             activeCenterY = linesY[targetIndex] + linesHelperRef.current[targetIndex].height / 2
         }
 
-        const offsetToCenter = playerHeight * ALIGN_POSITION - activeCenterY
+        const ALIGN_OFFSET = alignPosition === 'top-second' ? 120 : playerHeight * ALIGN_POSITION
+        const offsetToCenter = ALIGN_OFFSET - activeCenterY
 
         if (activeInterlude && interludeY !== null && interludeContainerRef.current) {
             const dotsY = interludeY + offsetToCenter + (INTERLUDE_TOTAL_HEIGHT - 40) / 2

@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
-import { Play, ChevronLeft, Loader2, Trash2, Search, X } from "lucide-react"
+import { useState, useEffect, useMemo, useRef } from "react"
+import { extractColorsFromImage } from "@/lib/utils/extractColors"
+import { Play, ChevronLeft, Loader2, Trash2, Search, X, Music, MessageSquare } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { AsyncImage } from "@/components/common/AsyncImage"
@@ -11,7 +12,9 @@ import { Playlist, PlaylistTrack } from "@/lib/models/playlist"
 import { playerService } from "@/lib/services/playerService"
 import { usePlayerStore } from "@/lib/store/usePlayerStore"
 import { Track } from "@/lib/models/track"
-import type { ToplistSource } from "@/lib/store/useLayoutStore"
+import { useLayoutStore, type ToplistSource } from "@/lib/store/useLayoutStore"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { PlaylistComments } from "@/components/discovery/PlaylistComments"
 import {
     Dialog,
     DialogContent,
@@ -40,7 +43,32 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [deleting, setDeleting] = useState(false)
     const [searchKeyword, setSearchKeyword] = useState("")
+    const [activeTab, setActiveTab] = useState<"songs" | "comments">("songs")
+    const [coverColor, setCoverColor] = useState<{ r: number; g: number; b: number } | null>(null)
     const { currentTrack, isPlaying } = usePlayerStore()
+    const { isImmersivePlaylistEnabled } = useLayoutStore()
+    const immersiveBgRef = useRef<HTMLDivElement>(null)
+
+    const showTabs = toplistSource === "netease" && type !== "personal"
+
+    const onCoverLoad = (img: HTMLImageElement) => {
+        try {
+            const canvas = document.createElement("canvas")
+            const size = 16
+            canvas.width = size
+            canvas.height = size
+            const ctx = canvas.getContext("2d")
+            if (!ctx) return
+            ctx.drawImage(img, 0, 0, size, size)
+            const data = ctx.getImageData(0, 0, size, size).data
+            let r = 0, g = 0, b = 0
+            for (let i = 0; i < data.length; i += 4) {
+                r += data[i]; g += data[i + 1]; b += data[i + 2]
+            }
+            const count = data.length / 4
+            setCoverColor({ r: Math.round(r / count), g: Math.round(g / count), b: Math.round(b / count) })
+        } catch { /* tainted canvas — ignore */ }
+    }
 
     const filteredTracks = useMemo(() => {
         if (!playlist) return []
@@ -70,12 +98,12 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                         creator: '',
                         trackCount: info.trackCount,
                         playCount: 0,
-                        tracks: tracks.map((t: PlaylistTrack) => ({
-                            id: t.trackId,
-                            name: t.name,
+                        tracks: tracks.map((t: any) => ({
+                            id: t.trackId || t.track_id || t.id,
+                            name: t.name || t.track_name,
                             artists: t.artists,
                             album: t.album,
-                            picUrl: t.picUrl,
+                            picUrl: t.picUrl || t.pic_url,
                             source: t.source,
                             duration: 0
                         })),
@@ -92,6 +120,87 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
         }
         fetchDetail()
     }, [id, token, type, toplistSource, playlistType])
+
+    useEffect(() => {
+        const el = immersiveBgRef.current
+        if (!el) return
+
+        if (!isImmersivePlaylistEnabled || !playlist?.coverImgUrl) {
+            el.style.opacity = '0'
+            return
+        }
+
+        let isMounted = true
+        let rafId: number
+
+        // 确保初始状态为完全透明，且无 transition（防止纯色闪烁）
+        el.style.opacity = '0'
+        el.style.transition = ''
+
+        // 与 WebGL 背景同款粒度：取一组代表色组成氛围光
+        // - 主色（评分最高）= 顶部广域光
+        // - 副色（按评分取 3~4 个）= 四角错落光斑
+        // - 整体线性淡出
+        extractColorsFromImage(playlist.coverImgUrl, 8)
+            .then(colors => {
+                if (!isMounted) return
+                if (!colors || colors.length === 0) return
+
+                // hsl(h, s%, l%)  ->  hsla(h, s%, l%, a)
+                const withAlpha = (hsl: string, a: number) =>
+                    hsl.replace(/^hsl\(/, 'hsla(').replace(/\)$/, `, ${a})`)
+
+                const primary = colors[0]
+                const accents = colors.slice(1, 5)
+                const accentPositions = [
+                    '18% 32%',  // 左上
+                    '82% 28%',  // 右上
+                    '28% 72%',  // 左下
+                    '72% 75%',  // 右下
+                ]
+
+                const gradients: string[] = []
+
+                // 顶部主氛围光
+                gradients.push(
+                    `radial-gradient(ellipse 140% 55% at 50% 0%, ${withAlpha(primary, 0.45)} 0%, ${withAlpha(primary, 0.18)} 50%, transparent 100%)`
+                )
+
+                // 副色光斑：四角错落
+                accents.forEach((color, i) => {
+                    const pos = accentPositions[i % accentPositions.length]
+                    gradients.push(
+                        `radial-gradient(ellipse 60% 45% at ${pos}, ${withAlpha(color, 0.30)} 0%, ${withAlpha(color, 0.10)} 50%, transparent 100%)`
+                    )
+                })
+
+                // 整体向下淡出
+                gradients.push(
+                    `linear-gradient(180deg, ${withAlpha(primary, 0.15)} 0%, transparent 60%)`
+                )
+
+                el.style.background = gradients.join(', ')
+
+                // 双 rAF：确保浏览器先完成 opacity:0 + 有背景 的绘制帧，
+                // 再添加 transition 并触发 opacity 过渡，杜绝首帧纯色闪烁
+                rafId = requestAnimationFrame(() => {
+                    rafId = requestAnimationFrame(() => {
+                        if (isMounted && el) {
+                            el.style.transition = 'opacity 1s ease-out'
+                            el.style.opacity = '1'
+                        }
+                    })
+                })
+            })
+            .catch(e => {
+                console.warn("[PlaylistDetailView] Failed to extract colors:", e)
+            })
+
+        return () => {
+            isMounted = false
+            cancelAnimationFrame(rafId)
+        }
+    }, [playlist?.coverImgUrl, isImmersivePlaylistEnabled])
 
     if (loading) {
         return (
@@ -171,7 +280,18 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
     }
 
     return (
-        <div className="space-y-4 animate-in fade-in duration-500 pb-20 max-w-6xl w-full mx-auto px-4 sm:px-0 relative pt-[env(safe-area-inset-top)] isolate overflow-x-hidden">
+        <>
+            {/* 沉浸模式全屏背景 —— 始终挂在根容器外侧，避免被根容器 animate-in 的 opacity<1 阶段变成 fixed 的 containing block 而被裁剪到容器内 */}
+            <div
+                ref={immersiveBgRef}
+                aria-hidden="true"
+                className="fixed inset-0 pointer-events-none -z-20"
+                style={{
+                    opacity: 0,
+                    willChange: 'opacity',
+                }}
+            />
+            <div className="space-y-4 animate-in fade-in duration-500 pb-20 max-w-6xl w-full mx-auto px-4 sm:px-0 relative pt-[env(safe-area-inset-top)] isolate overflow-x-hidden">
             {/* 移动端全宽顶部封面渐变背景 */}
             <div className="md:hidden absolute top-0 inset-x-0 aspect-square sm:max-h-[500px] -z-10 pointer-events-none overflow-hidden origin-top">
                 <AsyncImage src={playlist.coverImgUrl} className="w-full h-full object-cover scale-105" lazy={false} />
@@ -184,7 +304,7 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                     variant="ghost"
                     size="sm"
                     onClick={onBack}
-                    className="h-8 gap-1 md:text-muted-foreground md:hover:text-foreground md:hover:bg-transparent transition-colors md:bg-transparent bg-background/40 backdrop-blur-md text-foreground rounded-full px-3 md:rounded-md md:px-2 md:-ml-2"
+                    className="h-8 gap-1 transition-colors hover:bg-background/60 text-foreground rounded-full px-3 bg-background/40 backdrop-blur-md"
                 >
                     <ChevronLeft className="h-5 w-5" />
                     <span className="text-sm font-medium">返回</span>
@@ -280,8 +400,21 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                 </div>
             </div>
 
-            <div className="space-y-1 pt-2 md:pt-4">
-                {/* 歌单内搜索 */}
+            <Tabs value={showTabs ? activeTab : "songs"} onValueChange={(v) => setActiveTab(v as "songs" | "comments")} className="pt-2 md:pt-4">
+                {showTabs && (
+                    <TabsList className={`mb-3 ${isImmersivePlaylistEnabled ? 'bg-background/40 backdrop-blur-md border border-border/30' : ''}`}>
+                        <TabsTrigger value="songs" className="gap-1.5">
+                            <Music className="h-4 w-4" />
+                            歌曲
+                        </TabsTrigger>
+                        <TabsTrigger value="comments" className="gap-1.5">
+                            <MessageSquare className="h-4 w-4" />
+                            评论
+                        </TabsTrigger>
+                    </TabsList>
+                )}
+
+                <TabsContent value="songs" className="outline-none">
                 <div className="relative px-1 md:px-0 pb-2">
                     <Search className="absolute left-4 md:left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
                     <input
@@ -289,7 +422,7 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                         value={searchKeyword}
                         onChange={e => setSearchKeyword(e.target.value)}
                         placeholder="搜索歌单内歌曲..."
-                        className="w-full h-10 pl-10 pr-9 md:pl-9 md:pr-9 rounded-xl bg-accent/40 border border-border/40 text-sm font-medium placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
+                        className={`w-full h-10 pl-10 pr-9 md:pl-9 md:pr-9 rounded-xl border text-sm font-medium placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all ${isImmersivePlaylistEnabled ? 'bg-background/40 backdrop-blur-md border-border/30' : 'bg-accent/40 border-border/40'}`}
                     />
                     {searchKeyword && (
                         <button
@@ -373,7 +506,14 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                         )
                     })}
                 </div>
-            </div>
+                    </TabsContent>
+
+                    {showTabs && (
+                        <TabsContent value="comments" className="outline-none">
+                            <PlaylistComments playlistId={playlist.id} />
+                        </TabsContent>
+                    )}
+                </Tabs>
 
             <style jsx global>{`
                 @keyframes music-bar-1 { 0%, 100% { height: 4px; } 50% { height: 14px; } }
@@ -401,7 +541,8 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+            </div>
+        </>
     )
 }
 
@@ -455,7 +596,7 @@ export function DailySongsDetailView({ songs, onBack }: { songs: any[], onBack: 
                     variant="ghost"
                     size="sm"
                     onClick={onBack}
-                    className="h-8 gap-1 md:text-muted-foreground md:hover:text-foreground md:hover:bg-transparent transition-colors md:bg-transparent bg-background/40 backdrop-blur-md text-foreground rounded-full px-3 md:rounded-md md:px-2 md:-ml-2"
+                    className="h-8 gap-1 transition-colors hover:bg-background/60 text-foreground rounded-full px-3 bg-background/40 backdrop-blur-md"
                 >
                     <ChevronLeft className="h-5 w-5" />
                     <span className="text-sm font-medium">返回</span>

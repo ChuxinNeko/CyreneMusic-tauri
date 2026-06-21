@@ -19,12 +19,15 @@ class QQCommentService {
         id: string | number,
         pagesize: number = 20,
         pagenum: number = 0,
+        /** 排序方式：0=按时间(默认)，1=按热度 */
+        sortType: 0 | 1 = 0,
     ): Promise<SongComments | null> {
         try {
             const params = new URLSearchParams({
                 id: String(id),
                 pagesize: String(pagesize),
                 pagenum: String(pagenum),
+                sortType: String(sortType),
             })
             const resp = await fetch(`${urlService.baseUrl}/qq/comment/music?${params.toString()}`)
             if (!resp.ok) return null

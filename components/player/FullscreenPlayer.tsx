@@ -306,7 +306,7 @@ export function FullscreenPlayer() {
         if (currentTrack?.picUrl) {
             const picUrl = currentTrack.picUrl
             const scheduleExtract = () => {
-                extractColorsFromImage(picUrl, 6)
+                extractColorsFromImage(picUrl)
                     .then(setCoverColors)
                     .catch(() => setCoverColors([]))
                 extractBrightnessFromImage(picUrl)

@@ -190,7 +190,7 @@ export function SearchBox() {
             </form>
 
             {isFocused && (keyword.trim() ? suggestions.length > 0 : history.length > 0) && (
-                <div className={`absolute top-[calc(100%+8px)] left-0 w-full min-w-[300px] border border-border/50 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 ${currentTheme === 'fluent' ? 'bg-background/80 backdrop-blur-2xl rounded-lg shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)]' : 'bg-background rounded-xl shadow-xl'}`}>
+                <div className={`absolute top-[calc(100%+8px)] left-0 w-full min-w-[300px] border border-border/50 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200 ${currentTheme === 'fluent' ? 'bg-card/60 backdrop-blur-2xl rounded-lg shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)]' : 'bg-background rounded-xl shadow-xl'}`}>
                     <div className="p-3">
                         {!keyword.trim() ? (
                             <>

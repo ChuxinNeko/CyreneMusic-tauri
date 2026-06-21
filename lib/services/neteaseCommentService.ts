@@ -58,6 +58,8 @@ class NeteaseCommentService {
         limit: number = 20,
         offset: number = 0,
         before: number = 0,
+        /** 排序方式：0=按时间(默认)，1=按热度 */
+        sortType: 0 | 1 = 0,
     ): Promise<SongComments | null> {
         try {
             const params = new URLSearchParams({
@@ -65,6 +67,7 @@ class NeteaseCommentService {
                 limit: String(limit),
                 offset: String(offset),
                 before: String(before),
+                sortType: String(sortType),
             })
             const resp = await fetch(`${urlService.baseUrl}/comment/music?${params.toString()}`)
             if (!resp.ok) return null

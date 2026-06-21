@@ -2,7 +2,8 @@
 
 import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
-import { Monitor, Moon, Sun, Layers, Square, Sparkles } from "lucide-react"
+import { invoke } from "@tauri-apps/api/core"
+import { Monitor, Moon, Sun, Layers, Square, Sparkles, Palette, PanelRight } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
@@ -26,7 +27,7 @@ export function AppearanceSettingsManager() {
     const [mounted, setMounted] = useState(false)
     const [isDesktop, setIsDesktop] = useState(false)
     const { material, systemSupport, setMaterial, setSystemSupport } = useWindowMaterialStore()
-    const { isTaskbarPlayerEnabled, setTaskbarPlayerEnabled, taskbarPlayerPosition, setTaskbarPlayerPosition } = useLayoutStore()
+    const { isTaskbarPlayerEnabled, setTaskbarPlayerEnabled, taskbarPlayerPosition, setTaskbarPlayerPosition, isImmersivePlaylistEnabled, setImmersivePlaylistEnabled, isRightSidebarPlayerEnabled, setRightSidebarPlayerEnabled } = useLayoutStore()
 
     // Prevent hydration mismatch
     useEffect(() => {
@@ -317,6 +318,45 @@ export function AppearanceSettingsManager() {
                             )}
                         </div>
                     )}
+
+                    <div className="space-y-4 pt-4 border-t">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <h3 className="text-base font-semibold">歌单沉浸模式</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    在歌单详情页根据封面提取主色调，全窗口渲染沉浸式背景。
+                                </p>
+                            </div>
+                            <Switch
+                                checked={isImmersivePlaylistEnabled}
+                                onCheckedChange={setImmersivePlaylistEnabled}
+                            />
+                        </div>
+                    </div>
+
+                    {isDesktop && (
+                        <div className="space-y-4 pt-4 border-t">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <h3 className="text-base font-semibold">右侧迷你悬浮窗</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        在主窗口外侧独立显示一个迷你播放器悬浮窗。
+                                    </p>
+                                </div>
+                                <Switch
+                                    checked={isRightSidebarPlayerEnabled}
+                                    onCheckedChange={(v) => {
+                                        setRightSidebarPlayerEnabled(v)
+                                        if (v) {
+                                            invoke('open_table_player').catch(console.error)
+                                        } else {
+                                            invoke('close_table_player').catch(console.error)
+                                        }
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         )
@@ -395,6 +435,45 @@ export function AppearanceSettingsManager() {
                                 value={taskbarPlayerPosition}
                                 onChange={(value) => handleTaskbarPositionChange(value as 'left' | 'center' | 'right')}
                                 style={{ width: 80 }}
+                            />
+                        </div>
+                    }
+                />
+            )}
+
+            {/* 歌单沉浸模式 */}
+            <FluentHorizontalCard
+                icon={Palette}
+                title="歌单沉浸模式"
+                description="在歌单详情页根据封面提取主色调，全窗口渲染沉浸式背景"
+                action={
+                    <div className="rwui-scope" data-theme={document.documentElement.getAttribute("data-theme")}>
+                        <RwuiSwitch
+                            checked={isImmersivePlaylistEnabled}
+                            onChange={setImmersivePlaylistEnabled}
+                        />
+                    </div>
+                }
+            />
+
+            {/* 右侧迷你播放器 - 仅桌面端 */}
+            {isDesktop && (
+                <FluentHorizontalCard
+                    icon={PanelRight}
+                    title="右侧迷你悬浮窗"
+                    description="在主窗口外侧独立显示一个迷你播放器悬浮窗"
+                    action={
+                        <div className="rwui-scope" data-theme={document.documentElement.getAttribute("data-theme")}>
+                            <RwuiSwitch
+                                checked={isRightSidebarPlayerEnabled}
+                                onChange={(v) => {
+                                    setRightSidebarPlayerEnabled(v)
+                                    if (v) {
+                                        invoke('open_table_player').catch(console.error)
+                                    } else {
+                                        invoke('close_table_player').catch(console.error)
+                                    }
+                                }}
                             />
                         </div>
                     }

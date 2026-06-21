@@ -11,6 +11,7 @@ interface AsyncImageProps extends HTMLAttributes<HTMLDivElement> {
     imageClassName?: string
     aspectRatio?: "square" | "portrait" | "video"
     lazy?: boolean
+    onLoad?: (img: HTMLImageElement) => void
 }
 
 export function AsyncImage({
@@ -20,6 +21,7 @@ export function AsyncImage({
     imageClassName,
     aspectRatio = "square",
     lazy = true,
+    onLoad: onLoadProp,
     ...props
 }: AsyncImageProps) {
     const [isLoading, setIsLoading] = useState(true)
@@ -111,7 +113,10 @@ export function AsyncImage({
                             isLoading ? "opacity-0" : "opacity-100",
                             imageClassName
                         )}
-                        onLoad={() => setIsLoading(false)}
+                        onLoad={(e) => {
+                            setIsLoading(false)
+                            onLoadProp?.(e.currentTarget)
+                        }}
                         onError={() => {
                             setIsLoading(false)
                             setError(true)

@@ -8,11 +8,18 @@ import {
     SongComments,
 } from "@/lib/services/neteaseCommentService"
 import { qqCommentService } from "@/lib/services/qqCommentService"
-import { Heart, Loader2, ChevronRight } from "lucide-react"
+import { Heart, Loader2, ChevronRight, Clock, ArrowDownWideNarrow } from "lucide-react"
 
 interface SongCommentsProps {
     track: Track | null
 }
+
+type SortType = 0 | 1
+
+const SORT_OPTIONS: { value: SortType; label: string; icon: typeof Clock }[] = [
+    { value: 0, label: "按时间", icon: Clock },
+    { value: 1, label: "按热度", icon: ArrowDownWideNarrow },
+]
 
 /** 支持展示评论的音源 */
 const SUPPORTED_SOURCES = ["netease", "qq"] as const
@@ -36,6 +43,32 @@ const formatCount = (count: number): string => {
     return String(count)
 }
 
+/** 排序方式选择器（深色主题，白/透明风格） */
+function SortSelector({ value, onChange }: { value: SortType; onChange: (v: SortType) => void }) {
+    return (
+        <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-white/[0.06]">
+            {SORT_OPTIONS.map(opt => {
+                const Icon = opt.icon
+                const active = value === opt.value
+                return (
+                    <button
+                        key={opt.value}
+                        onClick={() => onChange(opt.value)}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium transition-all ${
+                            active
+                                ? "bg-white/[0.12] text-white shadow-sm"
+                                : "text-white/40 hover:text-white/60"
+                        }`}
+                    >
+                        <Icon className="h-3 w-3" />
+                        {opt.label}
+                    </button>
+                )
+            })}
+        </div>
+    )
+}
+
 export function SongComments({ track }: SongCommentsProps) {
     // 首页数据：热门评论 + 最新评论首页
     const [firstPage, setFirstPage] = useState<SongComments | null>(null)
@@ -51,15 +84,16 @@ export function SongComments({ track }: SongCommentsProps) {
     const [isLoadingMore, setIsLoadingMore] = useState(false)
     const [expanded, setExpanded] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    // 用于强制重新触发 effect（切换展开状态时重新拉取）
+    const [sortType, setSortType] = useState<SortType>(0)
+    // 用于强制重新触发 effect
     const reqIdRef = useRef(0)
 
-    /** 按音源拉取指定页评论（网易云用 offset/before，QQ 用页码） */
+    /** 按音源拉取指定页评论 */
     const fetchBySource = useCallback(
         (track: Track, isFirst: boolean): Promise<SongComments | null> => {
             if (track.source === "qq") {
                 const page = isFirst ? 0 : pageRef.current
-                return qqCommentService.fetchSongComments(track.id, PAGE_SIZE, page)
+                return qqCommentService.fetchSongComments(track.id, PAGE_SIZE, page, sortType)
             }
             // 默认走网易云
             return neteaseCommentService.fetchSongComments(
@@ -67,9 +101,10 @@ export function SongComments({ track }: SongCommentsProps) {
                 PAGE_SIZE,
                 isFirst ? 0 : offset,
                 isFirst ? 0 : beforeRef.current,
+                sortType,
             )
         },
-        [offset],
+        [offset, sortType],
     )
 
     /** 加载第一页（热门评论 + 最新评论首页） */
@@ -109,9 +144,8 @@ export function SongComments({ track }: SongCommentsProps) {
             }
         }
         fetchFirst()
-        // fetchBySource 依赖 offset，但首页加载只应随 track 变化触发
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [track])
+    }, [track, sortType])
 
     /** 加载更多最新评论 */
     const loadMore = useCallback(async () => {
@@ -126,7 +160,6 @@ export function SongComments({ track }: SongCommentsProps) {
                 if (data.comments.length > 0) {
                     beforeRef.current = data.comments[data.comments.length - 1].time
                 }
-                // 更新 more 状态
                 setFirstPage((prev) => (prev ? { ...prev, more: data.more } : prev))
             }
         } catch (err) {
@@ -135,6 +168,18 @@ export function SongComments({ track }: SongCommentsProps) {
             setIsLoadingMore(false)
         }
     }, [track, isLoadingMore, firstPage, fetchBySource])
+
+    /** 切换排序 */
+    const handleSortChange = useCallback((newSort: SortType) => {
+        if (newSort === sortType) return
+        setSortType(newSort)
+        setExpanded(false)
+        setLatestPage([])
+        setOffset(0)
+        pageRef.current = 0
+        beforeRef.current = 0
+        // useEffect 会因 sortType 变化自动重新拉取
+    }, [sortType])
 
     // 加载中
     if (isLoading) {
@@ -175,7 +220,7 @@ export function SongComments({ track }: SongCommentsProps) {
     const hasHot = firstPage.hotComments.length > 0
     const hasLatest = firstPage.comments.length > 0
 
-    // 是否需要展示「展开」按钮（任一区块被截断）
+    // 是否需要展示「展开」按钮
     const canExpand =
         !expanded &&
         (firstPage.hotComments.length > HOT_PREVIEW_LIMIT ||
@@ -183,11 +228,15 @@ export function SongComments({ track }: SongCommentsProps) {
 
     return (
         <div className="w-full max-w-xl mx-auto mb-8">
-            <div className="flex items-center gap-2 mb-4 px-2">
-                <h4 className="text-[16px] font-semibold text-white">评论</h4>
-                <span className="text-[12px] text-white/40">
-                    {formatCount(firstPage.total)}
-                </span>
+            {/* 标题行：评论标题 + 排序选择器 */}
+            <div className="flex items-center justify-between mb-4 px-2">
+                <div className="flex items-center gap-2">
+                    <h4 className="text-[16px] font-semibold text-white">评论</h4>
+                    <span className="text-[12px] text-white/40">
+                        {formatCount(firstPage.total)}
+                    </span>
+                </div>
+                <SortSelector value={sortType} onChange={handleSortChange} />
             </div>
 
             {/* 热门评论 */}
@@ -209,7 +258,7 @@ export function SongComments({ track }: SongCommentsProps) {
                 <div>
                     {(hasHot || expanded) && (
                         <p className="text-[12px] font-medium text-white/50 mb-2 px-2">
-                            最新评论
+                            {sortType === 1 ? "最热评论" : "最新评论"}
                         </p>
                     )}
                     <div className="space-y-3">

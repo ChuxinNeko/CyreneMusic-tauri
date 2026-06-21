@@ -10,7 +10,7 @@ const ARC_ANGLE_PER_LINE = 12 // 每行歌词占据的角度
 const VISIBLE_ABOVE = 3
 const VISIBLE_BELOW = 3
 
-export const LyricPlayerRoulette = React.memo(function LyricPlayerRoulette() {
+export const LyricPlayerRoulette = React.memo(function LyricPlayerRoulette({ alignPosition = 'center' }: { alignPosition?: 'center' | 'top-second' }) {
     const currentTrack = usePlayerStore(s => s.currentTrack)
     const showTranslation = usePlayerStore(s => s.showTranslation)
     const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
@@ -96,7 +96,7 @@ export const LyricPlayerRoulette = React.memo(function LyricPlayerRoulette() {
                     // centerX 在容器左边缘附近（比如 -20%），centerY 在 50%
                     const radius = 120 // 百分比
                     const centerX = -100
-                    const centerY = 50
+                    const centerY = alignPosition === 'top-second' ? 25 : 50
 
                     const x = centerX + radius * Math.cos(angleRad)
                     const y = centerY + radius * Math.sin(angleRad)

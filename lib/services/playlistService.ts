@@ -77,7 +77,15 @@ class PlaylistService {
             });
             if (response.ok) {
                 const result = await response.json();
-                return result.tracks || [];
+                return (result.tracks || []).map((t: any) => ({
+                    trackId: t.trackId || t.track_id || t.id,
+                    name: t.name || t.track_name,
+                    artists: t.artists,
+                    album: t.album,
+                    picUrl: t.picUrl || t.pic_url,
+                    source: t.source,
+                    addedAt: t.addedAt || t.added_at
+                }));
             }
             return [];
         } catch (error) {

@@ -5,7 +5,7 @@ import { usePlayerStore, SingleLineAnimation } from "@/lib/store/usePlayerStore"
 import { playerService } from "@/lib/services/playerService"
 import { LyricLineData, INTRO_DELAY, parseLyrics } from "./parser"
 
-export const LyricPlayerSingleLine = React.memo(function LyricPlayerSingleLine() {
+export const LyricPlayerSingleLine = React.memo(function LyricPlayerSingleLine({ alignPosition = 'center' }: { alignPosition?: 'center' | 'top-second' }) {
     const currentTrack = usePlayerStore(s => s.currentTrack)
     const showTranslation = usePlayerStore(s => s.showTranslation)
     const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
@@ -60,7 +60,7 @@ export const LyricPlayerSingleLine = React.memo(function LyricPlayerSingleLine()
     if (parsedLyrics.length === 0) return null
 
     return (
-        <div className="w-full h-full relative select-none flex items-center justify-center px-4 overflow-hidden">
+        <div className={`w-full h-full relative select-none flex items-center justify-center px-4 overflow-hidden ${alignPosition === 'top-second' ? 'items-start pt-24' : 'items-center'}`}>
             {parsedLyrics.map((line, index) => {
                 const isActive = index === activeIndex
                 const diff = index - activeIndex

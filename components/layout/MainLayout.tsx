@@ -30,6 +30,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
     const isTaskbar = pathname === "/taskbar"
     const isTaskbarDropZone = pathname === "/taskbar-drop-zone"
     const isSongRecommend = pathname === "/song-recommend"
+    const isTablePlayer = pathname === "/tableplayer"
 
     const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
     const [showUpdateDialog, setShowUpdateDialog] = useState(false)
@@ -129,7 +130,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
     // 是否使用透明背景
     const isTransparent = material === "mica" || material === "acrylic"
 
-    if (isTray || isDesktopLyric || isTaskbar || isTaskbarDropZone || isSongRecommend) {
+    if (isTray || isDesktopLyric || isTaskbar || isTaskbarDropZone || isSongRecommend || isTablePlayer) {
         return <div className="h-screen w-full bg-transparent overflow-hidden">{children}</div>
     }
 

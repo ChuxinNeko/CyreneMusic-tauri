@@ -284,6 +284,67 @@ async fn close_recommend_popup(app: tauri::AppHandle) -> Result<(), String> {
 
 #[cfg(desktop)]
 #[tauri::command]
+async fn open_table_player(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("table-player") {
+        let _ = window.show();
+        let _ = window.set_focus();
+        return Ok(());
+    }
+
+    let popup_width = 320.0_f64;
+    let margin = 0.0_f64;
+
+    let (x, y, height) = if let Some(main_win) = app.get_webview_window("main") {
+        let pos = main_win.inner_position().unwrap_or_default();
+        let size = main_win.inner_size().unwrap_or_default();
+        let scale = main_win.scale_factor().unwrap_or(1.0);
+        
+        let origin_x = pos.x as f64 / scale;
+        let origin_y = pos.y as f64 / scale;
+        let work_w = size.width as f64 / scale;
+        let work_h = size.height as f64 / scale;
+
+        (
+            origin_x + work_w + margin,
+            origin_y,
+            work_h
+        )
+    } else {
+        (1200.0, 100.0, 800.0)
+    };
+
+    tauri::WebviewWindowBuilder::new(
+        &app,
+        "table-player",
+        tauri::WebviewUrl::App("tableplayer".into()),
+    )
+    .title("Table Player")
+    .resizable(true)
+    .focused(false)
+    .decorations(false)
+    .transparent(true)
+    .background_color(Color(0, 0, 0, 0))
+    .skip_taskbar(true)
+    .shadow(true)
+    .inner_size(popup_width, height)
+    .position(x, y)
+    .build()
+    .map_err(|e| format!("Failed to create table player: {}", e))?;
+
+    Ok(())
+}
+
+#[cfg(desktop)]
+#[tauri::command]
+async fn close_table_player(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("table-player") {
+        let _ = window.close();
+    }
+    Ok(())
+}
+
+#[cfg(desktop)]
+#[tauri::command]
 fn update_window_material(window: tauri::Window, material: String, is_dark: bool) -> Result<(), String> {
     match material.as_str() {
         "mica" => {
@@ -781,7 +842,9 @@ pub fn run() {
                         taskbar_player::hide_taskbar_drop_zone,
                         taskbar_player::is_left_mouse_button_pressed,
                         open_recommend_popup,
-                        close_recommend_popup
+                        close_recommend_popup,
+                        open_table_player,
+                        close_table_player
                     ]
                 }
                 #[cfg(not(target_os = "windows"))]
@@ -872,12 +935,49 @@ pub fn run() {
             #[cfg(desktop)]
             {
                 // 不再固定 apply_mica，由前端通过 set_window_material 命令动态设置
-                let _ = app.get_webview_window("main");
+                if let Some(main_window) = app.get_webview_window("main") {
+                    let app_handle = app.handle().clone();
+                    let main_window_clone = main_window.clone();
+                    
+                    main_window.on_window_event(move |event| {
+                        match event {
+                            tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) => {
+                                if let Some(table_player) = app_handle.get_webview_window("table-player") {
+                                    if main_window_clone.is_minimized().unwrap_or(false) {
+                                        let _ = table_player.hide();
+                                    } else {
+                                        if !table_player.is_visible().unwrap_or(true) {
+                                            let _ = table_player.show();
+                                        }
+                                        if let (Ok(pos), Ok(size)) = (main_window_clone.inner_position(), main_window_clone.inner_size()) {
+                                            let new_x = pos.x + size.width as i32;
+                                            let _ = table_player.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
+                                                x: new_x,
+                                                y: pos.y,
+                                            }));
+                                            
+                                            // Update height to match
+                                            if let Ok(tp_size) = table_player.inner_size() {
+                                                let _ = table_player.set_size(tauri::Size::Physical(tauri::PhysicalSize {
+                                                    width: tp_size.width,
+                                                    height: size.height,
+                                                }));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            tauri::WindowEvent::CloseRequested { api, .. } => {
+                                api.prevent_close();
+                                let _ = main_window_clone.hide();
+                            }
+                            _ => {}
+                        }
+                    });
 
-                // Windows: 初始化任务栏缩略图工具栏按钮
-                #[cfg(target_os = "windows")]
-                {
-                    if let Some(main_window) = app.get_webview_window("main") {
+                    // Windows: 初始化任务栏缩略图工具栏按钮
+                    #[cfg(target_os = "windows")]
+                    {
                         use tauri::Emitter;
                         let app_handle = app.handle().clone();
                         if let Ok(hwnd) = main_window.hwnd() {
