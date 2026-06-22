@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react"
 import { extractColorsFromImage } from "@/lib/utils/extractColors"
-import { Play, ChevronLeft, Loader2, Trash2, Search, X, Music, MessageSquare } from "lucide-react"
+import { Play, ChevronLeft, Loader2, Trash2, Search, X, Music, MessageSquare, Download } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { AsyncImage } from "@/components/common/AsyncImage"
@@ -23,6 +23,15 @@ import {
     DialogHeader,
     DialogTitle
 } from "@/components/ui/dialog"
+
+const isTauriRuntime = (): boolean => {
+    if (typeof window === "undefined") return false
+    return Boolean((window as unknown as { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__)
+}
+
+const isAndroid = (): boolean => {
+    return typeof window !== "undefined" && /Android/i.test(window.navigator.userAgent)
+}
 
 interface PlaylistDetailViewProps {
     id: string | number
@@ -279,6 +288,68 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
         }
     }
 
+    const handleExport = async () => {
+        if (!playlist) return
+        try {
+            const fallbackSource = toplistSource === 'qq' ? 'qq' : 'netease'
+            const exportData = {
+                version: 1,
+                exportedAt: new Date().toISOString(),
+                playlist: {
+                    id: playlist.id,
+                    name: playlist.name,
+                    description: playlist.description || '',
+                    creator: playlist.creator || '',
+                    trackCount: playlist.trackCount,
+                    playCount: playlist.playCount,
+                    createTime: playlist.createTime,
+                    updateTime: playlist.updateTime,
+                    tags: playlist.tags || [],
+                    source: type === 'personal' ? 'local' : fallbackSource,
+                },
+                tracks: playlist.tracks.map((t) => ({
+                    id: t.id,
+                    name: t.name,
+                    artists: t.artists,
+                    album: t.album,
+                    source: (t as any).source || fallbackSource,
+                    duration: t.duration || 0,
+                    picUrl: t.picUrl || "",
+                })),
+            }
+            const json = JSON.stringify(exportData, null, 2)
+            const safeName = playlist.name.replace(/[\\/:*?"<>|]/g, '_')
+            const filename = `${safeName}.json`
+
+            if (isTauriRuntime() && !isAndroid()) {
+                const { save } = await import("@tauri-apps/plugin-dialog")
+                const { writeFile } = await import("@tauri-apps/plugin-fs")
+                const filePath = await save({
+                    defaultPath: filename,
+                    filters: [{ name: "JSON", extensions: ["json"] }],
+                })
+                if (filePath) {
+                    await writeFile(filePath, new TextEncoder().encode(json))
+                    toast.success("歌单已导出")
+                }
+            } else {
+                const blob = new Blob([json], { type: "application/json" })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement("a")
+                a.href = url
+                a.download = filename
+                document.body.appendChild(a)
+                a.click()
+                document.body.removeChild(a)
+                URL.revokeObjectURL(url)
+                toast.success("歌单已导出")
+            }
+        } catch (error) {
+            console.error("[PlaylistDetailView] Export failed:", error)
+            toast.error("导出歌单失败")
+        }
+    }
+
     return (
         <>
             {/* 沉浸模式全屏背景 —— 始终挂在根容器外侧，避免被根容器 animate-in 的 opacity<1 阶段变成 fixed 的 containing block 而被裁剪到容器内 */}
@@ -386,15 +457,26 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                         </Button>
 
                         {type === 'personal' && (
-                            <Button
-                                variant="secondary"
-                                size="icon"
-                                onClick={() => setShowDeleteConfirm(true)}
-                                className="h-12 w-12 md:h-11 md:w-11 rounded-2xl md:rounded-full text-destructive bg-destructive/10 hover:bg-destructive/20 transition-all flex-shrink-0"
-                                title="删除歌单"
-                            >
-                                <Trash2 className="h-5 w-5" />
-                            </Button>
+                            <>
+                                <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    onClick={handleExport}
+                                    className="h-12 w-12 md:h-11 md:w-11 rounded-2xl md:rounded-full bg-accent/50 hover:bg-accent transition-all flex-shrink-0"
+                                    title="导出歌单为 JSON"
+                                >
+                                    <Download className="h-5 w-5" />
+                                </Button>
+                                <Button
+                                    variant="secondary"
+                                    size="icon"
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    className="h-12 w-12 md:h-11 md:w-11 rounded-2xl md:rounded-full text-destructive bg-destructive/10 hover:bg-destructive/20 transition-all flex-shrink-0"
+                                    title="删除歌单"
+                                >
+                                    <Trash2 className="h-5 w-5" />
+                                </Button>
+                            </>
                         )}
                     </div>
                 </div>

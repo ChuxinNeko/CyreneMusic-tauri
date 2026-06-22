@@ -191,6 +191,9 @@ export default function SearchPage() {
                         <TabsTrigger value="kuwo" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
                             酷我 <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.kuwoResults.length}</Badge>
                         </TabsTrigger>
+                        <TabsTrigger value="apple" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
+                            Apple Music <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.appleResults.length}</Badge>
+                        </TabsTrigger>
                         <TabsTrigger value="spotify" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
                             Spotify <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.spotifyResults.length}</Badge>
                         </TabsTrigger>
@@ -217,6 +220,9 @@ export default function SearchPage() {
                             </TabsContent>
                             <TabsContent value="kuwo" className="m-0 focus-visible:ring-0">
                                 {renderTrackList(searchState.kuwoResults)}
+                            </TabsContent>
+                            <TabsContent value="apple" className="m-0 focus-visible:ring-0">
+                                {renderTrackList(searchState.appleResults)}
                             </TabsContent>
                             <TabsContent value="spotify" className="m-0 focus-visible:ring-0">
                                 {renderTrackList(searchState.spotifyResults)}

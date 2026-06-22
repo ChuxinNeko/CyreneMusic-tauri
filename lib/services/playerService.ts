@@ -1036,6 +1036,14 @@ class PlayerService {
             }
         }
 
+        // ─── OmniParse Apple Music ───
+        // /apple/stream 直接返回音频流（audio/mpeg），不是 JSON 接口；
+        // 仅异步加载歌词，URL 原样交给 Howl 播放
+        if (configSource.type === AudioSourceType.OmniParse && track.source === 'apple') {
+            this.fetchAndApplyLyrics(track)
+            return { url, fallbackUrl: null, lyrics: null }
+        }
+
         // ─── TuneHub 或其他类型：直接使用构建的 URL ───
         return { url, fallbackUrl: null, lyrics: null }
     }
@@ -1088,6 +1096,18 @@ class PlayerService {
                     }
                 }).catch(e => console.warn('[PlayerService] Failed to fetch Kugou lyrics:', e));
             }
+        } else if (track.source === 'apple') {
+            const lyricUrl = `${urlService.baseUrl}/apple/lyric?id=${track.id}`;
+            fetch(lyricUrl).then(res => res.json()).then(lyricResult => {
+                if (lyricResult?.lyric) {
+                    const currentTrack = usePlayerStore.getState().currentTrack;
+                    if (currentTrack && currentTrack.id === track.id) {
+                        usePlayerStore.getState().updateTrackLyrics({
+                            lyric: lyricResult.lyric || '', tlyric: lyricResult.tlyric || '',
+                        });
+                    }
+                }
+            }).catch(e => console.warn('[PlayerService] Failed to fetch Apple lyrics:', e));
         }
     }
 
@@ -1373,6 +1393,16 @@ class PlayerService {
                         };
                     }
                 }
+            } else if (track.source === 'apple') {
+                const lyricUrl = `${urlService.baseUrl}/apple/lyric?id=${track.id}`;
+                const res = await fetch(lyricUrl);
+                const lyricResult = await res.json();
+                if (lyricResult?.lyric) {
+                    return {
+                        lyric: lyricResult.lyric || '',
+                        tlyric: lyricResult.tlyric || '',
+                    };
+                }
             }
         } catch (e) {
             console.warn(`[PlayerService] Failed to fetch lyrics during prefetch for ${track.name}:`, e);
@@ -1541,6 +1571,12 @@ class PlayerService {
                 } else {
                     throw new Error(result.msg || 'API status error');
                 }
+            }
+            // 4. OmniParse Apple Music 预解析逻辑
+            // /apple/stream 直接返回音频流，无需 JSON 解析；歌词单独预载
+            else if (activeConfigSource.type === AudioSourceType.OmniParse && track.source === 'apple') {
+                // URL 已由 buildPlaybackUrl 构建为 /apple/stream?salableAdamId=xxx，直接可用
+                lyricData = await this.fetchLyricsOnly(track);
             }
 
             // 对酷狗资源的 https URL 强制降级为 http

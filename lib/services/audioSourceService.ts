@@ -121,7 +121,7 @@ class AudioSourceService {
             [MusicSource.QQ]: 'qq/song',
             [MusicSource.Kugou]: 'kugou/song',
             [MusicSource.Kuwo]: 'kuwo/song',
-            [MusicSource.Apple]: 'apple/song',
+            [MusicSource.Apple]: 'apple/stream',
             [MusicSource.Spotify]: 'spotify/stream',
             [MusicSource.Qishui]: 'qishui',
         };
@@ -149,6 +149,9 @@ class AudioSourceService {
             case MusicSource.Kuwo:
                 // 后端期望 mid 参数
                 return `${base}?mid=${songId}&quality=${quality}`;
+            case MusicSource.Apple:
+                // Apple Music 使用 Widevine 解密流，参数为 salableAdamId
+                return `${base}?salableAdamId=${songId}`;
             case MusicSource.Qishui:
                 // 汽水音乐通过 url 参数传入完整链接
                 return `${base}?url=https://music.douyin.com/track/${songId}`;
