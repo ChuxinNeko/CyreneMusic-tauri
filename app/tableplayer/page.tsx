@@ -12,6 +12,7 @@ export default function TablePlayerPage() {
     useEffect(() => {
         let unlistenState: (() => void) | null = null
         let unlistenTime: (() => void) | null = null
+        let unlistenFreq: (() => void) | null = null
 
         const setup = async () => {
             unlistenState = await listen("player:state-change", (event: any) => {
@@ -33,6 +34,10 @@ export default function TablePlayerPage() {
                 } else {
                     usePlayerStore.setState({ currentTime: payload.time })
                 }
+            })
+
+            unlistenFreq = await listen("player:frequency-sync", (event: any) => {
+                usePlayerStore.setState({ remoteBarData: event.payload?.barData ?? null })
             })
 
             // Request initial sync
@@ -64,6 +69,7 @@ export default function TablePlayerPage() {
         return () => {
             if (unlistenState) unlistenState()
             if (unlistenTime) unlistenTime()
+            if (unlistenFreq) unlistenFreq()
             window.removeEventListener('storage', handleStorage)
             document.removeEventListener("contextmenu", handleContextMenu)
         }

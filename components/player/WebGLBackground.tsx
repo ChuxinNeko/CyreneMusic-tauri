@@ -13,6 +13,8 @@ export interface WebGLBackgroundProps extends React.HTMLAttributes<HTMLDivElemen
     mid?: number;
     treble?: number;
     isMobile?: boolean;
+    /** 专辑图像处理完成后回调提取的主色（RGB 0-1） */
+    onColorsExtracted?: (colors: [number, number, number][]) => void;
 }
 
 export interface WebGLBackgroundRef {
@@ -21,7 +23,7 @@ export interface WebGLBackgroundRef {
 }
 
 export const WebGLBackground = forwardRef<WebGLBackgroundRef, WebGLBackgroundProps>(
-    ({ album, fps = 30, playing = true, flowSpeed = 2, renderScale = 0.5, lowFreqVolume = 1.0, bass = 0, mid = 0, treble = 0, isMobile = false, style, ...props }, ref) => {
+    ({ album, fps = 30, playing = true, flowSpeed = 2, renderScale = 0.5, lowFreqVolume = 1.0, bass = 0, mid = 0, treble = 0, isMobile = false, onColorsExtracted, style, ...props }, ref) => {
         const wrapperRef = useRef<HTMLDivElement>(null);
         const rendererRef = useRef<MeshGradientRenderer | null>(null);
 
@@ -60,9 +62,14 @@ export const WebGLBackground = forwardRef<WebGLBackgroundRef, WebGLBackgroundPro
 
         useEffect(() => {
             if (rendererRef.current) {
-                rendererRef.current.setAlbum(album, false);
+                rendererRef.current.setAlbum(album, false).then(() => {
+                    if (!rendererRef.current || !onColorsExtracted) return;
+                    // setAlbum 内部的图像处理（对比度、饱和度、亮度、模糊）已完成
+                    const colors = rendererRef.current.getProcessedColors(5);
+                    if (colors.length > 0) onColorsExtracted(colors);
+                });
             }
-        }, [album]);
+        }, [album, onColorsExtracted]);
 
         useEffect(() => {
             if (rendererRef.current) {

@@ -71,6 +71,8 @@ class PlayerService {
     private nextRandomTrack2: Track | null = null
     // 当前正在执行的播放请求的唯一 ID，用以解决快速切歌时的竞态冲突与进度抽搐问题
     private currentPlayRequestId: string | null = null
+    // 频率数据广播 rAF ID（供独立窗口可视化使用）
+    private frequencySyncRafId: number = 0
     // 当前歌曲累计播放时长（秒），用于上报后端历史记录
     private currentSongListenedSeconds: number = 0
     private currentSongForHistory: Track | null = null
@@ -251,12 +253,14 @@ class PlayerService {
             // 连接音频分析器以获取实时频率数据（Android 端不连接，避免在后台时由于 WebAudio 降级导致播放卡顿）
             if (!isAndroidTauriRuntime()) {
                 audioAnalyser.connectToHowl(howl)
+                this.startFrequencySync()
             }
         })
 
         howl.on('pause', () => {
             usePlayerStore.getState().setIsPlaying(false)
             this.stopProgressTimer()
+            this.stopFrequencySync()
             this.broadcastState()
             this.syncAndroidMediaNotification(true)
             this.syncThumbbarState(false)
@@ -449,6 +453,38 @@ class PlayerService {
             clearInterval(this.progressInterval)
             this.progressInterval = null
         }
+    }
+
+    /**
+     * 以 ~30fps 广播频谱数据，供独立窗口（tableplayer、桌面歌词等）可视化使用。
+     * 仅在主窗口播放时运行。
+     */
+    private startFrequencySync() {
+        this.stopFrequencySync()
+
+        let lastEmit = 0
+        const INTERVAL_MS = 33 // ~30fps
+
+        const tick = () => {
+            const now = performance.now()
+            if (now - lastEmit >= INTERVAL_MS) {
+                lastEmit = now
+                const barData = audioAnalyser.getBarData(48)
+                emit('player:frequency-sync', { barData })
+            }
+            this.frequencySyncRafId = requestAnimationFrame(tick)
+        }
+
+        this.frequencySyncRafId = requestAnimationFrame(tick)
+    }
+
+    private stopFrequencySync() {
+        if (this.frequencySyncRafId) {
+            cancelAnimationFrame(this.frequencySyncRafId)
+            this.frequencySyncRafId = 0
+        }
+        // 停止时发送空数据，让远端清零
+        emit('player:frequency-sync', { barData: null })
     }
 
     /**

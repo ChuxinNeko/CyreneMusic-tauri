@@ -12,6 +12,7 @@ import { LyricPlayer } from "../player/LyricPlayer"
 import { LyricPlayerSingleLine } from "../player/LyricPlayerSingleLine"
 import { LyricPlayerRoulette } from "../player/LyricPlayerRoulette"
 import { WebGLBackground } from "../player/WebGLBackground"
+import { SmokeVisualizer } from "../player/SmokeVisualizer"
 import { SongInfoPanel } from "../player/song-info/SongInfoPanel"
 import { useLayoutStore } from "@/lib/store/useLayoutStore"
 
@@ -40,35 +41,47 @@ const SvgIcon = ({ src, size = 18, className = '' }: { src: string, size?: numbe
     />
 )
 
-const GlassSlider = ({ value, max, onValueChange, className }: { value: number[], max: number, onValueChange: (val: number[]) => void, className?: string }) => {
+const GlassSlider = ({ value, max, onValueChange, onValueCommit, className }: { value: number[], max: number, onValueChange: (val: number[]) => void, onValueCommit?: (val: number[]) => void, className?: string }) => {
     const trackRef = React.useRef<HTMLDivElement>(null);
+    const lastValueRef = React.useRef(value[0]);
     
     const handlePointerDown = (e: React.PointerEvent) => {
         if (!trackRef.current) return;
         e.preventDefault();
         const track = trackRef.current;
         const rect = track.getBoundingClientRect();
+        
         const updateValue = (clientX: number) => {
             let percentage = (clientX - rect.left) / rect.width;
             percentage = Math.max(0, Math.min(1, percentage));
-            onValueChange([percentage * max]);
+            const finalVal = percentage * max;
+            lastValueRef.current = finalVal;
+            onValueChange([finalVal]);
         };
+        
         updateValue(e.clientX);
+        
         const handlePointerMove = (moveEvent: PointerEvent) => {
             updateValue(moveEvent.clientX);
         };
+        
         const handlePointerUp = () => {
-            window.removeEventListener('pointermove', handlePointerMove);
-            window.removeEventListener('pointerup', handlePointerUp);
+            document.removeEventListener('pointermove', handlePointerMove);
+            document.removeEventListener('pointerup', handlePointerUp);
+            if (onValueCommit) {
+                onValueCommit([lastValueRef.current]);
+            }
         };
-        window.addEventListener('pointermove', handlePointerMove);
-        window.addEventListener('pointerup', handlePointerUp);
+        
+        document.addEventListener('pointermove', handlePointerMove);
+        document.addEventListener('pointerup', handlePointerUp);
     };
 
     const percentage = max > 0 ? (value[0] / max) * 100 : 0;
 
     return (
         <div 
+            ref={trackRef}
             className={`relative flex items-center cursor-pointer group ${className}`}
             onPointerDown={handlePointerDown}
         >
@@ -95,6 +108,7 @@ export function RightSidebarPlayer({ isStandalone = false }: { isStandalone?: bo
     const currentTime = usePlayerStore(s => s.currentTime)
     const duration = usePlayerStore(s => s.duration)
     const lyricDisplayStyle = usePlayerStore(s => s.lyricDisplayStyle)
+    const remoteBarData = usePlayerStore(s => s.remoteBarData)
 
     const playerBgType = usePlayerStore(s => s.playerBgType)
     const customBgPath = usePlayerStore(s => s.customBgPath)
@@ -106,6 +120,40 @@ export function RightSidebarPlayer({ isStandalone = false }: { isStandalone?: bo
     const queue = usePlayerStore(s => s.queue)
 
     const [activeTab, setActiveTab] = React.useState<'lyrics' | 'playlist'>('lyrics')
+    const [themeColor, setThemeColor] = React.useState<string | undefined>()
+
+    // Use a ref to store latest remoteBarData to avoid resetting the interval
+    const remoteBarDataRef = React.useRef(remoteBarData)
+    React.useEffect(() => {
+        remoteBarDataRef.current = remoteBarData
+    }, [remoteBarData])
+
+    // Log audio spectrum data every 5 seconds
+    React.useEffect(() => {
+        if (!isPlaying) return
+        const interval = setInterval(() => {
+            const data = remoteBarDataRef.current
+            if (data && data.length > 0) {
+                console.log("[Audio Spectrum] remoteBarData (len: " + data.length + "):", data)
+            } else {
+                import("@/lib/services/audioAnalyser").then(({ audioAnalyser }) => {
+                    console.log("[Audio Spectrum] local freq data:", audioAnalyser.getFrequencyData())
+                    // Uncomment below if you also want to log raw bars
+                    // console.log("[Audio Spectrum] local bar data:", audioAnalyser.getBarData(48))
+                })
+            }
+        }, 5000)
+        return () => clearInterval(interval)
+    }, [isPlaying])
+
+    // 从 WebGL 渲染器接收处理后的专辑主色
+    const handleColorsExtracted = React.useCallback((colors: [number, number, number][]) => {
+        if (colors[0]) {
+            const [r, g, b] = colors[0]
+            const hex = '#' + [r, g, b].map(c => Math.round(c * 255).toString(16).padStart(2, '0')).join('')
+            setThemeColor(hex)
+        }
+    }, [])
     const [isPinned, setIsPinned] = React.useState(false)
     const [isCollapsed, setIsCollapsed] = React.useState(false)
     const savedHeightRef = React.useRef<number | null>(null)
@@ -184,12 +232,25 @@ export function RightSidebarPlayer({ isStandalone = false }: { isStandalone?: bo
         }
     }
 
-    const handleSeek = (value: number[]) => {
+    // 本地视觉进度状态，用于在拖拽时脱离全局状态独立更新，避免进度条抽搐回弹
+    const [localProgress, setLocalProgress] = React.useState<number | null>(null)
+
+    // 每当真实的 progress 更新时，如果我们没有在拖拽，组件会自动使用全局 progress。
+    React.useEffect(() => {
+        if (localProgress === null) return
+    }, [progress])
+
+    const handleSeekChange = (value: number[]) => {
+        setLocalProgress(value[0]) // 拖拽中，仅更新本地视觉状态，不发送 IPC
+    }
+
+    const handleSeekCommit = (value: number[]) => {
         if (isStandalone) {
             emit("player:seek", value[0] * duration)
         } else {
             playerService.seek(value[0] * duration)
         }
+        setLocalProgress(null) // 提交后，恢复追踪全局状态
     }
 
     return (
@@ -220,6 +281,7 @@ export function RightSidebarPlayer({ isStandalone = false }: { isStandalone?: bo
                         playing={isPlaying}
                         fps={60}
                         renderScale={0.15}
+                        onColorsExtracted={handleColorsExtracted}
                         className="absolute inset-0 w-full h-full opacity-80"
                     />
                 )}
@@ -286,14 +348,15 @@ export function RightSidebarPlayer({ isStandalone = false }: { isStandalone?: bo
 
                 {/* Progress Bar */}
                 <div className="mt-3 flex items-center gap-3 text-[10px] text-white/60 font-medium" style={{ WebkitAppRegion: 'no-drag' } as any}>
-                    <span className="w-8 text-left tabular-nums">{formatTime(currentTime)}</span>
+                    <span className="w-8 text-left tabular-nums">{formatTime(localProgress !== null ? localProgress * duration : currentTime)}</span>
                     <GlassSlider
-                        value={[progress]}
+                        value={[localProgress !== null ? localProgress : progress]}
                         max={1}
-                        onValueChange={handleSeek}
+                        onValueChange={handleSeekChange}
+                        onValueCommit={handleSeekCommit}
                         className="flex-1 h-1.5"
                     />
-                    <span className="w-8 text-right tabular-nums">-{formatTime(Math.max(0, duration - currentTime))}</span>
+                    <span className="w-8 text-right tabular-nums">-{formatTime(Math.max(0, duration - (localProgress !== null ? localProgress * duration : currentTime)))}</span>
                 </div>
 
                 {/* Playback Controls & Other Buttons */}
@@ -405,6 +468,15 @@ export function RightSidebarPlayer({ isStandalone = false }: { isStandalone?: bo
                     `}</style>
                 </div>
             ))}
+
+            <div className="absolute bottom-0 left-0 w-full z-[5] pointer-events-none mix-blend-screen opacity-70 transition-opacity duration-500">
+                <SmokeVisualizer 
+                    isPlaying={isPlaying} 
+                    externalBarData={remoteBarData} 
+                    themeColor={themeColor || "#4ECDC4"} 
+                    height={isCollapsed ? "120px" : "180px"} 
+                />
+            </div>
         </aside>
     )
 }

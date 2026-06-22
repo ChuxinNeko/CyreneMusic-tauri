@@ -80,6 +80,9 @@ interface PlayerState {
     heartMode: boolean
     sourcePlaylistId: string | null
 
+    // Remote frequency bar data (from main window via Tauri events, for standalone windows)
+    remoteBarData: number[] | null
+
     // Actions
     setCurrentTrack: (track: Track | null, preserveProgress?: boolean) => void
     updateTrackLyrics: (lyrics: Partial<Pick<Track, 'lyric' | 'yrc' | 'tlyric' | 'ytlrc' | 'chorus'>>) => void
@@ -121,6 +124,7 @@ interface PlayerState {
 
     setHeartMode: (enabled: boolean) => void
     setSourcePlaylistId: (id: string | null) => void
+    setRemoteBarData: (data: number[] | null) => void
 
     playNext: () => void
     playPrevious: () => void
@@ -164,6 +168,7 @@ export const usePlayerStore = create<PlayerState>()(
 
             heartMode: false,
             sourcePlaylistId: null,
+            remoteBarData: null,
 
             setCurrentTrack: (track, preserveProgress = false) => {
                 const { currentTrack, history } = get()
@@ -247,6 +252,7 @@ export const usePlayerStore = create<PlayerState>()(
 
             setHeartMode: (enabled) => set({ heartMode: enabled }),
             setSourcePlaylistId: (id) => set({ sourcePlaylistId: id }),
+            setRemoteBarData: (data) => set({ remoteBarData: data }),
 
             playNext: () => {
                 const { queue, currentTrack, repeatMode } = get()

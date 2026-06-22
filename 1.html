@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>迷你音乐播放器 - 光雾氛围灯可视化</title>
+<style>
+    /* 基础重置 */
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        /* 改用更暗的背景，突出播放器的发光感 */
+        background-color: #0f171a; 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    /* 播放器主容器 */
+    .player-container {
+        position: relative;
+        width: 540px;
+        height: 240px;
+        border-radius: 16px;
+        /* 改为半透明背景，配合毛玻璃效果 */
+        background-color: rgba(26, 66, 66, 0.75); 
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        overflow: hidden; 
+        /* 增强外发光阴影，呼应内部光雾 */
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+        color: #e0e0e0;
+    }
+
+    /* 氛围灯 Canvas (位于内容下方) */
+    #atmosphere-canvas {
+        position: absolute;
+        /* 画布进一步放大，避免色块移动到边缘时被切断 */
+        bottom: -20%;
+        left: -20%;
+        width: 140%;
+        height: 140%;
+        z-index: 0; 
+        opacity: 0.9; 
+        pointer-events: none; 
+        /* 极限模糊 + 饱和度提升 + 滤色混合，产生流体发光感 */
+        filter: blur(45px) saturate(150%); 
+        mix-blend-mode: screen; 
+    }
+
+    /* 播放器内容层 (位于 Canvas 上方) */
+    .player-content {
+        position: relative;
+        z-index: 1; 
+        padding: 24px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        /* 移除强硬的渐变黑底，让毛玻璃质感更好体现 */
+        background: linear-gradient(to bottom, rgba(15, 35, 35, 0.5) 0%, rgba(15, 35, 35, 0.1) 100%);
+    }
+
+    /* --- 顶部区域 (专辑图, 信息, 窗口控制) --- */
+    .top-section {
+        display: flex;
+        align-items: flex-start;
+    }
+
+    .album-art {
+        width: 64px;
+        height: 64px;
+        border-radius: 8px;
+        margin-right: 16px;
+        background-image: url('https://picsum.photos/id/1016/200'); /* 占位专辑图 */
+        background-size: cover;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    .song-info {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        height: 64px;
+    }
+
+    .song-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #ffffff;
+        margin-bottom: 4px;
+    }
+
+    .artist-name {
+        font-size: 14px;
+        color: #a0b0b0;
+    }
+
+    .window-controls {
+        display: flex;
+        gap: 12px;
+        color: #a0b0b0;
+    }
+    
+    .icon-btn {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s;
+    }
+    
+    .icon-btn:hover {
+        color: #ffffff;
+    }
+
+    /* --- 进度条区域 --- */
+    .progress-section {
+        display: flex;
+        align-items: center;
+        font-size: 12px;
+        color: #a0b0b0;
+        margin-top: auto;
+        margin-bottom: 16px;
+    }
+
+    .time-current, .time-total {
+        min-width: 35px;
+    }
+    
+    .time-total {
+        text-align: right;
+    }
+
+    .progress-bar-container {
+        flex-grow: 1;
+        margin: 0 12px;
+        height: 4px;
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 2px;
+        position: relative;
+        cursor: pointer;
+    }
+
+    .progress-bar-fill {
+        width: 30%; /* 模拟进度 */
+        height: 100%;
+        background-color: #ffffff;
+        border-radius: 2px;
+        position: relative;
+    }
+    
+    /* 进度条上的滑块点 */
+    .progress-bar-fill::after {
+        content: '';
+        position: absolute;
+        right: -6px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 12px;
+        height: 12px;
+        background-color: #ffffff;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        opacity: 0; /* 默认隐藏，hover时显示 */
+        transition: opacity 0.2s;
+    }
+
+    .progress-bar-container:hover .progress-bar-fill::after {
+        opacity: 1;
+    }
+
+
+    /* --- 底部控制栏区域 --- */
+    .controls-section {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .controls-left, .controls-right {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        color: #a0b0b0;
+        width: 120px; /* 固定宽度以保持中间对齐 */
+    }
+    
+    .controls-right {
+        justify-content: flex-end;
+    }
+
+    .controls-center {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+    }
+
+    .play-btn {
+        width: 40px;
+        height: 40px;
+        background-color: #ffffff;
+        color: #1a4242;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        transition: transform 0.1s;
+    }
+    
+    .play-btn:active {
+        transform: scale(0.95);
+    }
+
+    /* SVG 图标统一样式 */
+    .feather {
+        width: 20px;
+        height: 20px;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+    }
+    
+    .play-btn .feather {
+        width: 24px;
+        height: 24px;
+        fill: currentColor; /* 实心播放图标 */
+        margin-left: 2px; /* 视觉校正 */
+    }
+    
+    .control-icon-large {
+        width: 24px;
+        height: 24px;
+    }
+
+</style>
+</head>
+<body>
+
+<!-- 播放器容器 -->
+<div class="player-container">
+    <!-- 动态光雾 Canvas (背景层) -->
+    <canvas id="atmosphere-canvas"></canvas>
+
+    <!-- 播放器内容层 (前景层) -->
+    <div class="player-content">
+        
+        <!-- 顶部: 专辑信息和窗口控制 -->
+        <div class="top-section">
+            <div class="album-art"></div>
+            <div class="song-info">
+                <div class="song-title">Red Flags</div>
+                <div class="artist-name">Brittany Howard — What</div>
+            </div>
+            <div class="window-controls">
+                <!-- 最小化图标 -->
+                <div class="icon-btn"><svg class="feather" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line></svg></div>
+                <!-- 全屏/扩展图标 -->
+                <div class="icon-btn" title="打开“全屏播放程序”"><svg class="feather" viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg></div>
+                <!-- 关闭图标 -->
+                <div class="icon-btn"><svg class="feather" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></div>
+            </div>
+        </div>
+
+        <!-- 中部: 进度条 -->
+        <div class="progress-section">
+            <span class="time-current">0:27</span>
+            <div class="progress-bar-container" title="拖移来前往歌曲的不同部分">
+                <div class="progress-bar-fill"></div>
+            </div>
+            <span class="time-total">-4:01</span>
+        </div>
+
+        <!-- 底部: 控制按钮 -->
+        <div class="controls-section">
+            <!-- 左侧控制 -->
+            <div class="controls-left">
+                <div class="icon-btn"><svg class="feather" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg></div>
+                <div class="icon-btn" title="选取此歌曲的选项"><svg class="feather" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg></div>
+            </div>
+            
+            <!-- 中间播放控制 -->
+            <div class="controls-center">
+                <div class="icon-btn control-icon-large"><svg class="feather" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5" stroke="currentColor" stroke-width="2"></line></svg></div>
+                <!-- 暂停按钮 (使用实心填充) -->
+                <div class="icon-btn play-btn"><svg class="feather" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg></div>
+                <div class="icon-btn control-icon-large"><svg class="feather" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="2"></line></svg></div>
+            </div>
+
+            <!-- 右侧控制 -->
+            <div class="controls-right">
+                <div class="icon-btn" title="显示或隐藏歌词（如果可用）"><svg class="feather" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></div>
+                <div class="icon-btn" title="打开“待播清单”列表"><svg class="feather" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // --- 终极优化：流体光雾氛围灯 (Fluid Blobs Aurora) ---
+    
+    const canvas = document.getElementById('atmosphere-canvas');
+    const ctx = canvas.getContext('2d');
+
+    let width, height;
+    let animationId;
+
+    function resizeCanvas() {
+        const container = document.querySelector('.player-container');
+        // 画布比容器大40%，配合 CSS 的 -20% 位置，提供充足的游动空间
+        width = container.clientWidth * 1.4;
+        height = container.clientHeight * 1.4;
+        canvas.width = width;
+        canvas.height = height;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // 平滑处理的模拟音频数据，避免跳变过快
+    let noiseStep = 0;
+    let smoothedVolume = 0;
+    function getSimulatedAudioData() {
+        noiseStep += 0.04;
+        // 模拟鼓点节奏的重音
+        const beat = Math.pow(Math.sin(noiseStep * 1.5), 4); 
+        // 模拟持续的旋律起伏
+        const melody = (Math.sin(noiseStep * 0.8) + Math.cos(noiseStep * 0.5) + 2) / 4; 
+        
+        let targetVolume = (melody * 80) + (beat * 120) + (Math.random() * 20);
+        targetVolume = Math.min(targetVolume, 255);
+        
+        // 引入平滑缓动 (Lerp)，让视觉变化更具粘滞感和高级感
+        smoothedVolume += (targetVolume - smoothedVolume) * 0.1;
+        return smoothedVolume;
+    }
+
+    // 流光色块类 (Fluid Light Orb)
+    class LightOrb {
+        /**
+         * @param {number} xRatio 初始X轴相对位置 (0-1)
+         * @param {number} yRatio 初始Y轴相对位置 (0-1)
+         * @param {number} baseRadius 基础半径比例
+         * @param {string} rgbColor 颜色 (格式: 'R, G, B')
+         * @param {number} speedX X轴游动速度
+         * @param {number} speedY Y轴游动速度
+         */
+        constructor(xRatio, yRatio, baseRadius, rgbColor, speedX, speedY) {
+            this.baseX = xRatio;
+            this.baseY = yRatio;
+            this.baseRadius = baseRadius;
+            this.color = rgbColor;
+            this.speedX = speedX;
+            this.speedY = speedY;
+            // 随机初始时间相位，让每个色块运动轨迹不同
+            this.timeX = Math.random() * 1000;
+            this.timeY = Math.random() * 1000;
+        }
+
+        draw(ctx, w, h, audioIntensity) {
+            this.timeX += this.speedX;
+            this.timeY += this.speedY;
+
+            // 音量影响系数 (0 - 1)
+            const audioFactor = audioIntensity / 255;
+
+            // 色块游动逻辑：基于李萨如曲线 (Lissajous curve) 产生有机的折返运动
+            const moveX = Math.sin(this.timeX) * (w * 0.25);
+            // 音量越大，色块越倾向于向上浮动
+            const moveY = Math.cos(this.timeY) * (h * 0.15) - (audioFactor * h * 0.2);
+
+            const x = (w * this.baseX) + moveX;
+            const y = (h * this.baseY) + moveY;
+
+            // 音量越大，色块体积越膨胀
+            const radius = w * this.baseRadius * (1 + audioFactor * 0.6);
+
+            // 如果半径过小跳过绘制，防止报错
+            if (radius <= 0) return;
+
+            // 创建径向渐变，中心实色，边缘透明，这是产生柔和融合感的核心
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+            // 核心亮度受音量影响，音量大时核心更亮，不透明度更高
+            gradient.addColorStop(0, `rgba(${this.color}, ${0.6 + audioFactor * 0.4})`);
+            gradient.addColorStop(0.5, `rgba(${this.color}, ${0.3 + audioFactor * 0.2})`);
+            gradient.addColorStop(1, `rgba(${this.color}, 0)`);
+
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+        }
+    }
+
+    // 初始化流光色块 (精心调配的青色、碧绿色、薄荷绿组合)
+    const orbs = [
+        // 左侧底部的深青色大色块 (主导基色)
+        new LightOrb(0.2, 0.9, 0.4, '30, 150, 130', 0.005, 0.007),
+        // 右侧底部的明亮薄荷绿 (提供高光)
+        new LightOrb(0.8, 0.85, 0.35, '80, 230, 190', 0.008, 0.006),
+        // 中间偏上的灵动蓝绿色 (连接两侧)
+        new LightOrb(0.5, 0.7, 0.3, '50, 200, 180', 0.006, 0.009),
+        // 随机游走的耀眼白青色 (提供节奏爆点)
+        new LightOrb(0.4, 0.95, 0.25, '150, 255, 230', 0.012, 0.015)
+    ];
+
+    function animate() {
+        // 清空画布 (由于使用了径向渐变和重度CSS模糊，无需保留上一帧的拖影，直接清空即可保持性能)
+        ctx.clearRect(0, 0, width, height);
+
+        const audioIntensity = getSimulatedAudioData();
+
+        // 采用滤色混合模式绘制色块，色块交叠处会自然提亮，产生光晕效果
+        ctx.globalCompositeOperation = 'screen';
+        
+        orbs.forEach(orb => orb.draw(ctx, width, height, audioIntensity));
+
+        animationId = requestAnimationFrame(animate);
+    }
+
+    animate();
+
+</script>
+</body>
+</html>

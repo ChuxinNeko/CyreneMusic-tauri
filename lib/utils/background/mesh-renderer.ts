@@ -1101,6 +1101,7 @@ export class MeshGradientRenderer extends BaseRenderer {
 		contrastImage(imageData, 1.7);
 		brightnessImage(imageData, 0.75);
 		blurImage(imageData, 2, 4);
+		ctx.putImageData(imageData, 0, 0);
 
 		if (this.manualControl && this.meshStates.length > 0) {
 			this.meshStates[0].texture.dispose();
@@ -1157,6 +1158,52 @@ export class MeshGradientRenderer extends BaseRenderer {
 		this.bass = bass;
 		this.mid = mid;
 		this.treble = treble;
+	}
+
+	/** 从已处理的专辑图像中采样主色（RGB 0-1 范围） */
+	getProcessedColors(count = 5): [number, number, number][] {
+		const c = this.reduceImageSizeCanvas;
+		const ctx = c.getContext("2d", { willReadFrequently: true });
+		if (!ctx) return [];
+		const { data, width, height } = ctx.getImageData(0, 0, c.width, c.height);
+
+		// 均匀采样像素
+		const pixels: [number, number, number][] = [];
+		for (let i = 0; i < data.length; i += 4) {
+			pixels.push([data[i] / 255, data[i + 1] / 255, data[i + 2] / 255]);
+		}
+		if (pixels.length === 0) return [];
+
+		// K-means 简化聚类
+		const centroids: [number, number, number][] = [];
+		const step = Math.max(1, Math.floor(pixels.length / count));
+		for (let i = 0; i < count && i * step < pixels.length; i++) {
+			centroids.push([...pixels[i * step]]);
+		}
+
+		for (let iter = 0; iter < 8; iter++) {
+			const sums: [number, number, number][] = centroids.map(() => [0, 0, 0]);
+			const counts = new Array(centroids.length).fill(0);
+			for (const p of pixels) {
+				let minD = Infinity, minJ = 0;
+				for (let j = 0; j < centroids.length; j++) {
+					const dr = p[0] - centroids[j][0], dg = p[1] - centroids[j][1], db = p[2] - centroids[j][2];
+					const d = dr * dr + dg * dg + db * db;
+					if (d < minD) { minD = d; minJ = j; }
+				}
+				sums[minJ][0] += p[0]; sums[minJ][1] += p[1]; sums[minJ][2] += p[2];
+				counts[minJ]++;
+			}
+			for (let j = 0; j < centroids.length; j++) {
+				if (counts[j] > 0) {
+					centroids[j][0] = sums[j][0] / counts[j];
+					centroids[j][1] = sums[j][1] / counts[j];
+					centroids[j][2] = sums[j][2] / counts[j];
+				}
+			}
+		}
+
+		return centroids;
 	}
 	override setHasLyric(_hasLyric: boolean): void {
 	}
