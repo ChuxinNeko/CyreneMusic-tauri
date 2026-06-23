@@ -30,7 +30,7 @@ export const AMLLLyricPlayer = React.memo(function AMLLLyricPlayer() {
         player.setEnableSpring(true)
         player.setEnableScale(true)
         player.setEnableBlur(true)
-        player.setAlignPosition(0.45)
+        player.setAlignPosition(0.15)
         player.setWordFadeWidth(1.0)
 
         containerRef.current.appendChild(player.getElement())

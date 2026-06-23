@@ -26,7 +26,7 @@ interface LyricLineHelper {
     lineMaskAnimCreated: boolean
 }
 
-const ALIGN_POSITION = 0.5
+const ALIGN_POSITION = 0.15
 // 增加淡入跑马灯的光晕平滑宽度
 const WORD_FADE_WIDTH = 1.0
 

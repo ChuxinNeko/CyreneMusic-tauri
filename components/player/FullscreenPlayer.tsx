@@ -150,6 +150,8 @@ export function FullscreenPlayer() {
     const [showAddToPlaylistMode, setShowAddToPlaylistMode] = React.useState<'add' | 'remove'>('add')
     const [qualityMenuOpen, setQualityMenuOpen] = React.useState(false)
     const [showMobileLyrics, setShowMobileLyrics] = React.useState(false)
+    const [isMobileLyricsControlsHidden, setIsMobileLyricsControlsHidden] = React.useState(false)
+    const autoHideControlsTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
     const [showVolumePopover, setShowVolumePopover] = React.useState(false)
     const [coverColors, setCoverColors] = React.useState<string[]>([])
     const [isLightCover, setIsLightCover] = React.useState(false)
@@ -410,6 +412,36 @@ export function FullscreenPlayer() {
         })
     }, [isMobile, isVisible, setIsFullscreen])
 
+    // 移动端歌词面板：进入后延迟自动折叠底部控制栏，点击歌词区域可重新唤出
+    React.useEffect(() => {
+        if (!isMobile || !showMobileLyrics) {
+            setIsMobileLyricsControlsHidden(false)
+            if (autoHideControlsTimerRef.current) clearTimeout(autoHideControlsTimerRef.current)
+            return
+        }
+        setIsMobileLyricsControlsHidden(false)
+        if (autoHideControlsTimerRef.current) clearTimeout(autoHideControlsTimerRef.current)
+        autoHideControlsTimerRef.current = setTimeout(() => {
+            setIsMobileLyricsControlsHidden(true)
+        }, 4000)
+        return () => {
+            if (autoHideControlsTimerRef.current) clearTimeout(autoHideControlsTimerRef.current)
+        }
+    }, [isMobile, showMobileLyrics])
+
+    const handleMobileLyricsPanelTap = () => {
+        if (isMobileLyricsControlsHidden) {
+            setIsMobileLyricsControlsHidden(false)
+            if (autoHideControlsTimerRef.current) clearTimeout(autoHideControlsTimerRef.current)
+            autoHideControlsTimerRef.current = setTimeout(() => {
+                setIsMobileLyricsControlsHidden(true)
+            }, 4000)
+        } else {
+            setIsMobileLyricsControlsHidden(true)
+            if (autoHideControlsTimerRef.current) clearTimeout(autoHideControlsTimerRef.current)
+        }
+    }
+
     if (!isVisible) return null
 
     const hasTranslation = !!(currentTrack?.tlyric || currentTrack?.ytlrc)
@@ -634,7 +666,7 @@ export function FullscreenPlayer() {
 
 
             {/* Top Bar / Close Button */}
-            <div data-tauri-drag-region className={`relative z-[110] flex justify-between items-center px-6 pb-4 lg:px-8 lg:pb-4 pt-14 lg:pt-4 ${isImmersiveMode ? 'bg-gradient-to-b from-black/30 to-transparent' : ''}`} style={isMobile ? { paddingTop: 'calc(env(safe-area-inset-top, 40px) + 24px)' } : {}}>
+            <div data-tauri-drag-region className={`relative z-[110] flex justify-between items-center px-6 pb-4 lg:px-8 lg:pb-4 pt-14 lg:pt-4 transition-all duration-300 overflow-hidden ${isImmersiveMode ? 'bg-gradient-to-b from-black/30 to-transparent' : ''} ${isMobile ? (showMobileLyrics ? 'max-h-0 !pt-0 !pb-0 opacity-0 pointer-events-none' : 'max-h-40') : ''}`} style={isMobile ? { paddingTop: 'calc(env(safe-area-inset-top, 40px) + 24px)' } : {}}>
                 <button
                     onClick={() => setIsFullscreen(false)}
                     className="text-white/30 hover:text-white/80 transition-colors p-2 hover:bg-white/5 rounded-full z-10"
@@ -1144,12 +1176,44 @@ export function FullscreenPlayer() {
                         {/* Part 2: Panel Section (Mobile only, slides behind Info) */}
                         {isMobile && (
                             <div className="relative h-full overflow-hidden shrink-0 w-1/2">
-                                <div className="absolute inset-0 w-full h-full animate-in fade-in zoom-in-95 duration-500">
-                                    {rightPanelMode === 'lyrics' ? (
-                                        lyricDisplayStyle === LyricDisplayStyle.Roulette ? <LyricPlayerRoulette /> :
-                                        lyricDisplayStyle === LyricDisplayStyle.SingleLine ? <LyricPlayerSingleLine /> :
-                                        <AMLLLyricPlayer />
-                                    ) : rightPanelMode === 'info' ? <SongInfoPanel /> : <EqualizerPanel />}
+                                <div className="absolute inset-0 w-full h-full flex flex-col animate-in fade-in zoom-in-95 duration-500" onClick={handleMobileLyricsPanelTap}>
+                                    {/* 歌词面板顶部歌曲信息栏 */}
+                                    {rightPanelMode === 'lyrics' && (
+                                        <div className="flex items-center gap-3 px-4 py-3 shrink-0" style={{ paddingTop: 'calc(env(safe-area-inset-top, 40px) + 48px)' }} onClick={e => e.stopPropagation()}>
+                                            <img
+                                                src={currentTrack?.picUrl || ''}
+                                                alt={currentTrack?.name || ''}
+                                                className="w-12 h-12 rounded-lg object-cover shadow-lg"
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-sm font-semibold text-white truncate">
+                                                    {currentTrack?.name || '未在播放'}
+                                                </div>
+                                                <div className="text-xs text-white/50 truncate">
+                                                    {currentTrack?.artists || '未知歌手'}
+                                                </div>
+                                            </div>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <button className="text-white/50 hover:text-white/80 transition-colors p-2 hover:bg-white/10 rounded-full">
+                                                        <MoreHorizontal size={18} />
+                                                    </button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-56 bg-black/90 backdrop-blur-xl border-white/10 text-white">
+                                                    <DropdownMenuItem onClick={() => handleArtistClick()} className="focus:bg-white/10 focus:text-white">
+                                                        查看歌手
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                    )}
+                                    <div className="flex-1 min-h-0">
+                                        {rightPanelMode === 'lyrics' ? (
+                                            lyricDisplayStyle === LyricDisplayStyle.Roulette ? <LyricPlayerRoulette /> :
+                                            lyricDisplayStyle === LyricDisplayStyle.SingleLine ? <LyricPlayerSingleLine /> :
+                                            <AMLLLyricPlayer />
+                                        ) : rightPanelMode === 'info' ? <SongInfoPanel /> : <EqualizerPanel />}
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -1159,8 +1223,8 @@ export function FullscreenPlayer() {
                     {/* Progress & Controls Section (Mobile only — Desktop uses bottom capsule bar) */}
                     {isMobile && (
                     <>
-                    <div className="h-[0.5vh] min-h-0 shrink-0" />
-                    <div className="relative z-20 w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink-0 space-y-4 lg:space-y-6 pb-4">
+                    <div className={`h-[0.5vh] min-h-0 shrink-0 transition-all duration-500 ${showMobileLyrics ? (isMobileLyricsControlsHidden ? 'h-0' : '') : ''}`} />
+                    <div className={`relative z-20 w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink-0 space-y-4 lg:space-y-6 pb-4 transition-all duration-500 overflow-hidden ${showMobileLyrics ? (isMobileLyricsControlsHidden ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-[400px] opacity-100') : ''}`}>
                         {/* Progress */}
                         <div className="space-y-2 lg:space-y-3 group/progress">
                             <div className="h-3 flex items-center">
@@ -1242,7 +1306,7 @@ export function FullscreenPlayer() {
                     </div>
                     </>
                     )}
-                    {isMobile && <div className="flex-[0.15] min-h-0" />}
+                    {isMobile && <div className={`flex-[0.15] min-h-0 transition-all duration-500 ${showMobileLyrics ? (isMobileLyricsControlsHidden ? 'flex-none h-0' : '') : ''}`} />}
                     {!isMobile && <div className="flex-1 min-h-[1vh]" />}
                 </div>
 
