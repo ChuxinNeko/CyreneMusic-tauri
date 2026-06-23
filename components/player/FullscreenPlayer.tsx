@@ -43,7 +43,7 @@ import dynamic from "next/dynamic"
 const AMLLLyricPlayer = dynamic(() => import("./AMLLLyricPlayer").then(m => m.AMLLLyricPlayer), { ssr: false })
 import { LyricPlayerSingleLine } from "./LyricPlayerSingleLine"
 import { SongInfoPanel } from "./song-info/SongInfoPanel"
-import { WebGLBackground } from "./WebGLBackground"
+const AMLLBackground = dynamic(() => import("./AMLLBackground").then(m => m.AMLLBackground), { ssr: false })
 import { EqualizerPanel } from "./EqualizerPanel"
 import { AudioVisualizer } from "./AudioVisualizer"
 import { AddToPlaylistDialog } from "./AddToPlaylistDialog"
@@ -169,9 +169,6 @@ export function FullscreenPlayer() {
     const activeVideoRef = React.useRef<0 | 1>(0)
     const crossfadeDuration = 1.5; // 1.5 seconds crossfade
 
-    // 音频频率数据通过 ref 直接注入 WebGL，避免触发 React 重绘
-    const bgRef = React.useRef<any>(null)
-
     // 专辑封面 3D 倾斜：ref 直接操作 DOM，避免高频 mousemove 触发 React 重渲染
     const coverTiltRef = React.useRef<HTMLDivElement>(null)
     const tiltRAFRef = React.useRef<number>(0)
@@ -220,26 +217,6 @@ export function FullscreenPlayer() {
             el.style.transform = `perspective(${TILT_PERSPECTIVE}px) rotateX(0deg) rotateY(0deg) scale(1)`
         }
     }, [])
-
-    // 频率数据采集循环（使用 rAF 与 WebGL 渲染器的 tick 自然同步，避免 setInterval 抖动）
-    React.useEffect(() => {
-        if (!isVisible || !isPlaying || !audioVisualization) {
-            bgRef.current?.bgRender?.setFrequencyData(0, 0, 0)
-            return
-        }
-
-        let handle = 0
-        const tick = () => {
-            const data = audioAnalyser.getFrequencyData()
-            bgRef.current?.bgRender?.setFrequencyData(data.bass, data.mid, data.treble)
-            handle = requestAnimationFrame(tick)
-        }
-        handle = requestAnimationFrame(tick)
-
-        return () => {
-            cancelAnimationFrame(handle)
-        }
-    }, [isVisible, isPlaying, audioVisualization])
 
     // 封面倾斜 rAF 清理
     React.useEffect(() => () => {
@@ -647,8 +624,7 @@ export function FullscreenPlayer() {
                         }}
                     />
                 ) : (
-                    <WebGLBackground
-                        ref={bgRef}
+                    <AMLLBackground
                         album={currentTrack?.picUrl}
                         playing={isPlaying}
                         fps={60}

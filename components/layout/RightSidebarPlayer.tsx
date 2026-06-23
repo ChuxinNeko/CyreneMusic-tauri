@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import dynamic from "next/dynamic"
 import { X, Play, Pause, SkipBack, SkipForward, Music2, ListMusic, Mic2, Minus, Maximize2, Volume2, MoreHorizontal, MessageSquareQuote, Pin, ChevronDown, ChevronUp } from "lucide-react"
 import { emit } from "@tauri-apps/api/event"
 import { invoke, convertFileSrc } from "@tauri-apps/api/core"
@@ -11,7 +12,8 @@ import { AsyncImage } from "@/components/common/AsyncImage"
 import { LyricPlayer } from "../player/LyricPlayer"
 import { LyricPlayerSingleLine } from "../player/LyricPlayerSingleLine"
 import { LyricPlayerRoulette } from "../player/LyricPlayerRoulette"
-import { WebGLBackground } from "../player/WebGLBackground"
+const AMLLBackground = dynamic(() => import("../player/AMLLBackground").then(m => m.AMLLBackground), { ssr: false })
+import { extractColorsFromImage } from "@/lib/utils/extractColors"
 import { SmokeVisualizer } from "../player/SmokeVisualizer"
 import { SongInfoPanel } from "../player/song-info/SongInfoPanel"
 import { useLayoutStore } from "@/lib/store/useLayoutStore"
@@ -146,14 +148,18 @@ export function RightSidebarPlayer({ isStandalone = false }: { isStandalone?: bo
         return () => clearInterval(interval)
     }, [isPlaying])
 
-    // 从 WebGL 渲染器接收处理后的专辑主色
-    const handleColorsExtracted = React.useCallback((colors: [number, number, number][]) => {
-        if (colors[0]) {
-            const [r, g, b] = colors[0]
-            const hex = '#' + [r, g, b].map(c => Math.round(c * 255).toString(16).padStart(2, '0')).join('')
-            setThemeColor(hex)
+    // 从专辑封面提取主题色
+    React.useEffect(() => {
+        if (!currentTrack?.picUrl) {
+            setThemeColor(undefined)
+            return
         }
-    }, [])
+        extractColorsFromImage(currentTrack.picUrl)
+            .then(colors => {
+                if (colors[0]) setThemeColor(colors[0])
+            })
+            .catch(() => setThemeColor(undefined))
+    }, [currentTrack?.picUrl])
     const [isPinned, setIsPinned] = React.useState(false)
     const [isCollapsed, setIsCollapsed] = React.useState(false)
     const savedHeightRef = React.useRef<number | null>(null)
@@ -276,12 +282,11 @@ export function RightSidebarPlayer({ isStandalone = false }: { isStandalone?: bo
                         }}
                     />
                 ) : (
-                    <WebGLBackground
+                    <AMLLBackground
                         album={currentTrack?.picUrl}
                         playing={isPlaying}
                         fps={60}
                         renderScale={0.15}
-                        onColorsExtracted={handleColorsExtracted}
                         className="absolute inset-0 w-full h-full opacity-80"
                     />
                 )}
