@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useMemo, useCallback } from "react"
 import { usePlayerStore } from "@/lib/store/usePlayerStore"
 import { playerService } from "@/lib/services/playerService"
 import { WordData, LyricLineData, INTRO_DELAY, parseLyrics } from "./parser"
+import { Spring } from "@/lib/utils/spring"
 
 interface LyricLineHelper {
     el: HTMLDivElement
@@ -20,12 +21,20 @@ interface LyricLineHelper {
         floatAnim?: Animation
     }[]
     height: number
+    posYSpring: Spring
+    scaleSpring: Spring
+    lineMaskAnimCreated: boolean
 }
 
 const ALIGN_POSITION = 0.5
 // 增加淡入跑马灯的光晕平滑宽度
 const WORD_FADE_WIDTH = 1.0
-const LYRIC_TRANSITION = "1000ms cubic-bezier(0.16, 1, 0.3, 1)"
+
+// 弹簧物理参数（对标 Apple Music 的 AMLL 实现）
+const POS_Y_SPRING = { mass: 0.9, damping: 15, stiffness: 90 }
+const SCALE_SPRING = { mass: 2, damping: 25, stiffness: 100 }
+// 非活跃行的阶梯延迟（秒），形成波浪式级联
+const STAGGER_DELAY = 0.05
 
 // Helper component for Interlude dots
 function InterludeDots({ interludeRef }: { interludeRef: React.RefObject<{ start: number, end: number, lineIndex: number } | null> }) {
@@ -150,6 +159,7 @@ export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'ce
     const currentScrollIndexRef = useRef(-1)
     const requestRef = useRef<number>(0)
     const lastLoopTimeRef = useRef<number>(0)
+    const lastFrameTimeRef = useRef<number>(0)
     const interludeContainerRef = useRef<HTMLDivElement>(null)
 
     const [parsedLyrics, setParsedLyrics] = useState<LyricLineData[]>([])
@@ -187,7 +197,17 @@ export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'ce
                 return { span, data: w, width: span.clientWidth - padding * 2, padding, height: span.clientHeight - padding * 2, animating: false }
             }).filter(w => w !== null)
 
-            const helper: LyricLineHelper = { el, index, data, wordEls, height: el.clientHeight || 60 }
+            const helper: LyricLineHelper = {
+                el, index, data, wordEls, height: el.clientHeight || 60,
+                posYSpring: new Spring(0),
+                scaleSpring: new Spring(1),
+                lineMaskAnimCreated: false,
+            }
+            helper.posYSpring.updateParams(POS_Y_SPRING)
+            helper.scaleSpring.updateParams(SCALE_SPRING)
+            // 初始放置在屏幕外，等待 updateLayoutTargets 给出目标位置后再弹入
+            helper.posYSpring.setPosition(window.innerHeight * 2)
+            helper.scaleSpring.setPosition(0.9)
 
             wordEls.forEach(w => {
                 if (!data.isVerbatim) {
@@ -203,17 +223,21 @@ export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'ce
                 // 更平滑的三段式渐变掩码，交界处更柔和
                 const p1 = leftPos * 100;
                 const p2 = (leftPos + (fadeWidth / Math.max(1, (w.width + w.padding * 2))) / totalAspect) * 100;
-                const maskImage = `linear-gradient(to right, 
-                    rgba(255,255,255,1.0) 0%, 
-                    rgba(255,255,255,1.0) ${p1}%, 
-                    rgba(255,255,255,0.4) ${p2}%, 
-                    rgba(255,255,255,0.4) 100%)`
+                const maskImage = `linear-gradient(to right,
+                    rgba(255,255,255, var(--mask-bright, 1.0)) 0%,
+                    rgba(255,255,255, var(--mask-bright, 1.0)) ${p1}%,
+                    rgba(255,255,255, var(--mask-dark, 0.4)) ${p2}%,
+                    rgba(255,255,255, var(--mask-dark, 0.4)) 100%)`
 
                 const totalAspectStr = `${totalAspect * 100}% 100%`
                 w.span.style.maskImage = maskImage
                 w.span.style.webkitMaskImage = maskImage
                 w.span.style.maskSize = totalAspectStr
                 w.span.style.webkitMaskSize = totalAspectStr
+                w.span.style.maskRepeat = 'no-repeat'
+                w.span.style.webkitMaskRepeat = 'no-repeat'
+                w.span.style.maskOrigin = 'left'
+                w.span.style.webkitMaskOrigin = 'left'
             })
             return helper
         }).filter(l => l !== null)
@@ -293,6 +317,7 @@ export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'ce
         }
 
         const currentBlurStrength = usePlayerStore.getState().lyricBlurStrength
+        const baseAlign = activeInterlude ? activeInterlude.lineIndex + 1 : targetIndex
 
         linesHelperRef.current.forEach((l, i) => {
             const diff = activeInterlude ? (i <= activeInterlude.lineIndex ? i - activeInterlude.lineIndex - 1 : i - activeInterlude.lineIndex) : i - targetIndex
@@ -307,49 +332,178 @@ export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'ce
 
             const targetOpacity = diff === 0 ? 1.0 : (absDiff > 5 ? 0.0 : 0.5)
             const targetBlur = diff === 0 ? 0.0 : (absDiff === 1 ? currentBlurStrength * 0.3 : currentBlurStrength)
-            const targetScale = diff === 0 ? 1.0 : 0.9
+            const targetScale = diff === 0 ? 1.0 : 0.97
             const targetY = linesY[i] + offsetToCenter
 
+            // 阶梯延迟：仅对活跃行下方的行级联，向上的不延迟以避免拖沓
+            const stagger = !immediate && i > baseAlign ? STAGGER_DELAY * (i - baseAlign) : 0
+
             if (immediate) {
-                l.el.style.transition = 'none'
+                l.posYSpring.setPosition(targetY)
+                l.scaleSpring.setPosition(targetScale)
+                l.el.style.transition = 'opacity 250ms linear, filter 250ms linear'
             } else {
-                l.el.style.transition = `transform ${LYRIC_TRANSITION}, opacity 1000ms cubic-bezier(0.16, 1, 0.3, 1), filter 1000ms cubic-bezier(0.16, 1, 0.3, 1)`
+                l.posYSpring.setTargetPosition(targetY, stagger)
+                l.scaleSpring.setTargetPosition(targetScale, stagger)
+                const staggerMs = (stagger * 1000).toFixed(0)
+                l.el.style.transition = `opacity 500ms linear ${staggerMs}ms, filter 500ms linear ${staggerMs}ms`
             }
 
-            l.el.style.transform = `translateY(${targetY.toFixed(1)}px) scale(${targetScale})`
             l.el.style.transformOrigin = 'left center'
             l.el.style.opacity = targetOpacity.toFixed(3)
             l.el.style.filter = targetBlur > 0 ? `blur(${targetBlur}px)` : 'none'
-            l.el.style.setProperty('--lyric-color', diff === 0 ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.4)')
-            l.el.style.setProperty('--trans-color', diff === 0 ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.2)')
+            l.el.style.setProperty('--lyric-color', 'rgba(255, 255, 255, 1)')
+            l.el.style.setProperty('--trans-color', 'rgba(255, 255, 255, 0.4)')
         })
     }
 
+    const updateSpringFrame = (deltaSec: number) => {
+        const lines = linesHelperRef.current
+        for (let i = 0; i < lines.length; i++) {
+            const l = lines[i]
+            if (!l || !l.el) continue
+            if (l.el.style.display === 'none') continue
+            l.posYSpring.update(deltaSec)
+            l.scaleSpring.update(deltaSec)
+            const y = l.posYSpring.getCurrentPosition()
+            const s = l.scaleSpring.getCurrentPosition()
+            l.el.style.transform = `translateY(${y.toFixed(1)}px) scale(${s.toFixed(4)})`
+            // AMLL 风格：mask 明暗随 scale 弹簧平滑过渡
+            // scale 0.97 (待播放) → bright=0.2, dark=0.2（整体暗）
+            // scale 1.00 (正在播放) → bright=1.0, dark=0.4（扫到的亮、未扫的暗）
+            const t = Math.max(0, Math.min(1, (s - 0.97) / 0.03))
+            l.el.style.setProperty('--mask-bright', (t * 0.8 + 0.2).toFixed(3))
+            l.el.style.setProperty('--mask-dark', (t * 0.2 + 0.2).toFixed(3))
+        }
+    }
+
+    // AMLL disable：行从"正在播放"变为"已播放"时调用
+    // 反转上浮动画（文字缓慢回到原位），掩码填充保持不变
+    const disableLineAnimations = (lineHelper: LyricLineHelper) => {
+        lineHelper.wordEls.forEach(w => {
+            if (w.floatAnim) {
+                if (w.floatAnim.playState === 'running') {
+                    w.floatAnim.playbackRate = -1
+                } else if (w.floatAnim.playState === 'finished') {
+                    w.floatAnim.playbackRate = -1
+                    w.floatAnim.play()
+                }
+            }
+            // mask 动画不做任何操作 → 填充结果持久化
+        })
+    }
+
+    // AMLL enable：行从"待播放"变为"正在播放"时调用
+    // 首次调用时创建所有动画，后续调用时重置 float 并恢复 mask
     const updateWordAnimations = (lineHelper: LyricLineHelper, loopTime: number) => {
-        lineHelper.wordEls.forEach((w) => {
-            if (w.animating) return
-            const timeStart = w.data.startTime
-            const delay = timeStart - loopTime
-            const duration = w.data.duration
-            if (delay < -duration - 1000) return
+        const words = lineHelper.wordEls
+        if (words.length === 0) { lineHelper.lineMaskAnimCreated = true; return }
 
+        const lineStart = lineHelper.data.time
+        const isP = usePlayerStore.getState().isPlaying
+        const elapsed = Math.max(0, loopTime - lineStart)
+
+        if (!lineHelper.lineMaskAnimCreated) {
+            // ── 首次 enable：创建掩码扫描动画 ──
             if (lineHelper.data.isVerbatim) {
-                const fadeWidth = w.height * WORD_FADE_WIDTH
-                const wTotal = w.width + w.padding * 2 + fadeWidth
-                const animDuration = Math.max(duration + 100, 300)
+                const totalFadeDuration = Math.max(
+                    words.reduce((max, w) => Math.max(max, w.data.endTime), 0),
+                    lineHelper.data.endTime
+                ) - lineStart
 
-                w.maskAnim = w.span.animate([{ maskPosition: `${-wTotal}px 0` }, { maskPosition: `0px 0` }], {
-                    delay: delay, duration: animDuration, fill: 'both', easing: 'linear'
-                })
+                if (totalFadeDuration > 0) {
+                    words.forEach((w, i) => {
+                        const fadeWidth = w.height * WORD_FADE_WIDTH
+                        const widthBeforeSelf = words.slice(0, i).reduce((s, p) => s + p.width, 0) + fadeWidth
+                        const minOffset = -(w.width + w.padding * 2 + fadeWidth)
+                        const clampPos = (x: number) => Math.max(minOffset, Math.min(0, x))
 
-                w.floatAnim = w.span.animate([{ transform: 'translateY(0px)' }, { transform: 'translateY(-2px)' }], {
-                    delay: Math.max(0, delay), duration: 1000, fill: 'both', easing: 'cubic-bezier(0.215, 0.61, 0.355, 1)'
-                })
+                        let curPos = -widthBeforeSelf - w.width - w.padding - fadeWidth
+                        let timeOffset = 0
+                        const frames: Keyframe[] = []
+                        let lastPos = curPos
+                        let lastTime = 0
+
+                        const pushFrame = () => {
+                            const time = Math.max(0, Math.min(1, timeOffset))
+                            const dur = time - lastTime
+                            if (Math.abs(curPos - lastPos) > 0.01 && dur > 0) {
+                                const d = Math.abs(dur / (curPos - lastPos))
+                                if (curPos > minOffset && lastPos < minOffset) {
+                                    frames.push({ offset: Math.min(1, Math.max(0, lastTime + Math.abs(lastPos - minOffset) * d)), maskPosition: `${clampPos(lastPos)}px 0` })
+                                }
+                                if (curPos > 0 && lastPos < 0) {
+                                    frames.push({ offset: Math.min(1, Math.max(0, lastTime + Math.abs(lastPos) * d)), maskPosition: `${clampPos(curPos)}px 0` })
+                                }
+                            }
+                            frames.push({ offset: time, maskPosition: `${clampPos(curPos)}px 0` })
+                            lastPos = curPos
+                            lastTime = time
+                        }
+
+                        pushFrame()
+                        let lastTS = 0
+                        words.forEach((ow, j) => {
+                            const pauseTS = ow.data.startTime - lineStart
+                            const pauseDur = pauseTS - lastTS
+                            timeOffset += pauseDur / totalFadeDuration
+                            if (pauseDur > 0) pushFrame()
+                            lastTS = pauseTS
+                            const moveDur = ow.data.endTime - ow.data.startTime
+                            timeOffset += moveDur / totalFadeDuration
+                            curPos += ow.width
+                            if (j === 0) curPos += fadeWidth * 1.5
+                            if (j === words.length - 1) curPos += fadeWidth * 0.5
+                            if (moveDur > 0) pushFrame()
+                            lastTS += moveDur
+                        })
+
+                        if (w.maskAnim) w.maskAnim.cancel()
+                        try {
+                            w.maskAnim = w.span.animate(frames, { duration: totalFadeDuration || 1, fill: 'both' })
+                            w.maskAnim.currentTime = Math.min(totalFadeDuration, elapsed)
+                            if (!isP) w.maskAnim.pause()
+                        } catch { /* ignore */ }
+                    })
+                }
             }
 
-            if (!usePlayerStore.getState().isPlaying) {
-                if (w.maskAnim) w.maskAnim.pause()
-                if (w.floatAnim) w.floatAnim.pause()
+            lineHelper.lineMaskAnimCreated = true
+        } else {
+            // ── 重新 enable：恢复被暂停的 mask 动画 ──
+            words.forEach(w => {
+                if (w.maskAnim && w.maskAnim.playState !== 'running') {
+                    w.maskAnim.playbackRate = 1
+                    if (isP) w.maskAnim.play()
+                }
+            })
+        }
+
+        // ── 上浮动画：每次 enable 都从头开始（对标 AMLL enable 的 currentTime=0）──
+        words.forEach(w => {
+            const wordDur = w.data.endTime - w.data.startTime
+            const floatDelay = Math.max(0, w.data.startTime - lineStart)
+            const floatDuration = Math.max(1000, wordDur)
+
+            if (w.floatAnim) {
+                // 已存在 → 重置到起点并正向播放
+                w.floatAnim.currentTime = 0
+                w.floatAnim.playbackRate = 1
+                if (isP) w.floatAnim.play()
+            } else {
+                // 首次创建
+                w.floatAnim = w.span.animate(
+                    [{ transform: 'translateY(0px)' }, { transform: 'translateY(-0.05em)' }],
+                    {
+                        delay: floatDelay,
+                        duration: floatDuration,
+                        fill: 'both',
+                        easing: 'ease-out',
+                        composite: 'add',
+                    }
+                )
+                w.floatAnim.currentTime = Math.max(0, elapsed - floatDelay)
+                if (!isP) w.floatAnim.pause()
             }
             w.animating = true
         })
@@ -376,16 +530,23 @@ export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'ce
     }, [parsedLyrics])
 
     const resetAnimations = (clearAll: boolean = false) => {
-        linesHelperRef.current.forEach(l => l.wordEls.forEach(w => {
-            if (clearAll || !w.maskAnim || w.maskAnim.playState !== 'running') {
-                if (w.maskAnim) w.maskAnim.cancel()
-                if (w.floatAnim) w.floatAnim.cancel()
-                w.animating = false
-            }
-        }))
+        linesHelperRef.current.forEach(l => {
+            l.wordEls.forEach(w => {
+                if (clearAll || !w.maskAnim || w.maskAnim.playState !== 'running') {
+                    if (w.maskAnim) w.maskAnim.cancel()
+                    if (w.floatAnim) w.floatAnim.cancel()
+                    w.animating = false
+                }
+            })
+            if (clearAll) l.lineMaskAnimCreated = false
+        })
     }
 
-    const loop = (_timestamp: number) => {
+    const loop = (timestamp: number) => {
+        // 计算帧间 delta（秒），用于推进弹簧物理模拟
+        const deltaSec = lastFrameTimeRef.current ? (timestamp - lastFrameTimeRef.current) / 1000 : 0
+        lastFrameTimeRef.current = timestamp
+
         const realTime = playerService.getCurrentTime()
         const loopTime = realTime * 1000 + INTRO_DELAY
 
@@ -425,13 +586,20 @@ export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'ce
             }
         }
 
-        // 仅在歌词行切换或间奏状态变化时更新布局，不再节流每 100ms 打断 CSS transition
+        // 仅在歌词行切换或间奏状态变化时更新布局目标
         const interludeChanged = currentInterlude?.start !== interludeRef.current?.start
         if (currentScrollIndexRef.current !== activeIndex || interludeChanged) {
+            // AMLL disable：旧活跃行的上浮动画反转回原位
+            const oldLine = linesHelperRef.current[currentScrollIndexRef.current]
+            if (oldLine) disableLineAnimations(oldLine)
+
             currentScrollIndexRef.current = activeIndex
             interludeRef.current = currentInterlude
             updateLayoutTargets(activeIndex, currentInterlude)
         }
+
+        // 每帧推进弹簧物理模拟并写入 DOM
+        updateSpringFrame(deltaSec)
 
         // 逐字动画仍然保持高频检查
         if (linesHelperRef.current[activeIndex]) updateWordAnimations(linesHelperRef.current[activeIndex], loopTime)
@@ -450,16 +618,18 @@ export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'ce
     }, [])
 
     useEffect(() => {
-        linesHelperRef.current.forEach(l => {
-            l.wordEls.forEach(w => {
-                if (isPlaying) {
-                    if (w.maskAnim?.playState === 'paused') w.maskAnim.play()
-                    if (w.floatAnim?.playState === 'paused') w.floatAnim.play()
-                } else {
-                    if (w.maskAnim?.playState === 'running') w.maskAnim.pause()
-                    if (w.floatAnim?.playState === 'running') w.floatAnim.pause()
-                }
-            })
+        // AMLL pause/resume：只控制当前活跃行，不影响已 disable 的行
+        const activeIdx = currentScrollIndexRef.current
+        const activeLine = linesHelperRef.current[activeIdx]
+        if (!activeLine) return
+        activeLine.wordEls.forEach(w => {
+            if (isPlaying) {
+                if (w.maskAnim?.playState === 'paused') w.maskAnim.play()
+                if (w.floatAnim?.playState === 'paused') w.floatAnim.play()
+            } else {
+                if (w.maskAnim?.playState === 'running') w.maskAnim.pause()
+                if (w.floatAnim?.playState === 'running') w.floatAnim.pause()
+            }
         })
     }, [isPlaying])
 
@@ -481,19 +651,19 @@ export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'ce
                     >
                         <div className="lyricMainLine flex flex-wrap">
                             {line.words.map((word, wIndex) => (
-                                <span key={wIndex} className="lyricWord inline-block font-bold leading-tight whitespace-pre-wrap" style={{ paddingLeft: '0.1em', paddingRight: '0.1em', marginLeft: '-0.1em', marginRight: '-0.1em', fontFamily: lyricFontFamily, color: 'var(--lyric-color, rgba(255,255,255,0.4))', transition: 'var(--lyric-color-transition, color 800ms linear)', fontSize: `clamp(${lyricFontSize * 0.6}px, 2.8vw, ${lyricFontSize}px)`, willChange: 'mask-position, transform', transform: 'translateZ(0)' }}>
+                                <span key={wIndex} className="lyricWord inline-block font-bold leading-tight whitespace-pre-wrap" style={{ paddingLeft: '0.1em', paddingRight: '0.1em', marginLeft: '-0.1em', marginRight: '-0.1em', fontFamily: lyricFontFamily, color: 'var(--lyric-color, rgba(255,255,255,0.4))', transition: 'color 300ms linear', fontSize: `clamp(${lyricFontSize * 0.6}px, 2.8vw, ${lyricFontSize}px)`, willChange: 'mask-position, transform', transform: 'translateZ(0)' }}>
                                     {word.text}
                                 </span>
                             ))}
                         </div>
                         {showTranslation && line.translation && (
-                            <div className="lyricTranslation mt-1 font-medium leading-snug" style={{ fontFamily: lyricFontFamily, color: 'var(--trans-color, rgba(255,255,255,0.2))', transition: 'var(--lyric-color-transition, color 800ms linear)', fontSize: `clamp(${lyricFontSize * 0.35}px, 1.4vw, ${lyricFontSize * 0.55}px)` }}>
+                            <div className="lyricTranslation mt-1 font-medium leading-snug" style={{ fontFamily: lyricFontFamily, color: 'var(--trans-color, rgba(255,255,255,0.2))', transition: 'color 300ms linear', fontSize: `clamp(${lyricFontSize * 0.35}px, 1.4vw, ${lyricFontSize * 0.55}px)` }}>
                                 {line.translation}
                             </div>
                         )}
                     </div>
                 ))}
-                <div ref={interludeContainerRef} style={{ position: 'absolute', left: '6%', top: 0, zIndex: 5, transition: `transform ${LYRIC_TRANSITION}` }}>
+                <div ref={interludeContainerRef} style={{ position: 'absolute', left: '6%', top: 0, zIndex: 5, transition: 'transform 500ms cubic-bezier(0.16, 1, 0.3, 1)' }}>
                     <InterludeDots interludeRef={interludeRef} />
                 </div>
             </div>
