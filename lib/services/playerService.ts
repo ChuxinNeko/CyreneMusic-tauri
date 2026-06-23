@@ -60,6 +60,8 @@ class PlayerService {
     // 在读数回到预期起点附近之前不写入进度，防止进度条在新旧进度间来回抽搐
     private progressArmed = false
     private progressArmStart = 0
+    // 上一次进度计时器设置时的代次，用于区分「切歌」与「暂停恢复」
+    private lastProgressGeneration = -1
     private fadeDuration = 500 // 500ms cross-fade
     private androidMediaBridgeBound = false
     private fallbackQualityUrl: string | null = null // 播放失败时的备选 (通常为 320k) URL
@@ -397,8 +399,11 @@ class PlayerService {
         const activeHowl = howl ?? this.howl
         if (!activeHowl) return
         const generation = this.playGeneration
-        // 切歌后 html5 <audio> 元素短暂回报上一首位置，先解除武装，待读数回到起点附近再开始写入
-        this.progressArmed = false
+        // 仅在切歌（代次变化）时解除武装；暂停恢复同一首歌时保持武装状态，避免进度条卡死
+        if (generation !== this.lastProgressGeneration) {
+            this.progressArmed = false
+            this.lastProgressGeneration = generation
+        }
         // 容差：读数与预期起点相差不超过 3 秒即视为新曲目已真正开始播放
         const ARM_TOLERANCE_SECONDS = 3
 

@@ -38,8 +38,9 @@ import { usePlayerStore, RepeatMode, LyricDisplayStyle, SingleLineAnimation } fr
 import { playerService } from "@/lib/services/playerService"
 import { audioAnalyser } from "@/lib/services/audioAnalyser"
 import { urlService } from "@/lib/services/urlService"
-import { LyricPlayer } from "./LyricPlayer"
 import { LyricPlayerRoulette } from "./LyricPlayerRoulette"
+import dynamic from "next/dynamic"
+const AMLLLyricPlayer = dynamic(() => import("./AMLLLyricPlayer").then(m => m.AMLLLyricPlayer), { ssr: false })
 import { LyricPlayerSingleLine } from "./LyricPlayerSingleLine"
 import { SongInfoPanel } from "./song-info/SongInfoPanel"
 import { WebGLBackground } from "./WebGLBackground"
@@ -1147,7 +1148,7 @@ export function FullscreenPlayer() {
                                     {rightPanelMode === 'lyrics' ? (
                                         lyricDisplayStyle === LyricDisplayStyle.Roulette ? <LyricPlayerRoulette /> :
                                         lyricDisplayStyle === LyricDisplayStyle.SingleLine ? <LyricPlayerSingleLine /> :
-                                        <LyricPlayer />
+                                        <AMLLLyricPlayer />
                                     ) : rightPanelMode === 'info' ? <SongInfoPanel /> : <EqualizerPanel />}
                                 </div>
                             </div>
@@ -1252,7 +1253,7 @@ export function FullscreenPlayer() {
                             {rightPanelMode === 'lyrics' ? (
                                 lyricDisplayStyle === LyricDisplayStyle.Roulette ? <LyricPlayerRoulette /> :
                                 lyricDisplayStyle === LyricDisplayStyle.SingleLine ? <LyricPlayerSingleLine /> :
-                                <LyricPlayer />
+                                <AMLLLyricPlayer />
                             ) : rightPanelMode === 'info' ? (
                                 <SongInfoPanel />
                             ) : (

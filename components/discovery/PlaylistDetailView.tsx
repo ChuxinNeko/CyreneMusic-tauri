@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from "react"
 import { extractColorsFromImage } from "@/lib/utils/extractColors"
-import { Play, ChevronLeft, Loader2, Trash2, Search, X, Music, MessageSquare, Download } from "lucide-react"
+import { Play, ChevronLeft, Loader2, Trash2, Search, X, Music, MessageSquare, Download, ArrowUpDown } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { AsyncImage } from "@/components/common/AsyncImage"
@@ -23,6 +23,12 @@ import {
     DialogHeader,
     DialogTitle
 } from "@/components/ui/dialog"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 const isTauriRuntime = (): boolean => {
     if (typeof window === "undefined") return false
@@ -54,6 +60,8 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
     const [searchKeyword, setSearchKeyword] = useState("")
     const [activeTab, setActiveTab] = useState<"songs" | "comments">("songs")
     const [coverColor, setCoverColor] = useState<{ r: number; g: number; b: number } | null>(null)
+    const [sortField, setSortField] = useState<'default' | 'name'>('default')
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
     const { currentTrack, isPlaying } = usePlayerStore()
     const { isImmersivePlaylistEnabled } = useLayoutStore()
     const immersiveBgRef = useRef<HTMLDivElement>(null)
@@ -81,14 +89,32 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
 
     const filteredTracks = useMemo(() => {
         if (!playlist) return []
-        if (!searchKeyword.trim()) return playlist.tracks
         const kw = searchKeyword.trim().toLowerCase()
-        return playlist.tracks.filter(t =>
-            t.name.toLowerCase().includes(kw) ||
-            (t.artists && t.artists.toLowerCase().includes(kw)) ||
-            (t.album && t.album.toLowerCase().includes(kw))
-        )
-    }, [playlist, searchKeyword])
+        const filtered = kw
+            ? playlist.tracks.filter(t =>
+                t.name.toLowerCase().includes(kw) ||
+                (t.artists && t.artists.toLowerCase().includes(kw)) ||
+                (t.album && t.album.toLowerCase().includes(kw))
+            )
+            : [...playlist.tracks]
+
+        if (sortField === 'default') {
+            filtered.reverse()
+        } else if (sortField === 'name') {
+            filtered.sort((a, b) => {
+                const cmp = a.name.localeCompare(b.name, 'zh-CN')
+                return sortOrder === 'asc' ? cmp : -cmp
+            })
+        } else if (sortField === 'addedAt') {
+            filtered.sort((a, b) => {
+                const aTime = (a as any).addedAt ? new Date((a as any).addedAt).getTime() : 0
+                const bTime = (b as any).addedAt ? new Date((b as any).addedAt).getTime() : 0
+                return sortOrder === 'asc' ? aTime - bTime : bTime - aTime
+            })
+        }
+
+        return filtered
+    }, [playlist, searchKeyword, sortField, sortOrder])
 
     useEffect(() => {
         const fetchDetail = async () => {
@@ -114,7 +140,8 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                             album: t.album,
                             picUrl: t.picUrl || t.pic_url,
                             source: t.source,
-                            duration: 0
+                            duration: 0,
+                            addedAt: t.addedAt || t.added_at || ''
                         })),
                         createTime: 0,
                         updateTime: 0,
@@ -497,23 +524,69 @@ export function PlaylistDetailView({ id, onBack, token, type = 'discovery', onRe
                 )}
 
                 <TabsContent value="songs" className="outline-none">
-                <div className="relative px-1 md:px-0 pb-2">
-                    <Search className="absolute left-4 md:left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
-                    <input
-                        type="text"
-                        value={searchKeyword}
-                        onChange={e => setSearchKeyword(e.target.value)}
-                        placeholder="搜索歌单内歌曲..."
-                        className={`w-full h-10 pl-10 pr-9 md:pl-9 md:pr-9 rounded-xl border text-sm font-medium placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all ${isImmersivePlaylistEnabled ? 'bg-background/40 backdrop-blur-md border-border/30' : 'bg-accent/40 border-border/40'}`}
-                    />
-                    {searchKeyword && (
-                        <button
-                            onClick={() => setSearchKeyword("")}
-                            className="absolute right-4 md:right-3 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center rounded-full hover:bg-muted-foreground/10 text-muted-foreground/60 transition-colors"
-                        >
-                            <X className="h-3.5 w-3.5" />
-                        </button>
-                    )}
+                <div className="flex gap-2 px-1 md:px-0 pb-2">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-4 md:left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+                        <input
+                            type="text"
+                            value={searchKeyword}
+                            onChange={e => setSearchKeyword(e.target.value)}
+                            placeholder="搜索歌单内歌曲..."
+                            className={`w-full h-10 pl-10 pr-9 md:pl-9 md:pr-9 rounded-xl border text-sm font-medium placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all ${isImmersivePlaylistEnabled ? 'bg-background/40 backdrop-blur-md border-border/30' : 'bg-accent/40 border-border/40'}`}
+                        />
+                        {searchKeyword && (
+                            <button
+                                onClick={() => setSearchKeyword("")}
+                                className="absolute right-4 md:right-3 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center rounded-full hover:bg-muted-foreground/10 text-muted-foreground/60 transition-colors"
+                            >
+                                <X className="h-3.5 w-3.5" />
+                            </button>
+                        )}
+                    </div>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className={`h-10 w-10 rounded-xl flex-shrink-0 ${isImmersivePlaylistEnabled ? 'bg-background/40 backdrop-blur-md border-border/30' : 'bg-accent/40 border-border/40'}`}
+                                title="排序"
+                            >
+                                <ArrowUpDown className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                                className={sortField === 'default' ? 'text-primary font-medium' : ''}
+                                onClick={() => { setSortField('default'); setSortOrder('desc') }}
+                            >
+                                默认顺序
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                className={sortField === 'addedAt' && sortOrder === 'desc' ? 'text-primary font-medium' : ''}
+                                onClick={() => { setSortField('addedAt'); setSortOrder('desc') }}
+                            >
+                                添加时间（新→旧）
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                className={sortField === 'addedAt' && sortOrder === 'asc' ? 'text-primary font-medium' : ''}
+                                onClick={() => { setSortField('addedAt'); setSortOrder('asc') }}
+                            >
+                                添加时间（旧→新）
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                className={sortField === 'name' && sortOrder === 'asc' ? 'text-primary font-medium' : ''}
+                                onClick={() => { setSortField('name'); setSortOrder('asc') }}
+                            >
+                                名称（A→Z）
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                className={sortField === 'name' && sortOrder === 'desc' ? 'text-primary font-medium' : ''}
+                                onClick={() => { setSortField('name'); setSortOrder('desc') }}
+                            >
+                                名称（Z→A）
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
 
                 {/* 桌面端表头，移动端隐藏 */}

@@ -14,9 +14,21 @@ export function LogProvider({ children }: { children: React.ReactNode }) {
 
         const interceptConsole = (level: LogLevel, originalMethod: Function, ...args: any[]) => {
             // 保存日志
-            const message = args.map(arg =>
-                typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
-            ).join(' ');
+            const message = args.map(arg => {
+                if (typeof arg !== 'object') return String(arg)
+                try {
+                    const seen = new WeakSet()
+                    return JSON.stringify(arg, (_key, value) => {
+                        if (typeof value === 'object' && value !== null) {
+                            if (seen.has(value)) return '[Circular]'
+                            seen.add(value)
+                        }
+                        return value
+                    })
+                } catch {
+                    return String(arg)
+                }
+            }).join(' ')
             addLog(level, message, args);
 
             // 调用原本的方法

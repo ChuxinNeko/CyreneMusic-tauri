@@ -11,6 +11,8 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@applemusic-like-lyrics/core": "^0.5.1",
+    "@applemusic-like-lyrics/lyric": "^1.0.1",
     "@capacitor/status-bar": "^8.0.1",
     "@fluentui/react-components": "^9.74.1",
     "@hookform/resolvers": "^5.2.2",
