@@ -23,7 +23,15 @@ interface LyricLineHelper {
     height: number
     posYSpring: Spring
     scaleSpring: Spring
+    opacitySpring: Spring
     lineMaskAnimCreated: boolean
+    targetFilter: string
+    settled: boolean
+    _prevTransform?: string
+    _prevMaskBright?: string
+    _prevMaskDark?: string
+    _prevOpacity?: string
+    _prevFilter?: string
 }
 
 const ALIGN_POSITION = 0.15
@@ -201,10 +209,14 @@ export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'ce
                 el, index, data, wordEls, height: el.clientHeight || 60,
                 posYSpring: new Spring(0),
                 scaleSpring: new Spring(1),
+                opacitySpring: new Spring(0.5),
                 lineMaskAnimCreated: false,
+                targetFilter: 'none',
+                settled: false,
             }
             helper.posYSpring.updateParams(POS_Y_SPRING)
             helper.scaleSpring.updateParams(SCALE_SPRING)
+            helper.opacitySpring.updateParams({ mass: 0.8, damping: 18, stiffness: 120 })
             // 初始放置在屏幕外，等待 updateLayoutTargets 给出目标位置后再弹入
             helper.posYSpring.setPosition(window.innerHeight * 2)
             helper.scaleSpring.setPosition(0.9)
@@ -281,7 +293,7 @@ export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'ce
 
         const playerHeight = containerRef.current.clientHeight
         const INTERLUDE_TOTAL_HEIGHT = 80
-        const VIEWPORT_BUFFER = 8 // 视口附近保留多少行
+        const VIEWPORT_BUFFER = 6 // 视口附近保留多少行
 
         let virtualY = 0
         let activeCenterY = 0
@@ -341,17 +353,17 @@ export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'ce
             if (immediate) {
                 l.posYSpring.setPosition(targetY)
                 l.scaleSpring.setPosition(targetScale)
-                l.el.style.transition = 'opacity 250ms linear, filter 250ms linear'
+                l.opacitySpring.setPosition(targetOpacity)
             } else {
                 l.posYSpring.setTargetPosition(targetY, stagger)
                 l.scaleSpring.setTargetPosition(targetScale, stagger)
-                const staggerMs = (stagger * 1000).toFixed(0)
-                l.el.style.transition = `opacity 500ms linear ${staggerMs}ms, filter 500ms linear ${staggerMs}ms`
+                l.opacitySpring.setTargetPosition(targetOpacity, stagger)
             }
 
+            l.settled = false
             l.el.style.transformOrigin = 'left center'
-            l.el.style.opacity = targetOpacity.toFixed(3)
             l.el.style.filter = targetBlur > 0 ? `blur(${targetBlur}px)` : 'none'
+            l.targetFilter = l.el.style.filter
             l.el.style.setProperty('--lyric-color', 'rgba(255, 255, 255, 1)')
             l.el.style.setProperty('--trans-color', 'rgba(255, 255, 255, 0.4)')
         })
@@ -363,17 +375,48 @@ export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'ce
             const l = lines[i]
             if (!l || !l.el) continue
             if (l.el.style.display === 'none') continue
+            if (l.settled) continue
+
             l.posYSpring.update(deltaSec)
             l.scaleSpring.update(deltaSec)
+            l.opacitySpring.update(deltaSec)
+
+            // 三个弹簧都收敛时标记 settled，后续帧跳过
+            if (l.posYSpring.isSettled() && l.scaleSpring.isSettled() && l.opacitySpring.isSettled()) {
+                l.settled = true
+            }
+
             const y = l.posYSpring.getCurrentPosition()
             const s = l.scaleSpring.getCurrentPosition()
-            l.el.style.transform = `translateY(${y.toFixed(1)}px) scale(${s.toFixed(4)})`
-            // AMLL 风格：mask 明暗随 scale 弹簧平滑过渡
-            // scale 0.97 (待播放) → bright=0.2, dark=0.2（整体暗）
-            // scale 1.00 (正在播放) → bright=1.0, dark=0.4（扫到的亮、未扫的暗）
-            const t = Math.max(0, Math.min(1, (s - 0.97) / 0.03))
-            l.el.style.setProperty('--mask-bright', (t * 0.8 + 0.2).toFixed(3))
-            l.el.style.setProperty('--mask-dark', (t * 0.2 + 0.2).toFixed(3))
+            const o = l.opacitySpring.getCurrentPosition()
+
+            // 批量写入：transform + opacity 合并
+            const transform = `translateY(${y.toFixed(1)}px) scale(${s.toFixed(4)})`
+            if (transform !== l._prevTransform) {
+                l.el.style.transform = transform
+                l._prevTransform = transform
+            }
+
+            const opacityStr = o.toFixed(3)
+            if (opacityStr !== l._prevOpacity) {
+                l.el.style.opacity = opacityStr
+                l._prevOpacity = opacityStr
+            }
+
+            // mask 明暗仅对逐字歌词生效
+            if (l.data.isVerbatim) {
+                const t = Math.max(0, Math.min(1, (s - 0.97) / 0.03))
+                const mb = (t * 0.8 + 0.2).toFixed(3)
+                const md = (t * 0.2 + 0.2).toFixed(3)
+                if (mb !== l._prevMaskBright) {
+                    l.el.style.setProperty('--mask-bright', mb)
+                    l._prevMaskBright = mb
+                }
+                if (md !== l._prevMaskDark) {
+                    l.el.style.setProperty('--mask-dark', md)
+                    l._prevMaskDark = md
+                }
+            }
         }
     }
 
@@ -544,7 +587,7 @@ export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'ce
 
     const loop = (timestamp: number) => {
         // 计算帧间 delta（秒），用于推进弹簧物理模拟
-        const deltaSec = lastFrameTimeRef.current ? (timestamp - lastFrameTimeRef.current) / 1000 : 0
+        const deltaSec = lastFrameTimeRef.current ? Math.min((timestamp - lastFrameTimeRef.current) / 1000, 0.066) : 0
         lastFrameTimeRef.current = timestamp
 
         const realTime = playerService.getCurrentTime()
@@ -559,7 +602,10 @@ export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'ce
         const currentInterlude = getActiveInterlude(loopTime)
 
         let activeIndex = 0
-        for (let i = 0; i < parsedLyrics.length; i++) {
+        // 游标查找：从当前位置附近开始，避免每次 O(n) 全扫描
+        const cursor = currentScrollIndexRef.current
+        const startSearch = Math.max(0, cursor - 2)
+        for (let i = startSearch; i < parsedLyrics.length; i++) {
             if (loopTime >= parsedLyrics[i].time) {
                 const hasInterlude = currentInterlude !== null
                 const isVerbatim = parsedLyrics[i].isVerbatim
@@ -651,7 +697,7 @@ export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'ce
                     >
                         <div className="lyricMainLine flex flex-wrap">
                             {line.words.map((word, wIndex) => (
-                                <span key={wIndex} className="lyricWord inline-block font-bold leading-tight whitespace-pre-wrap" style={{ paddingLeft: '0.1em', paddingRight: '0.1em', marginLeft: '-0.1em', marginRight: '-0.1em', fontFamily: lyricFontFamily, color: 'var(--lyric-color, rgba(255,255,255,0.4))', transition: 'color 300ms linear', fontSize: `clamp(${lyricFontSize * 0.6}px, 2.8vw, ${lyricFontSize}px)`, willChange: 'mask-position, transform', transform: 'translateZ(0)' }}>
+                                <span key={wIndex} className="lyricWord inline-block font-bold leading-tight whitespace-pre-wrap" style={{ paddingLeft: '0.1em', paddingRight: '0.1em', marginLeft: '-0.1em', marginRight: '-0.1em', fontFamily: lyricFontFamily, color: 'var(--lyric-color, rgba(255,255,255,0.4))', transition: 'color 300ms linear', fontSize: `clamp(${lyricFontSize * 0.6}px, 2.8vw, ${lyricFontSize}px)`, willChange: line.isVerbatim ? 'mask-position, transform' : 'auto', transform: 'translateZ(0)' }}>
                                     {word.text}
                                 </span>
                             ))}

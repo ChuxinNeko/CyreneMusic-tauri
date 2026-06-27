@@ -8,10 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
-import { Cpu, HardDrive, TerminalSquare, Trash2, Sparkles, Database, Music, Loader2, Copy, Check } from "lucide-react"
-import { useLayoutStore } from "@/lib/store/useLayoutStore"
-import { useAuthStore } from "@/lib/store/useAuthStore"
-import { urlService } from "@/lib/services/urlService"
+import { Cpu, HardDrive, TerminalSquare, Trash2, Database, Bug } from "lucide-react"
 import { listeningStatsService } from "@/lib/services/listeningStatsService"
 import { playerService } from "@/lib/services/playerService"
 import {
@@ -82,8 +79,31 @@ function InfoRow({ label, value, valueClassName }: { label: string, value: strin
 function RefreshControl({ autoRefresh, onChange, mobile = false }: { autoRefresh: boolean, onChange: (value: boolean) => void, mobile?: boolean }) {
     return (
         <div className={`flex items-center ${mobile ? "justify-between rounded-xl border border-border/60 bg-card/50 px-3 py-2.5" : "space-x-2"}`}>
-            <span className="text-sm text-muted-foreground">自动刷新 (1s)</span>
+            <span className="text-sm text-muted-foreground">自动刷新 (20s)</span>
             <Switch checked={autoRefresh} onCheckedChange={onChange} />
+        </div>
+    )
+}
+
+function DevToolsToggle({ mobile = false }: { mobile?: boolean }) {
+    const [enabled, setEnabled] = useState(false)
+
+    const handleToggle = async (value: boolean) => {
+        setEnabled(value)
+        try {
+            await invoke("toggle_devtools", { enable: value })
+        } catch (e) {
+            console.error("Failed to toggle devtools", e)
+        }
+    }
+
+    return (
+        <div className={`flex items-center ${mobile ? "justify-between rounded-xl border border-border/60 bg-card/50 px-3 py-2.5" : "space-x-2"}`}>
+            <div className="flex items-center gap-1.5">
+                <Bug className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">DevTools</span>
+            </div>
+            <Switch checked={enabled} onCheckedChange={handleToggle} />
         </div>
     )
 }
@@ -224,113 +244,6 @@ function ProcessInfoCard({ processInfo, mobile = false }: { processInfo: Process
     )
 }
 
-function QQRecommendTestCard({ mobile = false }: { mobile?: boolean }) {
-    const { token } = useAuthStore()
-    const [loading, setLoading] = useState(false)
-    const [result, setResult] = useState<{ status: number; body: any } | null>(null)
-    const [error, setError] = useState<string | null>(null)
-    const [copied, setCopied] = useState(false)
-
-    const handleTest = async () => {
-        setLoading(true)
-        setError(null)
-        setResult(null)
-        setCopied(false)
-        try {
-            const response = await fetch(`${urlService.baseUrl}/qq/recommend/for_you`, {
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-            })
-            const body = await response.json().catch(() => null)
-            setResult({ status: response.status, body })
-        } catch (e: any) {
-            setError(e?.message || String(e))
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    const handleCopy = async () => {
-        if (!result?.body) return
-        try {
-            await navigator.clipboard.writeText(JSON.stringify(result.body, null, 2))
-            setCopied(true)
-            setTimeout(() => setCopied(false), 1500)
-        } catch {
-            // 忽略剪贴板失败
-        }
-    }
-
-    return (
-        <Card className="bg-card/40 backdrop-blur border-border/50 shadow-sm transition-all hover:shadow-md">
-            <CardHeader className={`flex flex-row items-center justify-between space-y-0 ${mobile ? "px-4 py-3" : "py-3"}`}>
-                <CardTitle className="text-lg flex items-center gap-2">
-                    <Music className="w-5 h-5 text-primary" />
-                    QQ音乐推荐测试
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                    {result?.body && (
-                        <Button variant="ghost" size="sm" onClick={handleCopy} className="h-8 shrink-0">
-                            {copied ? <Check className="w-4 h-4 mr-1 text-green-500" /> : <Copy className="w-4 h-4 mr-1" />}
-                            {copied ? "已复制" : "复制"}
-                        </Button>
-                    )}
-                    <Button size="sm" onClick={handleTest} disabled={loading} className="h-8 shrink-0">
-                        {loading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Music className="w-4 h-4 mr-1" />}
-                        {loading ? "请求中..." : "测试"}
-                    </Button>
-                </div>
-            </CardHeader>
-            <CardContent className="text-sm space-y-2">
-                {!token && (
-                    <div className="text-xs text-amber-500">
-                        ⚠ 未检测到登录 token，请求将不带 Authorization（接口会返回 401 未授权）
-                    </div>
-                )}
-
-                {/* 请求信息 */}
-                <InfoRow
-                    label="请求端点:"
-                    value={`GET ${urlService.baseUrl}/qq/recommend/for_you`}
-                    valueClassName="text-xs font-mono"
-                />
-                <InfoRow
-                    label="当前 token:"
-                    value={token ? `${token.slice(0, 12)}...${token.slice(-6)}` : "(无)"}
-                    valueClassName="text-xs font-mono"
-                />
-
-                {/* 状态码 */}
-                {result && (
-                    <InfoRow
-                        label="HTTP 状态:"
-                        value={String(result.status)}
-                        valueClassName={
-                            result.status === 200 ? "text-green-500" : "text-amber-500"
-                        }
-                    />
-                )}
-
-                {/* 网络错误 */}
-                {error && (
-                    <div className="mt-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-500 break-all">
-                        请求失败: {error}
-                    </div>
-                )}
-
-                {/* 原始 JSON 响应 */}
-                {result?.body !== undefined && result.body !== null && (
-                    <div className="mt-2">
-                        <div className="mb-1 text-xs text-muted-foreground">后端原始返回 JSON：</div>
-                        <pre className={`max-h-[320px] overflow-auto rounded-md border border-border/60 bg-black/5 dark:bg-black/30 p-3 text-xs font-mono whitespace-pre-wrap break-all`}>
-                            {JSON.stringify(result.body, null, 2)}
-                        </pre>
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    )
-}
-
 function LogsCard({ logs, clearLogs, logsEndRef, mobile = false }: { logs: LogEntry[], clearLogs: () => void, logsEndRef: RefObject<HTMLDivElement | null>, mobile?: boolean }) {
     return (
         <Card className={`flex flex-col bg-card/40 backdrop-blur border-border/50 shadow-sm overflow-hidden ${mobile ? "min-h-[48vh]" : "flex-1 mt-4"}`}>
@@ -391,7 +304,6 @@ function DesktopDevLayout({
     clearLogs: () => void
     logsEndRef: RefObject<HTMLDivElement | null>
 }) {
-    const showLiquidGlass = useLayoutStore((state) => state.showLiquidGlass)
 
     return (
         <div className="flex flex-col h-full space-y-4 p-4">
@@ -403,11 +315,8 @@ function DesktopDevLayout({
                 <div className="flex items-center gap-2">
                     <ClearPlaybackStateButton />
                     <ClearHistoryButton />
-                    <Button variant="secondary" onClick={showLiquidGlass} className="gap-2">
-                        <Sparkles className="h-4 w-4" />
-                        显示液态玻璃
-                    </Button>
                     <RefreshControl autoRefresh={autoRefresh} onChange={setAutoRefresh} />
+                    <DevToolsToggle />
                 </div>
             </div>
 
@@ -415,8 +324,6 @@ function DesktopDevLayout({
                 <SystemInfoCard systemInfo={systemInfo} />
                 <ProcessInfoCard processInfo={processInfo} />
             </div>
-
-            <QQRecommendTestCard />
 
             <LogsCard logs={logs} clearLogs={clearLogs} logsEndRef={logsEndRef} />
         </div>
@@ -440,7 +347,6 @@ function MobilePortraitDevLayout({
     clearLogs: () => void
     logsEndRef: RefObject<HTMLDivElement | null>
 }) {
-    const showLiquidGlass = useLayoutStore((state) => state.showLiquidGlass)
 
     return (
         <div className="flex min-h-full flex-col gap-3 px-3 pt-3 pb-[calc(140px+env(safe-area-inset-bottom))]">
@@ -458,11 +364,8 @@ function MobilePortraitDevLayout({
                     <div className="flex flex-wrap gap-2">
                         <ClearPlaybackStateButton />
                         <ClearHistoryButton />
-                        <Button variant="secondary" onClick={showLiquidGlass} className="gap-2">
-                            <Sparkles className="h-4 w-4" />
-                            显示液态玻璃
-                        </Button>
                         <RefreshControl autoRefresh={autoRefresh} onChange={setAutoRefresh} mobile />
+                        <DevToolsToggle mobile />
                     </div>
                 </CardHeader>
             </Card>
@@ -471,8 +374,6 @@ function MobilePortraitDevLayout({
                 <SystemInfoCard systemInfo={systemInfo} mobile />
                 <ProcessInfoCard processInfo={processInfo} mobile />
             </div>
-
-            <QQRecommendTestCard mobile />
 
             <LogsCard logs={logs} clearLogs={clearLogs} logsEndRef={logsEndRef} mobile />
         </div>
@@ -531,7 +432,7 @@ export default function DevPage() {
         const interval = setInterval(() => {
             fetchSystemInfo()
             fetchProcessInfo()
-        }, 1000)
+        }, 20000)
 
         return () => clearInterval(interval)
     }, [autoRefresh])

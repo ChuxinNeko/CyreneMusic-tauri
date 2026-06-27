@@ -58,7 +58,7 @@ export function BindingCard({
 
     return (
         <Card className={`group relative overflow-hidden transition-all duration-500 ease-out 
-            backdrop-blur-xl bg-white/40 dark:bg-black/40 
+            bg-transparent
             border-white/20 dark:border-white/10 
             hover:-translate-y-1 ${style.shadowGlow} ${style.borderGlow}`}>
             

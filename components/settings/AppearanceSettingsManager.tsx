@@ -27,7 +27,7 @@ export function AppearanceSettingsManager() {
     const [mounted, setMounted] = useState(false)
     const [isDesktop, setIsDesktop] = useState(false)
     const { material, systemSupport, setMaterial, setSystemSupport } = useWindowMaterialStore()
-    const { isTaskbarPlayerEnabled, setTaskbarPlayerEnabled, taskbarPlayerPosition, setTaskbarPlayerPosition, isImmersivePlaylistEnabled, setImmersivePlaylistEnabled, isRightSidebarPlayerEnabled, setRightSidebarPlayerEnabled } = useLayoutStore()
+    const { isTaskbarPlayerEnabled, setTaskbarPlayerEnabled, taskbarPlayerPosition, setTaskbarPlayerPosition, isImmersivePlaylistEnabled, setImmersivePlaylistEnabled, isImmersivePlaybackEnabled, setImmersivePlaybackEnabled, isRightSidebarPlayerEnabled, setRightSidebarPlayerEnabled } = useLayoutStore()
 
     // Prevent hydration mismatch
     useEffect(() => {
@@ -152,10 +152,10 @@ export function AppearanceSettingsManager() {
             appearance="subtle"
             onClick={disabled ? undefined : onClick}
             className={cn(
-                "w-full bg-white/95 dark:bg-[#2d2d2d]/85 backdrop-blur-2xl border border-black/[0.05] dark:border-white/[0.08] shadow-sm rounded-lg transition-colors",
+                "w-full bg-transparent border border-black/[0.05] dark:border-white/[0.08] shadow-sm rounded-lg transition-colors",
                 disabled
                     ? "opacity-40 cursor-not-allowed"
-                    : "cursor-pointer hover:bg-neutral-50 dark:hover:bg-[#383838]/85"
+                    : "cursor-pointer hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
             )}
         >
             <FluentCardHeader
@@ -322,6 +322,21 @@ export function AppearanceSettingsManager() {
                     <div className="space-y-4 pt-4 border-t">
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
+                                <h3 className="text-base font-semibold">播放沉浸模式</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    根据当前播放歌曲的专辑封面提取主色调，全窗口渲染沉浸式背景。优先级高于歌单沉浸模式。
+                                </p>
+                            </div>
+                            <Switch
+                                checked={isImmersivePlaybackEnabled}
+                                onCheckedChange={setImmersivePlaybackEnabled}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
                                 <h3 className="text-base font-semibold">歌单沉浸模式</h3>
                                 <p className="text-sm text-muted-foreground">
                                     在歌单详情页根据封面提取主色调，全窗口渲染沉浸式背景。
@@ -440,6 +455,21 @@ export function AppearanceSettingsManager() {
                     }
                 />
             )}
+
+            {/* 播放沉浸模式 */}
+            <FluentHorizontalCard
+                icon={Palette}
+                title="播放沉浸模式"
+                description="根据当前播放歌曲的专辑封面提取主色调，全窗口渲染沉浸式背景"
+                action={
+                    <div className="rwui-scope" data-theme={document.documentElement.getAttribute("data-theme")}>
+                        <RwuiSwitch
+                            checked={isImmersivePlaybackEnabled}
+                            onChange={setImmersivePlaybackEnabled}
+                        />
+                    </div>
+                }
+            />
 
             {/* 歌单沉浸模式 */}
             <FluentHorizontalCard

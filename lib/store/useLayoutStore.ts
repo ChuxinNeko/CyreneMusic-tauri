@@ -17,6 +17,7 @@ interface LayoutState {
     toplistSource: ToplistSource
     recommendSource: RecommendSource
     isImmersivePlaylistEnabled: boolean
+    isImmersivePlaybackEnabled: boolean
     isRightSidebarPlayerEnabled: boolean
     _settingsClickCount: number
     _lastSettingsClickTime: number
@@ -34,6 +35,7 @@ interface LayoutState {
     setRecommendSource: (source: RecommendSource) => void
     triggerRecommendPopup: () => void
     setImmersivePlaylistEnabled: (enabled: boolean) => void
+    setImmersivePlaybackEnabled: (enabled: boolean) => void
     setRightSidebarPlayerEnabled: (enabled: boolean) => void
     toggleRightSidebarPlayer: () => void
 }
@@ -50,6 +52,7 @@ export const useLayoutStore = create<LayoutState>()(
             toplistSource: 'netease',
             recommendSource: 'netease',
             isImmersivePlaylistEnabled: true,
+            isImmersivePlaybackEnabled: true,
             isRightSidebarPlayerEnabled: false,
             _settingsClickCount: 0,
             _recommendPopupTrigger: 0,
@@ -83,6 +86,7 @@ export const useLayoutStore = create<LayoutState>()(
             setRecommendSource: (recommendSource: RecommendSource) => set({ recommendSource }),
             triggerRecommendPopup: () => set((state) => ({ _recommendPopupTrigger: state._recommendPopupTrigger + 1 })),
             setImmersivePlaylistEnabled: (enabled: boolean) => set({ isImmersivePlaylistEnabled: enabled }),
+            setImmersivePlaybackEnabled: (enabled: boolean) => set({ isImmersivePlaybackEnabled: enabled }),
         }),
         {
             name: 'cyrene-layout-store',
@@ -95,6 +99,7 @@ export const useLayoutStore = create<LayoutState>()(
                 toplistSource: state.toplistSource,
                 recommendSource: state.recommendSource,
                 isImmersivePlaylistEnabled: state.isImmersivePlaylistEnabled,
+                isImmersivePlaybackEnabled: state.isImmersivePlaybackEnabled,
                 isRightSidebarPlayerEnabled: state.isRightSidebarPlayerEnabled,
             }),
         }

@@ -219,7 +219,11 @@ export const UpdateDialog: React.FC<UpdateDialogProps> = ({
             if (downloadResult.fileName.toLowerCase().endsWith('.apk') || activeDownloadId?.startsWith('android')) {
                 const result = await invoke<AndroidInstallResult>("android_install_apk", { filePath: downloadResult.path })
 
-                if (result.success) return
+                if (result.success) {
+                    // 安装器已拉起，关闭弹窗让用户看到系统安装界面
+                    handleInstallOpenChange(false)
+                    return
+                }
 
                 const hint = result.needsPermission
                     ? `需要「安装未知来源应用」权限。已为您打开系统设置，请授权后返回应用，安装将自动继续。`

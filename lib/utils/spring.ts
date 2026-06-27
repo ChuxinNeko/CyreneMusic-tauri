@@ -53,6 +53,7 @@ export class Spring {
     private currentSolver: Solver;
     private getV: (t: number) => number;
     private queuePosition?: { position: number; time: number };
+    private _settled: boolean = false;
 
     constructor(currentPosition = 0) {
         this.currentPosition = currentPosition;
@@ -81,6 +82,7 @@ export class Spring {
         } else {
             this.queuePosition = undefined;
             this.targetPosition = targetPosition;
+            this._settled = false;
             this.resetSolver();
         }
     }
@@ -92,9 +94,11 @@ export class Spring {
         this.getV = () => 0;
         this.currentTime = 0;
         this.queuePosition = undefined;
+        this._settled = true;
     }
 
     update(delta = 0) {
+        if (this._settled) return;
         this.currentTime += delta;
         this.currentPosition = this.currentSolver(this.currentTime);
         if (this.queuePosition) {
@@ -103,9 +107,20 @@ export class Spring {
                 this.setTargetPosition(this.queuePosition.position, 0);
             }
         }
+        // 收敛检测：位置接近目标且速度接近零时直接 snap 到目标
+        const vel = Math.abs(this.getV(this.currentTime));
+        const dist = Math.abs(this.currentPosition - this.targetPosition);
+        if (vel < 0.5 && dist < 0.5) {
+            this.currentPosition = this.targetPosition;
+            this._settled = true;
+        }
     }
 
     getCurrentPosition() {
         return this.currentPosition;
+    }
+
+    isSettled() {
+        return this._settled;
     }
 }

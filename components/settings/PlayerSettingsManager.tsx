@@ -166,7 +166,7 @@ export function PlayerSettingsManager() {
         <FluentCard
             orientation="horizontal"
             appearance="subtle"
-            className="w-full bg-white/95 dark:bg-[#2d2d2d]/85 backdrop-blur-2xl border border-black/[0.05] dark:border-white/[0.08] shadow-sm rounded-lg transition-colors"
+            className="w-full bg-transparent border border-black/[0.05] dark:border-white/[0.08] shadow-sm rounded-lg transition-colors"
         >
             <HeaderComponent
                 image={<Icon className="h-5 w-5 ml-1 mr-2 text-neutral-700 dark:text-neutral-300" />}

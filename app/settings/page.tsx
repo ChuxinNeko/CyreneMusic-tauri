@@ -338,7 +338,7 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement, f
                 orientation="horizontal" 
                 appearance="subtle" 
                 onClick={onClick}
-                className="w-full cursor-pointer bg-white/95 dark:bg-[#2d2d2d]/85 backdrop-blur-2xl hover:bg-neutral-50 dark:hover:bg-[#383838]/85 border border-black/[0.05] dark:border-white/[0.08] shadow-sm rounded-lg transition-colors"
+                className="w-full cursor-pointer bg-transparent hover:bg-black/[0.04] dark:hover:bg-white/[0.06] border border-black/[0.05] dark:border-white/[0.08] shadow-sm rounded-lg transition-colors"
             >
                 <FluentCardHeader
                     image={<Icon className="h-5 w-5 ml-1 mr-2 text-neutral-700 dark:text-neutral-300" />}

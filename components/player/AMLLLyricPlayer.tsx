@@ -15,12 +15,12 @@ export const AMLLLyricPlayer = React.memo(function AMLLLyricPlayer() {
     const showTranslation = usePlayerStore(s => s.showTranslation)
     const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
     const lyricFontFamily = usePlayerStore(s => s.lyricFontFamily)
-    const lyricBlurStrength = usePlayerStore(s => s.lyricBlurStrength)
 
     const containerRef = useRef<HTMLDivElement>(null)
     const playerRef = useRef<AmllLyricPlayer | null>(null)
     const rafRef = useRef<number>(0)
     const lastFrameTimeRef = useRef<number>(-1)
+    const lastTimeMsRef = useRef<number>(-1)
 
     // 初始化 AMLL 播放器实例
     useEffect(() => {
@@ -29,7 +29,7 @@ export const AMLLLyricPlayer = React.memo(function AMLLLyricPlayer() {
         const player = new AmllLyricPlayer()
         player.setEnableSpring(true)
         player.setEnableScale(true)
-        player.setEnableBlur(true)
+        player.setEnableBlur(false)
         player.setAlignPosition(0.15)
         player.setWordFadeWidth(1.0)
 
@@ -43,7 +43,7 @@ export const AMLLLyricPlayer = React.memo(function AMLLLyricPlayer() {
         }
     }, [])
 
-    // 歌词数据加载：始终包含翻译数据，通过 DOM 控制可见性
+    // 歌词数据加载：翻译数据按需传入，避免创建无用 DOM 元素
     useEffect(() => {
         const player = playerRef.current
         if (!player) return
@@ -54,26 +54,11 @@ export const AMLLLyricPlayer = React.memo(function AMLLLyricPlayer() {
             return
         }
 
-        const amllLines = toAmllLyricLines(parsed, true)
+        const amllLines = toAmllLyricLines(parsed, showTranslation)
         const currentTime = Math.round(playerService.getCurrentTime() * 1000) + INTRO_DELAY
         player.setLyricLines(amllLines, currentTime)
         player.setCurrentTime(currentTime, true)
-
-        // 歌词加载后同步翻译行可见性
-        const display = showTranslation ? "" : "none"
-        player.getElement().querySelectorAll('.FmKaba_lyricSubLine')
-            .forEach(node => (node as HTMLElement).style.display = display)
-    }, [currentTrack?.lyric, currentTrack?.yrc, currentTrack?.tlyric, currentTrack?.ytlrc])
-
-    // 翻译显示切换：直接操作 DOM 隐藏/显示翻译行，避免重建歌词
-    useEffect(() => {
-        const player = playerRef.current
-        if (!player) return
-        const el = player.getElement()
-        const display = showTranslation ? "" : "none"
-        el.querySelectorAll('.FmKaba_lyricSubLine')
-            .forEach(node => (node as HTMLElement).style.display = display)
-    }, [showTranslation])
+    }, [currentTrack?.lyric, currentTrack?.yrc, currentTrack?.tlyric, currentTrack?.ytlrc, showTranslation])
 
     // 字号自定义
     useEffect(() => {
@@ -90,14 +75,10 @@ export const AMLLLyricPlayer = React.memo(function AMLLLyricPlayer() {
         player.getElement().style.fontFamily = lyricFontFamily
     }, [lyricFontFamily])
 
-    // 模糊强度
-    useEffect(() => {
-        const player = playerRef.current
-        if (!player) return
-        player.setEnableBlur(lyricBlurStrength > 0)
-    }, [lyricBlurStrength])
 
     // 逐帧更新循环：同步播放进度 + 驱动 AMLL 动画
+    // 核心优化：setCurrentTime 内部会触发布局重算（遍历歌词组 + DOM reflow），
+    // 将其限制为每 100ms 一次；轻量的 update(delta) 弹簧动画保持每帧执行。
     useEffect(() => {
         const player = playerRef.current
         if (!player) return
@@ -109,13 +90,25 @@ export const AMLLLyricPlayer = React.memo(function AMLLLyricPlayer() {
 
         player.resume()
         lastFrameTimeRef.current = -1
+        lastTimeMsRef.current = -1
+
+        let elapsed = 100 // 首帧立即触发一次 setCurrentTime
 
         const tick = (timestamp: number) => {
             const delta = lastFrameTimeRef.current < 0 ? 0 : timestamp - lastFrameTimeRef.current
             lastFrameTimeRef.current = timestamp
 
-            const timeMs = Math.round(playerService.getCurrentTime() * 1000) + INTRO_DELAY
-            player.setCurrentTime(timeMs)
+            elapsed += delta
+
+            if (elapsed >= 100) {
+                elapsed = 0
+                const timeMs = Math.round(playerService.getCurrentTime() * 1000) + INTRO_DELAY
+                if (timeMs !== lastTimeMsRef.current) {
+                    lastTimeMsRef.current = timeMs
+                    player.setCurrentTime(timeMs)
+                }
+            }
+
             player.update(delta)
 
             rafRef.current = requestAnimationFrame(tick)

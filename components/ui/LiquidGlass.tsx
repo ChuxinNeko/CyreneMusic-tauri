@@ -9,6 +9,10 @@ interface LiquidGlassProps {
   saturate?: number
   edgeHighlight?: number
   lightAngle?: number
+  /** 启用 RGB 三通道色散增强模式（默认 true）。不支持 SVG backdrop-filter 的浏览器会自动降级。 */
+  enhanced?: boolean
+  /** RGB 通道色散偏移量（px，默认 6）。值越大棱镜色散越明显。 */
+  chromaticOffset?: number
 }
 
 function smoothStep(a: number, b: number, t: number) {
@@ -28,6 +32,25 @@ function roundedRectSDF(x: number, y: number, width: number, height: number, rad
 
 let glassIdCounter = 0;
 
+/**
+ * 检测浏览器是否支持 backdrop-filter: url(#svg-filter)。
+ * Safari 和 Firefox 不支持，会自动降级为普通毛玻璃。
+ * 参考 Mineradio 的 supportsControlGlassSvgFilter。
+ */
+function supportsSvgBackdropFilter(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    const ua = navigator.userAgent || ""
+    // Safari（非 Chrome）和 Firefox 不支持 backdrop-filter: url()
+    if ((/Safari/.test(ua) && !/Chrome/.test(ua) && !/Edg/.test(ua)) || /Firefox/.test(ua)) return false
+    const div = document.createElement("div")
+    div.style.backdropFilter = "url(#liquid-glass-support-probe)"
+    return div.style.backdropFilter !== ""
+  } catch (e) {
+    return false
+  }
+}
+
 export function LiquidGlass({
   className = "",
   intensity = 38,
@@ -35,11 +58,15 @@ export function LiquidGlass({
   saturate = 1.6,
   edgeHighlight = 0.9,
   lightAngle = 135,
+  enhanced = true,
+  chromaticOffset = 6,
 }: LiquidGlassProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [filterId] = useState(() => `liquid-glass-${++glassIdCounter}-${Math.random().toString(36).substr(2, 9)}`)
   const [svgParams, setSvgParams] = useState<{ url: string, scale: number } | null>(null)
   const [highlightUrl, setHighlightUrl] = useState<string | null>(null)
+  // 浏览器支持检测只做一次
+  const [svgSupported] = useState(() => supportsSvgBackdropFilter())
 
   useEffect(() => {
     const container = containerRef.current
@@ -53,7 +80,7 @@ export function LiquidGlass({
 
       const w = Math.ceil(rect.width) || 100
       const h = Math.ceil(rect.height) || 100
-      
+
       const canvas = document.createElement("canvas")
       const dpi = 1
       canvas.width = w * dpi
@@ -88,20 +115,20 @@ export function LiquidGlass({
           const py = y - rectH
 
           const distToEdge = roundedRectSDF(px, py, rectW, rectH, r)
-          
+
           // Compute gradient of SDF (normal pointing outward)
           const step = 1
           const d1 = roundedRectSDF(px + step, py, rectW, rectH, r)
           const d2 = roundedRectSDF(px, py + step, rectW, rectH, r)
-          
+
           let nx = d1 - distToEdge
           let ny = d2 - distToEdge
-          const len = Math.sqrt(nx*nx + ny*ny)
+          const len = Math.sqrt(nx * nx + ny * ny)
           if (len > 0) { nx /= len; ny /= len }
 
           // Edge refraction zone
           const edgeThickness = 28 * dpi
-          
+
           let distortion = 0
           if (distToEdge <= 0 && distToEdge > -edgeThickness) {
             const t = 1 - Math.abs(distToEdge) / edgeThickness
@@ -135,7 +162,7 @@ export function LiquidGlass({
         }
       }
 
-      // Encode displacement map
+      // Encode displacement map: R = dx, G = dy
       idx = 0
       for (let i = 0; i < data.length; i += 4) {
         const dx = rawValues[idx++]
@@ -159,21 +186,24 @@ export function LiquidGlass({
     }
 
     const timeoutMsg = setTimeout(generateMap, 50)
-    
+
     const observer = new ResizeObserver(() => {
       generateMap()
     })
     observer.observe(container)
-    
+
     return () => {
       clearTimeout(timeoutMsg)
       observer.disconnect()
     }
   }, [intensity, edgeHighlight, lightAngle])
 
+  // 增强模式：需要 SVG 支持 + 已生成位移贴图 + 用户启用
+  const useEnhancedMode = enhanced && svgSupported && !!svgParams
+
   return (
-    <div 
-      ref={containerRef} 
+    <div
+      ref={containerRef}
       className={`absolute inset-0 pointer-events-none rounded-[inherit] overflow-hidden ${className}`}
       style={{ zIndex: -1 }}
     >
@@ -181,18 +211,72 @@ export function LiquidGlass({
         <>
           <svg style={{ position: "absolute", width: 0, height: 0 }}>
             <defs>
-              <filter id={filterId} filterUnits="objectBoundingBox" x="0%" y="0%" width="100%" height="100%" colorInterpolationFilters="sRGB">
+              <filter
+                id={filterId}
+                filterUnits="objectBoundingBox"
+                x="-12%"
+                y="-28%"
+                width="124%"
+                height="156%"
+                colorInterpolationFilters="sRGB"
+              >
                 <feImage href={svgParams.url} result="map" width="100%" height="100%" preserveAspectRatio="none" />
-                <feDisplacementMap in="SourceGraphic" in2="map" scale={svgParams.scale} xChannelSelector="R" yChannelSelector="G" />
+                {useEnhancedMode ? (
+                  <>
+                    {/* Red 通道 —— 位移略强，向左偏移产生棱镜色散 */}
+                    <feDisplacementMap in="SourceGraphic" in2="map" scale={svgParams.scale * 1.06} xChannelSelector="R" yChannelSelector="G" result="dispRed" />
+                    <feOffset in="dispRed" dx={-chromaticOffset} dy="0" result="dispRedShifted" />
+                    <feMerge result="dispRedAligned">
+                      <feMergeNode in="SourceGraphic" />
+                      <feMergeNode in="dispRedShifted" />
+                    </feMerge>
+                    <feColorMatrix in="dispRedAligned" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red" />
+
+                    {/* Green 通道 —— 基准位移 */}
+                    <feDisplacementMap in="SourceGraphic" in2="map" scale={svgParams.scale} xChannelSelector="R" yChannelSelector="G" result="dispGreen" />
+                    <feOffset in="dispGreen" dx={-chromaticOffset} dy="0" result="dispGreenShifted" />
+                    <feMerge result="dispGreenAligned">
+                      <feMergeNode in="SourceGraphic" />
+                      <feMergeNode in="dispGreenShifted" />
+                    </feMerge>
+                    <feColorMatrix in="dispGreenAligned" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="green" />
+
+                    {/* Blue 通道 —— 位移略弱 */}
+                    <feDisplacementMap in="SourceGraphic" in2="map" scale={svgParams.scale * 0.94} xChannelSelector="R" yChannelSelector="G" result="dispBlue" />
+                    <feOffset in="dispBlue" dx={-chromaticOffset} dy="0" result="dispBlueShifted" />
+                    <feMerge result="dispBlueAligned">
+                      <feMergeNode in="SourceGraphic" />
+                      <feMergeNode in="dispBlueShifted" />
+                    </feMerge>
+                    <feColorMatrix in="dispBlueAligned" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blue" />
+
+                    {/* 用 screen 混合三通道，保留色散 */}
+                    <feBlend in="red" in2="green" mode="screen" result="rg" />
+                    <feBlend in="rg" in2="blue" mode="screen" result="output" />
+                    <feGaussianBlur in="output" stdDeviation="0.5" />
+                  </>
+                ) : (
+                  /* 降级模式：单通道位移（不支持 SVG backdrop-filter 时走普通模糊） */
+                  <feDisplacementMap in="SourceGraphic" in2="map" scale={svgParams.scale} xChannelSelector="R" yChannelSelector="G" />
+                )}
               </filter>
             </defs>
           </svg>
-          <div 
+          <div
             className="absolute inset-0 w-full h-full rounded-[inherit]"
-            style={{ 
-              backdropFilter: `url(#${filterId}) blur(${blur}px) saturate(${saturate}) brightness(1.05) contrast(1.1)`, 
-              WebkitBackdropFilter: `url(#${filterId}) blur(${blur}px) saturate(${saturate}) brightness(1.05) contrast(1.1)` 
-            }}
+            style={
+              useEnhancedMode
+                ? {
+                    // 增强模式：SVG 色散滤镜 + 轻度模糊/饱和度
+                    backdropFilter: `url(#${filterId}) blur(${Math.max(8, blur * 0.3)}px) saturate(${saturate}) brightness(1.05)`,
+                    WebkitBackdropFilter: `url(#${filterId}) blur(${Math.max(8, blur * 0.3)}px) saturate(${saturate}) brightness(1.05)`,
+                  }
+                : {
+                    // 降级模式：普通毛玻璃
+                    backdropFilter: `blur(${blur}px) saturate(${saturate}) brightness(1.05)`,
+                    WebkitBackdropFilter: `blur(${blur}px) saturate(${saturate}) brightness(1.05)`,
+                  }
+            }
           />
           {/* Specular edge highlight overlay */}
           {highlightUrl && (

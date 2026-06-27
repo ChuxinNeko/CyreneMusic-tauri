@@ -28,10 +28,10 @@ export function UserCard({ onLoginClick, className }: UserCardProps) {
     if (isFluent) {
         // 公共卡片容器样式（与 SettingsItem fluent 分支一致）
         const cardClass = cn(
-            "w-full bg-white/95 dark:bg-[#2d2d2d]/85 backdrop-blur-2xl",
+            "w-full bg-transparent",
             "border border-black/[0.05] dark:border-white/[0.08]",
             "rounded-lg shadow-sm transition-colors",
-            "hover:bg-neutral-50 dark:hover:bg-[#383838]/85",
+            "hover:bg-black/[0.04] dark:hover:bg-white/[0.06]",
             className
         )
 

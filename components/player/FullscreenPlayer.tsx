@@ -1386,34 +1386,34 @@ export function FullscreenPlayer() {
                 <div className={`relative z-[120] flex justify-center items-center gap-4 pb-6 px-8 transition-[filter] duration-500 ${isImmersiveMode && isLightCover ? '[&_button]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] [&_span]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] [&_img]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] [&_svg]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : ''}`}>
                     {/* Left Capsule: Minimize + Toggle Lyrics */}
                     <div
-                        className="relative flex items-center gap-2 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-4 py-2.5 backdrop-blur-md"
+                        className="relative flex items-center gap-2 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-4 py-2.5"
                     >
-                        <LiquidGlass className="bg-white/10" />
+                        <LiquidGlass className="bg-white/10" enhanced chromaticOffset={6} />
                         <button
                             onClick={() => setIsFullscreen(false)}
-                            className="text-white/50 hover:text-white transition-colors p-1.5"
+                            className="relative z-10 text-white/50 hover:text-white transition-colors p-1.5"
                             title="最小化播放器"
                         >
                             <ChevronDown size={20} />
                         </button>
                         <button
                             onClick={() => setIsLyricsFolded(!isLyricsFolded)}
-                            className={`p-1.5 transition-colors ${isLyricsFolded ? 'text-white' : 'text-white/50 hover:text-white'}`}
+                            className={`relative z-10 p-1.5 transition-colors ${isLyricsFolded ? 'text-white' : 'text-white/50 hover:text-white'}`}
                             title={isLyricsFolded ? '展开歌词' : '折叠歌词'}
                         >
                             <img src="/icon/icon_lyrics.svg" alt="Lyrics" className="w-5 h-5" style={{ filter: 'invert(1) brightness(100)', opacity: isLyricsFolded ? 1 : 0.6 }} />
                         </button>
-                        <div className="w-[1px] h-4 bg-white/10 mx-1" />
+                        <div className="relative z-10 w-[1px] h-4 bg-white/10 mx-1" />
                         <button
                             onClick={() => setRightPanelMode(rightPanelMode === 'info' ? 'lyrics' : 'info')}
-                            className={`p-1.5 rounded-full transition-colors ${rightPanelMode === 'info' ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
+                            className={`relative z-10 p-1.5 rounded-full transition-colors ${rightPanelMode === 'info' ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
                             title={rightPanelMode === 'info' ? '显示歌词' : '切换歌曲信息'}
                         >
                             <Info size={20} />
                         </button>
                         <button
                             onClick={() => setRightPanelMode(rightPanelMode === 'eq' ? 'lyrics' : 'eq')}
-                            className={`p-1.5 rounded-full transition-colors ${rightPanelMode === 'eq' ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
+                            className={`relative z-10 p-1.5 rounded-full transition-colors ${rightPanelMode === 'eq' ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
                             title={rightPanelMode === 'eq' ? '关闭均衡器' : '均衡器设置'}
                         >
                             <SlidersHorizontal size={20} />
@@ -1421,7 +1421,7 @@ export function FullscreenPlayer() {
                         {hasTranslation && (
                             <button
                                 onClick={toggleTranslation}
-                                className={`p-1.5 rounded-full transition-colors ${showTranslation ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
+                                className={`relative z-10 p-1.5 rounded-full transition-colors ${showTranslation ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
                                 title={showTranslation ? '隐藏翻译' : '显示翻译'}
                             >
                                 <Languages size={20} />
@@ -1431,11 +1431,11 @@ export function FullscreenPlayer() {
 
                     {/* Center Capsule: Song Info + Playback + Progress */}
                     <div
-                        className="relative flex items-center gap-5 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-5 py-2.5 flex-1 max-w-[900px] backdrop-blur-md"
+                        className="relative flex items-center gap-5 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-5 py-2.5 flex-1 max-w-[900px]"
                     >
-                        <LiquidGlass className="bg-white/10" />
+                        <LiquidGlass className="bg-white/10" enhanced chromaticOffset={6} />
                         {/* Mini Cover + Info */}
-                        <div className="flex items-center gap-2.5 min-w-[140px] shrink-0">
+                        <div className="relative z-10 flex items-center gap-2.5 min-w-[140px] shrink-0">
                             {currentTrack?.picUrl ? (
                                 <img src={currentTrack.picUrl} alt={currentTrack.name} className="w-9 h-9 rounded-lg object-cover shrink-0" />
                             ) : (
@@ -1451,7 +1451,7 @@ export function FullscreenPlayer() {
                         </div>
 
                         {/* Playback Buttons */}
-                        <div className="flex items-center gap-4 shrink-0">
+                        <div className="relative z-10 flex items-center gap-4 shrink-0">
                             {/* Immersive Mode Audio Visualizer (compact) */}
                             {isImmersiveMode && (
                                 <AudioVisualizer
@@ -1494,7 +1494,7 @@ export function FullscreenPlayer() {
                         </div>
 
                         {/* Progress */}
-                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <div className="relative z-10 flex items-center gap-2.5 flex-1 min-w-0">
                             <span className="text-[11px] text-white/50 font-semibold tabular-nums shrink-0">{formatTime(isDraggingProgress.current ? localProgress * duration : currentTime)}</span>
                             <div className="flex-1 h-3 flex items-center">
                                 <Slider
@@ -1513,9 +1513,9 @@ export function FullscreenPlayer() {
 
                     {/* Right Capsule: Volume (expands left on hover) */}
                     <div
-                        className="relative group/volbtn flex items-center h-12 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full overflow-hidden transition-all duration-300 ease-in-out w-12 hover:w-[200px] backdrop-blur-md"
+                        className="relative group/volbtn flex items-center h-12 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full overflow-hidden transition-all duration-300 ease-in-out w-12 hover:w-[200px]"
                     >
-                        <LiquidGlass className="bg-white/10 group-hover/volbtn:bg-white/15 transition-colors" />
+                        <LiquidGlass className="bg-white/10 group-hover/volbtn:bg-white/15 transition-colors" enhanced chromaticOffset={6} />
                         {/* Slider (visible on hover) */}
                         <div className="flex items-center gap-2 pl-3.5 pr-1 opacity-0 group-hover/volbtn:opacity-100 transition-opacity duration-300 absolute left-0 top-0 bottom-0 right-12 z-10">
                             <Volume size={14} className="text-white/50 shrink-0" />

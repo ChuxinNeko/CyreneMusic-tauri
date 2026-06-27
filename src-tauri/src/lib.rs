@@ -824,6 +824,17 @@ fn update_thumbbar_playing_state(is_playing: bool) {
     thumbbar::update_thumbbar_state(is_playing);
 }
 
+#[cfg(desktop)]
+#[tauri::command]
+fn toggle_devtools(window: tauri::WebviewWindow, enable: bool) -> Result<(), String> {
+    if enable {
+        window.open_devtools();
+    } else {
+        window.close_devtools();
+    }
+    Ok(())
+}
+
 #[tauri::command]
 fn get_audio_proxy_port(state: tauri::State<'_, audio_proxy::AudioProxyPort>) -> u16 {
     state.0
@@ -874,7 +885,8 @@ pub fn run() {
                         open_table_player,
                         close_table_player,
                         toggle_table_player_pin,
-                        get_table_player_pin_state
+                        get_table_player_pin_state,
+                        toggle_devtools
                     ]
                 }
                 #[cfg(not(target_os = "windows"))]
@@ -909,7 +921,8 @@ pub fn run() {
                         open_recommend_popup,
                         close_recommend_popup,
                         toggle_table_player_pin,
-                        get_table_player_pin_state
+                        get_table_player_pin_state,
+                        toggle_devtools
                     ]
                 }
             }

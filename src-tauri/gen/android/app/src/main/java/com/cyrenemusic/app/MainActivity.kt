@@ -119,8 +119,16 @@ class MainActivity : TauriActivity() {
 
   /**
    * 同步安装 APK，供 Rust 通过 JNI 调用，返回 JSON 结果字符串。
-   * 必须同步返回（不使用 runOnUiThread），否则 JNI 调用立即返回 Ok，
-   * 主线程上的异常会被吞掉，前端无法感知失败原因。
+   *
+   * 实现要点：
+   * 1. 必须同步返回结果，否则前端无法感知失败原因。
+   * 2. startActivity 必须在主线程执行。此前从 JNI 线程直接调用 startActivity，
+   *    即便带了 FLAG_ACTIVITY_NEW_TASK，在部分 Android 版本/厂商 ROM 上会
+   *    静默失败——不抛异常，但系统安装器 Activity 根本不会被拉起，
+   *    导致「点击安装没有任何反应」。
+   *
+   * 因此这里用 runOnUiThread + CountDownLatch：把安装逻辑切到主线程执行，
+   * 同时通过 latch 同步等待结果，既保证主线程执行，又保证同步返回。
    */
   fun installApkSync(filePath: String): String {
     fun jsonResult(
@@ -135,10 +143,45 @@ class MainActivity : TauriActivity() {
       .put("needsPermission", needsPerm)
       .toString()
 
+    // 若已在主线程（如 onResume 回调），直接执行，避免 latch 死锁
+    if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+      return performInstallOnMainThread(filePath, ::jsonResult)
+    }
+
+    val latch = java.util.concurrent.CountDownLatch(1)
+    var resultJson = jsonResult(false, "unknown", "安装失败：未知错误")
+
+    runOnUiThread {
+      try {
+        resultJson = performInstallOnMainThread(filePath, ::jsonResult)
+      } finally {
+        latch.countDown()
+      }
+    }
+
+    try {
+      if (!latch.await(10, java.util.concurrent.TimeUnit.SECONDS)) {
+        return jsonResult(false, "timeout", "安装操作超时")
+      }
+    } catch (e: InterruptedException) {
+      Thread.currentThread().interrupt()
+      return jsonResult(false, "interrupted", "安装操作被中断")
+    }
+    return resultJson
+  }
+
+  /**
+   * 在主线程执行实际的安装逻辑。返回 JSON 结果字符串。
+   * 仅在主线程调用。
+   */
+  private fun performInstallOnMainThread(
+    filePath: String,
+    jsonResult: (Boolean, String, String, Boolean) -> String
+  ): String {
     return try {
       val file = File(filePath)
       if (!file.exists()) {
-        return jsonResult(false, "file_not_found", "安装包不存在：$filePath")
+        return jsonResult(false, "file_not_found", "安装包不存在：$filePath", false)
       }
 
       // Android 8.0+ 必须先获得"安装未知应用"权限
@@ -146,7 +189,6 @@ class MainActivity : TauriActivity() {
         && !packageManager.canRequestPackageInstalls()
       ) {
         pendingInstallPath = filePath
-        // 带 NEW_TASK flag 可在非主线程调用 startActivity
         try {
           startActivity(
             Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
@@ -172,16 +214,16 @@ class MainActivity : TauriActivity() {
         setDataAndType(apkUri, "application/vnd.android.package-archive")
       }
       startActivity(intent)
-      jsonResult(true)
+      jsonResult(true, "", "", false)
     } catch (e: ActivityNotFoundException) {
       e.printStackTrace()
-      jsonResult(false, "activity_not_found", "未找到安装器：${e.message}")
+      jsonResult(false, "activity_not_found", "未找到安装器：${e.message}", false)
     } catch (e: SecurityException) {
       e.printStackTrace()
-      jsonResult(false, "security", "安装被系统拒绝：${e.message}")
+      jsonResult(false, "security", "安装被系统拒绝：${e.message}", false)
     } catch (e: Exception) {
       e.printStackTrace()
-      jsonResult(false, "unknown", "安装失败：${e.message}")
+      jsonResult(false, "unknown", "安装失败：${e.message}", false)
     }
   }
 }

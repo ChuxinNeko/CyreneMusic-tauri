@@ -20,6 +20,7 @@ import {
     applyWindowMaterial,
 } from "@/lib/store/useWindowMaterialStore"
 import { LiquidGlassOverlay } from "./LiquidGlassOverlay"
+import { PlaybackImmersiveBackground } from "./PlaybackImmersiveBackground"
 import { useUIThemeStore } from "@/lib/store/useUIThemeStore"
 
 export function MainLayoutContent({ children }: { children: React.ReactNode }) {
@@ -159,6 +160,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
             <AnnouncementDialog />
             <SongRecommendPopup />
             <LiquidGlassOverlay />
+            <PlaybackImmersiveBackground />
         </div>
     )
 }
