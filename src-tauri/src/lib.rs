@@ -826,11 +826,11 @@ fn update_thumbbar_playing_state(is_playing: bool) {
 
 #[cfg(desktop)]
 #[tauri::command]
-fn toggle_devtools(window: tauri::WebviewWindow, enable: bool) -> Result<(), String> {
+fn toggle_devtools(webview: tauri::Webview, enable: bool) -> Result<(), String> {
     if enable {
-        window.open_devtools();
+        webview.open_devtools();
     } else {
-        window.close_devtools();
+        webview.close_devtools();
     }
     Ok(())
 }
