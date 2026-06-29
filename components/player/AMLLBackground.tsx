@@ -12,6 +12,11 @@ export interface AMLLBackgroundProps extends React.HTMLAttributes<HTMLDivElement
     flowSpeed?: number
     lowFreqVolume?: number
     isMobile?: boolean
+    /**
+     * 静态模式：背景仅渲染一次专辑主色调，不再流动变化。
+     * 用于移动端竖屏等性能受限场景，显著降低 GPU 占用。
+     */
+    staticMode?: boolean
 }
 
 export interface AMLLBackgroundRef {
@@ -20,7 +25,7 @@ export interface AMLLBackgroundRef {
 }
 
 export const AMLLBackground = forwardRef<AMLLBackgroundRef, AMLLBackgroundProps>(
-    ({ album, playing = true, fps = 60, renderScale = 0.5, flowSpeed = 0.2, lowFreqVolume = 1.0, isMobile = false, style, ...props }, ref) => {
+    ({ album, playing = true, fps = 60, renderScale = 0.5, flowSpeed = 0.2, lowFreqVolume = 1.0, isMobile = false, staticMode = false, style, ...props }, ref) => {
         const wrapperRef = useRef<HTMLDivElement>(null)
         const bgRef = useRef<BackgroundRender<PixiRenderer> | null>(null)
 
@@ -35,7 +40,7 @@ export const AMLLBackground = forwardRef<AMLLBackgroundRef, AMLLBackgroundProps>
             bg.setRenderScale(renderScale)
             bg.setFlowSpeed(flowSpeed)
             bg.setLowFreqVolume(lowFreqVolume)
-            bg.setStaticMode(false)
+            bg.setStaticMode(staticMode)
 
             // 将 canvas 插入容器
             const canvas = bg.getElement()
@@ -64,13 +69,24 @@ export const AMLLBackground = forwardRef<AMLLBackgroundRef, AMLLBackgroundProps>
             }
         }, [album])
 
-        // 播放/暂停
+        // 播放/暂停（静态模式下保持暂停，不进入渲染循环）
         useEffect(() => {
             if (bgRef.current) {
-                if (playing) bgRef.current.resume()
+                if (playing && !staticMode) bgRef.current.resume()
                 else bgRef.current.pause()
             }
-        }, [playing])
+        }, [playing, staticMode])
+
+        // 静态模式切换：开启时暂停渲染循环，关闭时按播放状态恢复
+        useEffect(() => {
+            if (!bgRef.current) return
+            bgRef.current.setStaticMode(staticMode)
+            if (staticMode) {
+                bgRef.current.pause()
+            } else if (playing) {
+                bgRef.current.resume()
+            }
+        }, [staticMode, playing])
 
         // FPS
         useEffect(() => {

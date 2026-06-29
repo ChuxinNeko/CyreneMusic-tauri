@@ -4,6 +4,7 @@ import { MergedTrack, Track } from '../models/track';
 import { urlService } from './urlService';
 import { AudioSourceType } from '../models/audioSourceConfig';
 import { useAudioSourceStore } from '../store/useAudioSourceStore';
+import { useSearchPreferencesStore } from '../store/useSearchPreferencesStore';
 import { MusicSource } from './audioSourceService';
 
 class SearchService {
@@ -110,6 +111,12 @@ class SearchService {
                 // TODO: 从脚本内容中解析支持的平台，暂时默认四大平台
                 supportedPlatforms = ['netease', 'qq', 'kugou', 'kuwo'];
             }
+        }
+
+        // 应用用户的搜索首选项：若用户指定了平台，则仅搜索用户选中且当前音源支持的平台
+        const preferredPlatforms = useSearchPreferencesStore.getState().enabledPlatforms;
+        if (preferredPlatforms.length > 0) {
+            supportedPlatforms = supportedPlatforms.filter(p => preferredPlatforms.includes(p));
         }
 
         // 重置搜索结果并设置加载状态

@@ -104,11 +104,22 @@ class CacheService {
             if (isAlreadyCached) return;
 
             console.log(`[CacheService] ⬇️ 开始后台缓存: ${track.name}`);
-            
+
             const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            
+
+            // Content-Type 校验：拒绝把错误响应（如 Spotify librespot 500 时返回的 JSON）
+            // 当成音频缓存成几百字节的坏文件。
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.startsWith('audio/')) {
+                throw new Error(`Unexpected Content-Type: ${contentType}`);
+            }
+
             const arrayBuffer = await response.arrayBuffer();
+            // 二次校验：Spotify 320k OGG 通常 > 1MB，过小说明是错误响应
+            if (arrayBuffer.byteLength < 1024) {
+                throw new Error(`Response too small: ${arrayBuffer.byteLength} bytes`);
+            }
             const uint8Array = new Uint8Array(arrayBuffer);
             
             // 对数据进行快速加密

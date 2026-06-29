@@ -9,9 +9,9 @@ import { usePlayerStore, RepeatMode, LyricDisplayStyle } from "@/lib/store/usePl
 import { playerService } from "@/lib/services/playerService"
 import { Slider } from "@/components/ui/slider"
 import { AsyncImage } from "@/components/common/AsyncImage"
-import { LyricPlayer } from "../player/LyricPlayer"
 import { LyricPlayerSingleLine } from "../player/LyricPlayerSingleLine"
 import { LyricPlayerRoulette } from "../player/LyricPlayerRoulette"
+const AMLLLyricPlayer = dynamic(() => import("../player/AMLLLyricPlayer").then(m => m.AMLLLyricPlayer), { ssr: false })
 const AMLLBackground = dynamic(() => import("../player/AMLLBackground").then(m => m.AMLLBackground), { ssr: false })
 import { extractColorsFromImage } from "@/lib/utils/extractColors"
 import { SmokeVisualizer } from "../player/SmokeVisualizer"
@@ -418,7 +418,7 @@ export function RightSidebarPlayer({ isStandalone = false }: { isStandalone?: bo
                 <div className="flex-1 w-full relative z-10 px-4 pb-4 pt-1 overflow-hidden" style={{ WebkitAppRegion: 'no-drag' } as any}>
                     {lyricDisplayStyle === LyricDisplayStyle.Roulette ? <LyricPlayerRoulette /> :
                      lyricDisplayStyle === LyricDisplayStyle.SingleLine ? <LyricPlayerSingleLine /> :
-                     <LyricPlayer alignPosition="top-second" />}
+                     <AMLLLyricPlayer />}
                 </div>
             ) : (
                 <div className="flex-1 min-h-0 relative z-10 overflow-y-auto px-4 pb-4 space-y-1" style={{ WebkitAppRegion: 'no-drag' } as any}>

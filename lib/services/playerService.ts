@@ -77,6 +77,8 @@ class PlayerService {
     private frequencySyncRafId: number = 0
     // 当前歌曲累计播放时长（秒），用于上报后端历史记录
     private currentSongListenedSeconds: number = 0
+    // 待缓存的歌曲（仅 Spotify）：播放结束或切歌后串行下载，避免与 Howler 并发触发 librespot 500
+    private pendingSpotifyCache: { track: Track; url: string; quality: AudioQuality } | null = null
     private currentSongForHistory: Track | null = null
     // 当前歌曲语言（仅 source==='netease' 时异步拉取，用于听歌语言统计）
     private currentSongLanguage: string | null = null
@@ -387,6 +389,8 @@ class PlayerService {
         })
 
         howl.on('end', () => {
+            // Spotify 缓存串行化：自然播完时 Howler 即将释放，触发待缓存下载
+            this.flushPendingSpotifyCache()
             this.flushPlayHistory()
             this.playNext()
         })
@@ -506,6 +510,28 @@ class PlayerService {
             this.currentSongForHistory = null
             this.currentSongLanguage = null
         }
+    }
+
+    /**
+     * 触发待缓存的 Spotify 歌曲串行下载。
+     *
+     * 调用时机：旧 Howler unload 之后（切歌）或 onend 之后（自然播完）。
+     * 这两个时机都能保证 librespot 的 AudioFile 已释放，不会与 Howler
+     * 的播放请求并发触发 "read_exact OGG header 失败" 错误。
+     *
+     * 用 setTimeout(0) 让出当前微任务队列，给 librespot 资源回收留时间。
+     */
+    private flushPendingSpotifyCache() {
+        const pending = this.pendingSpotifyCache
+        if (!pending) return
+        this.pendingSpotifyCache = null
+
+        setTimeout(() => {
+            // 异步触发，不 await；cacheService 内部已有 isCached 去重
+            cacheService.downloadAndCache(pending.track, pending.url, pending.quality).catch(e => {
+                console.warn(`[PlayerService] Spotify 串行缓存失败: ${pending.track.name}`, e)
+            })
+        }, 0)
     }
 
     private updateSMTCMetadata(track: Track, duration?: number) {
@@ -733,7 +759,10 @@ class PlayerService {
                                     if (await cacheService.isCached(track.id, track.source, quality)) {
                                         finalUrl = await cacheService.getCachedAudioBlobUrl(track.id, track.source, quality)
                                         console.log(`[PlayerService] 🛡️ 预解析命中本地缓存: ${track.name}`)
-                                    } else {
+                                    } else if (track.source !== 'spotify') {
+                                        // Spotify 不在此处并发下载：librespot 同一 session 不支持
+                                        // 并发取流（AudioFile::open 并发会导致 read_exact OGG header
+                                        // 失败），改由 onend / 切歌时串行下载（见 flushPendingSpotifyCache）。
                                         cacheService.downloadAndCache(track, finalUrl, quality)
                                     }
                                 } catch (e) {
@@ -788,12 +817,17 @@ class PlayerService {
                             console.log(`[PlayerService] 酷狗音频自动降级为 HTTP:`, finalUrl)
                         }
 
+                        // Spotify 缓存策略：librespot 同一 session 不支持并发取流，
+                        // 因此不在此处并发下载（会触发 500 OGG header 错误）。
+                        // 缓存命中检查仍然进行——已缓存的曲目直接走本地 blob URL。
+                        // 未命中的 Spotify 曲面由 initHowl 后的 pendingSpotifyCache 机制
+                        // 在 onend / 切歌时串行下载。
                         if (useCacheStore.getState().isCacheEnabled) {
                             try {
                                 if (await cacheService.isCached(track.id, track.source, quality)) {
                                     finalUrl = await cacheService.getCachedAudioBlobUrl(track.id, track.source, quality)
                                     console.log(`[PlayerService] 🛡️ 命中本地缓存: ${track.name}`)
-                                } else {
+                                } else if (track.source !== 'spotify') {
                                     cacheService.downloadAndCache(track, finalUrl, quality)
                                 }
                             } catch (e) {
@@ -1041,6 +1075,48 @@ class PlayerService {
             }
         }
 
+        // ─── OmniParse Spotify ───
+        // /spotify/stream 返回 JSON，data.url 为指向 /spotify/raw-stream/{trackId} 的相对路径，
+        // 需拼接后端 baseUrl 后交给 Howl 播放。
+        // 歌词不再随 stream 响应返回，改由 fetchAndApplyLyrics 异步调用 /spotify/lyrics/:trackId
+        if (configSource.type === AudioSourceType.OmniParse && track.source === 'spotify') {
+            const response = await fetch(url, {
+                headers: { 'X-API-Key': configSource.apiKey || '' }
+            })
+
+            if (this.currentPlayRequestId !== requestId) throw new Error('请求已过期')
+            if (!response.ok) {
+                const resText = await response.text().catch(() => "")
+                let rawJson: any = null
+                try {
+                    rawJson = JSON.parse(resText)
+                } catch (_) {}
+                throw new AudioSourceError(`Spotify 音源响应异常 (HTTP ${response.status}): ${resText.slice(0, 80) || response.statusText}`, {
+                    status: response.status,
+                    rawText: resText,
+                    rawJson: rawJson || undefined
+                })
+            }
+
+            const result = await response.json()
+            if (this.currentPlayRequestId !== requestId) throw new Error('请求已过期')
+
+            if (result.status === 200 && result.data?.url) {
+                // data.url 是相对路径，需拼接后端 baseUrl
+                const baseUrl = configSource.url.replace(/\/$/, '')
+                url = `${baseUrl}${result.data.url}`
+
+                // 异步加载歌词（与 Apple Music 一致的模式），不阻塞播放流程
+                this.fetchAndApplyLyrics(track)
+            } else {
+                throw new AudioSourceError(`Spotify 解析失败: ${result.msg || result.data?.msg || 'Unknown error'}`, {
+                    rawJson: result
+                })
+            }
+
+            return { url, fallbackUrl: null, lyrics: null }
+        }
+
         // ─── OmniParse Apple Music ───
         // /apple/stream 直接返回音频流（audio/mpeg），不是 JSON 接口；
         // 仅异步加载歌词，URL 原样交给 Howl 播放
@@ -1113,6 +1189,22 @@ class PlayerService {
                     }
                 }
             }).catch(e => console.warn('[PlayerService] Failed to fetch Apple lyrics:', e));
+        } else if (track.source === 'spotify') {
+            // 独立调用 /spotify/lyrics/:trackId 获取歌词
+            // 后端内部走 librespot 代理（spclient color-lyrics + client-token 鉴权），失败回退 LRCLIB
+            const lyricUrl = `${urlService.baseUrl}/spotify/lyrics/${track.id}`;
+            fetch(lyricUrl).then(res => res.json()).then(lyricResult => {
+                const lyricsData = lyricResult?.data;
+                if (lyricsData?.lyric) {
+                    const currentTrack = usePlayerStore.getState().currentTrack;
+                    if (currentTrack && currentTrack.id === track.id) {
+                        usePlayerStore.getState().updateTrackLyrics({
+                            lyric: lyricsData.lyric || '',
+                            tlyric: lyricsData.tlyric || '',
+                        });
+                    }
+                }
+            }).catch(e => console.warn('[PlayerService] Failed to fetch Spotify lyrics:', e));
         }
     }
 
@@ -1130,6 +1222,18 @@ class PlayerService {
             this.howl = null
             oldHowl.stop()
             oldHowl.unload()
+
+            // Spotify 缓存串行化：旧 Howler 已 unload，librespot 连接释放，
+            // 此时下载上一首 Spotify 不会与播放并发触发 AudioFile::open 冲突。
+            // 用 setTimeout 让出微任务，给 librespot 资源回收留时间。
+            this.flushPendingSpotifyCache()
+        }
+
+        // 记录本曲待缓存信息（仅 Spotify 且未命中缓存时）
+        // 命中缓存时 url 是 blob: 开头，无需再缓存；未命中时 url 是 /spotify/raw-stream/ 完整 URL
+        if (track.source === 'spotify' && useCacheStore.getState().isCacheEnabled && url.includes('/spotify/raw-stream/')) {
+            const quality = useAudioSourceStore.getState().quality as AudioQuality
+            this.pendingSpotifyCache = { track, url, quality }
         }
 
         // 新一代播放：自增代次令旧进度计时器自毁，并设定本曲目的预期起点用于“武装”过滤
@@ -1137,12 +1241,18 @@ class PlayerService {
         this.progressArmed = false
         this.progressArmStart = resumeTime !== undefined && resumeTime > 0 ? resumeTime : 0
 
+        // Spotify 通过 librespot 返回 OGG Vorbis 流，URL 无扩展名，
+        // 必须显式告知 Howler.js 格式，否则 Android WebView 按 mp3 解码导致播放失败
+        const howlFormat = track.source === 'spotify'
+            ? ['ogg']
+            : ['mp3', 'flac', 'm4a', 'ogg', 'wav']
+
         this.howl = new Howl({
             src: [url],
             html5: true,
             volume: usePlayerStore.getState().volume,
             autoplay: false,
-            format: ['mp3', 'flac', 'm4a', 'wav']
+            format: howlFormat
         })
 
         // 设置 crossOrigin 以允许 Web Audio API 读取跨域音频的频率数据
@@ -1303,6 +1413,8 @@ class PlayerService {
             this.howl = null
         }
         this.stopProgressTimer()
+        // Spotify 缓存串行化：用户主动重置时也尝试缓存当前曲目
+        this.flushPendingSpotifyCache()
         this.flushPlayHistory()
         this.currentPlayRequestId = null
         this.fallbackQualityUrl = null
@@ -1406,6 +1518,18 @@ class PlayerService {
                     return {
                         lyric: lyricResult.lyric || '',
                         tlyric: lyricResult.tlyric || '',
+                    };
+                }
+            } else if (track.source === 'spotify') {
+                // 独立调用 /spotify/lyrics/:trackId，与 fetchAndApplyLyrics 中 Spotify 分支保持一致
+                const lyricUrl = `${urlService.baseUrl}/spotify/lyrics/${track.id}`;
+                const res = await fetch(lyricUrl);
+                const lyricResult = await res.json();
+                const lyricsData = lyricResult?.data;
+                if (lyricsData?.lyric) {
+                    return {
+                        lyric: lyricsData.lyric || '',
+                        tlyric: lyricsData.tlyric || '',
                     };
                 }
             }
@@ -1581,6 +1705,31 @@ class PlayerService {
             // /apple/stream 直接返回音频流，无需 JSON 解析；歌词单独预载
             else if (activeConfigSource.type === AudioSourceType.OmniParse && track.source === 'apple') {
                 // URL 已由 buildPlaybackUrl 构建为 /apple/stream?salableAdamId=xxx，直接可用
+                lyricData = await this.fetchLyricsOnly(track);
+            }
+            // 5. OmniParse Spotify 预解析逻辑
+            // /spotify/stream 返回 JSON，data.url 为指向 /spotify/raw-stream/{trackId} 的相对路径，
+            // 需拼接后端 baseUrl 后才能交给 Howl 播放。
+            // 必须与 resolveUrlFromSource 中 Spotify 分支保持一致，否则预解析存入的 URL
+            // 会停留在 JSON 元数据接口，导致 prefetch HIT 时 Howler 尝试播放 JSON 而报错。
+            else if (activeConfigSource.type === AudioSourceType.OmniParse && track.source === 'spotify') {
+                const response = await fetch(url, {
+                    headers: { 'X-API-Key': activeConfigSource.apiKey || '' }
+                })
+
+                if (!response.ok) {
+                    throw new Error(`Spotify API HTTP ${response.status}`);
+                }
+
+                const result = await response.json()
+                if (result.status === 200 && result.data?.url) {
+                    const baseUrl = activeConfigSource.url.replace(/\/$/, '')
+                    url = `${baseUrl}${result.data.url}`
+                } else {
+                    throw new Error(result.msg || result.data?.msg || 'Spotify API error');
+                }
+
+                // 预载歌词（不阻塞播放流程）
                 lyricData = await this.fetchLyricsOnly(track);
             }
 

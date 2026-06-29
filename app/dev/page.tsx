@@ -8,9 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
-import { Cpu, HardDrive, TerminalSquare, Trash2, Database, Bug } from "lucide-react"
+import { Cpu, HardDrive, TerminalSquare, Trash2, Database, Bug, Music, ExternalLink, LogOut } from "lucide-react"
 import { listeningStatsService } from "@/lib/services/listeningStatsService"
 import { playerService } from "@/lib/services/playerService"
+import { urlService } from "@/lib/services/urlService"
 import {
     Dialog,
     DialogContent,
@@ -179,6 +180,148 @@ function ClearPlaybackStateButton({ mobile = false }: { mobile?: boolean }) {
     )
 }
 
+interface SpotifyAuthStatus {
+    authenticated: boolean
+    hasRefreshToken: boolean
+    expiresIn: number
+    message?: string
+}
+
+function SpotifyAuthCard({ mobile = false }: { mobile?: boolean }) {
+    const [status, setStatus] = useState<SpotifyAuthStatus | null>(null)
+    const [loading, setLoading] = useState(false)
+    const [polling, setPolling] = useState(false)
+
+    const fetchStatus = async () => {
+        try {
+            const resp = await fetch(`${urlService.baseUrl}/spotify/status`)
+            const data = await resp.json()
+            setStatus(data)
+            return data as SpotifyAuthStatus
+        } catch {
+            setStatus({ authenticated: false, hasRefreshToken: false, expiresIn: 0 })
+        }
+    }
+
+    useEffect(() => {
+        fetchStatus()
+    }, [])
+
+    // 登录后轮询状态，直到认证成功
+    useEffect(() => {
+        if (!polling) return
+        const interval = setInterval(async () => {
+            const s = await fetchStatus()
+            if (s?.authenticated) {
+                setPolling(false)
+            }
+        }, 2000)
+        return () => clearInterval(interval)
+    }, [polling])
+
+    const handleLogin = async () => {
+        setLoading(true)
+        try {
+            const resp = await fetch(`${urlService.baseUrl}/spotify/login`)
+            const data = await resp.json()
+            if (data.authUrl) {
+                // Tauri 环境：使用系统默认浏览器打开授权页面
+                const { openUrl } = await import("@tauri-apps/plugin-opener")
+                await openUrl(data.authUrl)
+                setPolling(true)
+            }
+        } catch (e) {
+            console.error("Spotify login failed", e)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleLogout = async () => {
+        setLoading(true)
+        try {
+            await fetch(`${urlService.baseUrl}/spotify/logout`, { method: "POST" })
+            await fetchStatus()
+        } catch (e) {
+            console.error("Spotify logout failed", e)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const isAuthenticated = status?.authenticated || false
+    const hasRefresh = status?.hasRefreshToken || false
+
+    return (
+        <Card className="bg-card/40 backdrop-blur border-border/50 shadow-sm transition-all hover:shadow-md">
+            <CardHeader className={mobile ? "pb-2" : "py-3"}>
+                <CardTitle className="text-lg flex items-center gap-2">
+                    <Music className="w-5 h-5 text-green-500" />
+                    Spotify 认证
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm space-y-3">
+                <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">状态:</span>
+                    {isAuthenticated ? (
+                        <span className="font-medium text-green-500">已认证</span>
+                    ) : hasRefresh ? (
+                        <span className="font-medium text-yellow-500">Token 过期，可自动刷新</span>
+                    ) : (
+                        <span className="font-medium text-red-500">未认证</span>
+                    )}
+                </div>
+                {isAuthenticated && status?.expiresIn != null && (
+                    <InfoRow
+                        label="Token 剩余:"
+                        value={`${Math.floor(status.expiresIn / 60)} 分钟`}
+                        valueClassName="tabular-nums"
+                    />
+                )}
+                {polling && (
+                    <div className="text-xs text-yellow-500 text-center animate-pulse">
+                        等待浏览器授权完成...
+                    </div>
+                )}
+                <div className="flex gap-2 pt-1">
+                    {!isAuthenticated && !hasRefresh ? (
+                        <Button
+                            className="gap-2 bg-green-600 hover:bg-green-700 text-white flex-1"
+                            onClick={handleLogin}
+                            disabled={loading || polling}
+                        >
+                            <ExternalLink className="h-4 w-4" />
+                            {polling ? "等待授权..." : "Spotify 登录"}
+                        </Button>
+                    ) : (
+                        <>
+                            {!isAuthenticated && hasRefresh && (
+                                <Button
+                                    variant="outline"
+                                    className="gap-2 flex-1"
+                                    onClick={fetchStatus}
+                                    disabled={loading}
+                                >
+                                    刷新状态
+                                </Button>
+                            )}
+                            <Button
+                                variant="destructive"
+                                className="gap-2 flex-1"
+                                onClick={handleLogout}
+                                disabled={loading}
+                            >
+                                <LogOut className="h-4 w-4" />
+                                登出
+                            </Button>
+                        </>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
+
 function SystemInfoCard({ systemInfo, mobile = false }: { systemInfo: SystemInfo | null, mobile?: boolean }) {
     return (
         <Card className="bg-card/40 backdrop-blur border-border/50 shadow-sm transition-all hover:shadow-md">
@@ -320,9 +463,10 @@ function DesktopDevLayout({
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
                 <SystemInfoCard systemInfo={systemInfo} />
                 <ProcessInfoCard processInfo={processInfo} />
+                <SpotifyAuthCard />
             </div>
 
             <LogsCard logs={logs} clearLogs={clearLogs} logsEndRef={logsEndRef} />
@@ -373,6 +517,7 @@ function MobilePortraitDevLayout({
             <div className="grid grid-cols-1 gap-3">
                 <SystemInfoCard systemInfo={systemInfo} mobile />
                 <ProcessInfoCard processInfo={processInfo} mobile />
+                <SpotifyAuthCard mobile />
             </div>
 
             <LogsCard logs={logs} clearLogs={clearLogs} logsEndRef={logsEndRef} mobile />

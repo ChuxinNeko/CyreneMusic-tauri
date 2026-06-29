@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { AsyncImage } from "@/components/common/AsyncImage"
 import { Playlist } from "@/lib/models/playlist"
 import { ImportPlaylistDialog } from "./ImportPlaylistDialog"
+import { useIsMobile } from "@/hooks/use-mobile"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -31,6 +32,7 @@ interface PlaylistSectionProps {
 }
 
 export function PlaylistSection({ playlists, onPlaylistClick, onRefresh, onRemoveLocally }: PlaylistSectionProps) {
+    const isMobile = useIsMobile()
     const [importDialogOpen, setImportDialogOpen] = useState(false)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
     const [deletePlaylist, setDeletePlaylist] = useState<Playlist | null>(null)
@@ -103,86 +105,160 @@ export function PlaylistSection({ playlists, onPlaylistClick, onRefresh, onRemov
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-                {playlists.length > 0 ? (
-                    playlists.map((playlist) => (
-                        <div
-                            key={playlist.id}
-                            onClick={() => onPlaylistClick(playlist.id)}
-                            className="group flex flex-col gap-3 rounded-2xl hover:bg-accent/10 p-3 transition-all cursor-pointer border border-transparent hover:border-border/50"
-                        >
-                            <div className="relative aspect-square w-full rounded-2xl overflow-hidden shadow-sm bg-muted ring-1 ring-border/50">
-                                <AsyncImage src={playlist.coverUrl || ''} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500" />
-                                
-                                {/* Overlay & Menu */}
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px]">
-                                    <div className="absolute top-2 right-2">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button
-                                                    variant="secondary"
-                                                    size="icon"
-                                                    className="h-8 w-8 rounded-full bg-background/50 hover:bg-background/80 text-foreground backdrop-blur-md border-0 shadow-sm"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
-                                                    <MoreVertical className="w-4 h-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                {playlist.source && playlist.sourcePlaylistId && (
+            {isMobile ? (
+                /* 移动端：列表样式 */
+                <div className="space-y-1">
+                    {playlists.length > 0 ? (
+                        playlists.map((playlist) => (
+                            <div
+                                key={playlist.id}
+                                onClick={() => onPlaylistClick(playlist.id)}
+                                className="group flex items-center gap-3 rounded-xl hover:bg-accent/10 px-2 py-2 transition-all cursor-pointer"
+                            >
+                                <div className="relative h-14 w-14 rounded-lg overflow-hidden shadow-sm bg-muted ring-1 ring-border/50 shrink-0">
+                                    <AsyncImage src={playlist.coverUrl || ''} className="w-full h-full object-cover" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="text-sm font-bold truncate group-hover:text-primary transition-colors">
+                                        {playlist.name}
+                                    </h4>
+                                    <p className="text-xs font-medium text-muted-foreground mt-0.5 truncate">
+                                        {playlist.trackCount} 首歌曲
+                                    </p>
+                                </div>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <MoreVertical className="w-4 h-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        {playlist.source && playlist.sourcePlaylistId && (
+                                            <DropdownMenuItem
+                                                className="cursor-pointer"
+                                                disabled={syncingId === playlist.id}
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    handleSync(playlist)
+                                                }}
+                                            >
+                                                <RefreshCw className={`w-4 h-4 mr-2 ${syncingId === playlist.id ? 'animate-spin' : ''}`} />
+                                                同步歌单
+                                            </DropdownMenuItem>
+                                        )}
+                                        <DropdownMenuItem
+                                            className="text-destructive focus:text-destructive cursor-pointer"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                setDeletePlaylist(playlist)
+                                                setShowDeleteConfirm(true)
+                                            }}
+                                        >
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            删除歌单
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="py-12 text-center bg-accent/5 rounded-2xl border-2 border-dashed border-accent/50 flex flex-col items-center justify-center">
+                            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                                <Music2 className="w-7 h-7 text-primary/50" />
+                            </div>
+                            <h3 className="text-base font-bold text-foreground mb-1">暂无收藏的歌单</h3>
+                            <p className="text-xs text-muted-foreground">记录你的第一个歌单，开始音乐之旅</p>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                /* 桌面端：大封面网格样式 */
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+                    {playlists.length > 0 ? (
+                        playlists.map((playlist) => (
+                            <div
+                                key={playlist.id}
+                                onClick={() => onPlaylistClick(playlist.id)}
+                                className="group flex flex-col gap-3 rounded-2xl hover:bg-accent/10 p-3 transition-all cursor-pointer border border-transparent hover:border-border/50"
+                            >
+                                <div className="relative aspect-square w-full rounded-2xl overflow-hidden shadow-sm bg-muted ring-1 ring-border/50">
+                                    <AsyncImage src={playlist.coverUrl || ''} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500" />
+
+                                    {/* Overlay & Menu */}
+                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px]">
+                                        <div className="absolute top-2 right-2">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="icon"
+                                                        className="h-8 w-8 rounded-full bg-background/50 hover:bg-background/80 text-foreground backdrop-blur-md border-0 shadow-sm"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        <MoreVertical className="w-4 h-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    {playlist.source && playlist.sourcePlaylistId && (
+                                                        <DropdownMenuItem
+                                                            className="cursor-pointer"
+                                                            disabled={syncingId === playlist.id}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation()
+                                                                handleSync(playlist)
+                                                            }}
+                                                        >
+                                                            <RefreshCw className={`w-4 h-4 mr-2 ${syncingId === playlist.id ? 'animate-spin' : ''}`} />
+                                                            同步歌单
+                                                        </DropdownMenuItem>
+                                                    )}
                                                     <DropdownMenuItem
-                                                        className="cursor-pointer"
-                                                        disabled={syncingId === playlist.id}
+                                                        className="text-destructive focus:text-destructive cursor-pointer"
                                                         onClick={(e) => {
                                                             e.stopPropagation()
-                                                            handleSync(playlist)
+                                                            setDeletePlaylist(playlist)
+                                                            setShowDeleteConfirm(true)
                                                         }}
                                                     >
-                                                        <RefreshCw className={`w-4 h-4 mr-2 ${syncingId === playlist.id ? 'animate-spin' : ''}`} />
-                                                        同步歌单
+                                                        <Trash2 className="w-4 h-4 mr-2" />
+                                                        删除歌单
                                                     </DropdownMenuItem>
-                                                )}
-                                                <DropdownMenuItem
-                                                    className="text-destructive focus:text-destructive cursor-pointer"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        setDeletePlaylist(playlist)
-                                                        setShowDeleteConfirm(true)
-                                                    }}
-                                                >
-                                                    <Trash2 className="w-4 h-4 mr-2" />
-                                                    删除歌单
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
-                                    <div className="translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
-                                        <Button size="icon" className="rounded-full h-12 w-12 shadow-lg scale-90 group-hover:scale-100 transition-transform bg-primary text-primary-foreground hover:bg-primary/90 pointer-events-none">
-                                            <Play className="h-6 w-6 fill-current" />
-                                        </Button>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                        <div className="translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
+                                            <Button size="icon" className="rounded-full h-12 w-12 shadow-lg scale-90 group-hover:scale-100 transition-transform bg-primary text-primary-foreground hover:bg-primary/90 pointer-events-none">
+                                                <Play className="h-6 w-6 fill-current" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
+                                <div className="flex flex-col px-1">
+                                    <h4 className="text-sm font-bold truncate group-hover:text-primary transition-colors">
+                                        {playlist.name}
+                                    </h4>
+                                    <p className="text-[11px] font-medium text-muted-foreground mt-0.5 truncate">
+                                        {playlist.trackCount} 首歌曲
+                                    </p>
+                                </div>
                             </div>
-                            <div className="flex flex-col px-1">
-                                <h4 className="text-sm font-bold truncate group-hover:text-primary transition-colors">
-                                    {playlist.name}
-                                </h4>
-                                <p className="text-[11px] font-medium text-muted-foreground mt-0.5 truncate">
-                                    {playlist.trackCount} 首歌曲
-                                </p>
+                        ))
+                    ) : (
+                        <div className="col-span-full py-16 text-center bg-accent/5 rounded-[2rem] border-2 border-dashed border-accent/50 flex flex-col items-center justify-center">
+                            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                                <Music2 className="w-8 h-8 text-primary/50" />
                             </div>
+                            <h3 className="text-lg font-bold text-foreground mb-1">暂无收藏的歌单</h3>
+                            <p className="text-sm text-muted-foreground">记录你的第一个歌单，开始音乐之旅</p>
                         </div>
-                    ))
-                ) : (
-                    <div className="col-span-full py-16 text-center bg-accent/5 rounded-[2rem] border-2 border-dashed border-accent/50 flex flex-col items-center justify-center">
-                        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                            <Music2 className="w-8 h-8 text-primary/50" />
-                        </div>
-                        <h3 className="text-lg font-bold text-foreground mb-1">暂无收藏的歌单</h3>
-                        <p className="text-sm text-muted-foreground">记录你的第一个歌单，开始音乐之旅</p>
-                    </div>
-                )}
-            </div>
+                    )}
+                </div>
+            )}
 
             <ImportPlaylistDialog
                 open={importDialogOpen}

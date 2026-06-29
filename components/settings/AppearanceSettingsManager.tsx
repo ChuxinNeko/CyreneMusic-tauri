@@ -27,7 +27,7 @@ export function AppearanceSettingsManager() {
     const [mounted, setMounted] = useState(false)
     const [isDesktop, setIsDesktop] = useState(false)
     const { material, systemSupport, setMaterial, setSystemSupport } = useWindowMaterialStore()
-    const { isTaskbarPlayerEnabled, setTaskbarPlayerEnabled, taskbarPlayerPosition, setTaskbarPlayerPosition, isImmersivePlaylistEnabled, setImmersivePlaylistEnabled, isImmersivePlaybackEnabled, setImmersivePlaybackEnabled, isRightSidebarPlayerEnabled, setRightSidebarPlayerEnabled } = useLayoutStore()
+    const { isTaskbarPlayerEnabled, setTaskbarPlayerEnabled, taskbarPlayerPosition, setTaskbarPlayerPosition, isImmersivePlaylistEnabled, setImmersivePlaylistEnabled, isImmersivePlaybackEnabled, setImmersivePlaybackEnabled, isRightSidebarPlayerEnabled, setRightSidebarPlayerEnabled, isSuperCyrenePlayerEnabled, setSuperCyrenePlayerEnabled } = useLayoutStore()
 
     // Prevent hydration mismatch
     useEffect(() => {
@@ -372,6 +372,25 @@ export function AppearanceSettingsManager() {
                             </div>
                         </div>
                     )}
+
+                    {/* SuperCyrene 3D 播放器 - 暂时隐藏，功能未完成，发布 release 前移除入口
+                    {isDesktop && (
+                        <div className="space-y-4 pt-4 border-t">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <h3 className="text-base font-semibold">SuperCyrene 3D 播放器</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        启用 3D 粒子化专辑封面的沉浸式全屏播放器（实验性，仅桌面端）。
+                                    </p>
+                                </div>
+                                <Switch
+                                    checked={isSuperCyrenePlayerEnabled}
+                                    onCheckedChange={setSuperCyrenePlayerEnabled}
+                                />
+                            </div>
+                        </div>
+                    )}
+                    */}
                 </CardContent>
             </Card>
         )
@@ -509,6 +528,24 @@ export function AppearanceSettingsManager() {
                     }
                 />
             )}
+
+            {/* SuperCyrene 3D 播放器 - 暂时隐藏，功能未完成，发布 release 前移除入口
+            {isDesktop && (
+                <FluentHorizontalCard
+                    icon={Sparkles}
+                    title="SuperCyrene 3D 播放器"
+                    description="启用 3D 粒子化专辑封面的沉浸式全屏播放器（实验性）"
+                    action={
+                        <div className="rwui-scope" data-theme={document.documentElement.getAttribute("data-theme")}>
+                            <RwuiSwitch
+                                checked={isSuperCyrenePlayerEnabled}
+                                onChange={setSuperCyrenePlayerEnabled}
+                            />
+                        </div>
+                    }
+                />
+            )}
+            */}
         </div>
     )
 }

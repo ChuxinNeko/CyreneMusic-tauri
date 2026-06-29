@@ -85,6 +85,18 @@ export function FullscreenPlayer() {
     const isMobile = useIsMobile()
     const { resolvedTheme } = useTheme()
 
+    // 移动端竖屏检测：竖屏下动态背景使用静态模式以降低 GPU 占用、缓解卡顿
+    const [isPortrait, setIsPortrait] = React.useState(false)
+    React.useEffect(() => {
+        if (typeof window === 'undefined' || !window.matchMedia) return
+        const mql = window.matchMedia('(orientation: portrait)')
+        const onChange = () => setIsPortrait(mql.matches)
+        mql.addEventListener('change', onChange)
+        setIsPortrait(mql.matches)
+        return () => mql.removeEventListener('change', onChange)
+    }, [])
+    const isStaticBg = isMobile && isPortrait
+
     // 细粒度 store 订阅：高频变化字段独立订阅，避免整组件重渲染
     const currentTrack = usePlayerStore(s => s.currentTrack)
     const isPlaying = usePlayerStore(s => s.isPlaying)
@@ -630,6 +642,7 @@ export function FullscreenPlayer() {
                         fps={60}
                         renderScale={isMobile ? 0.1 : 0.25}
                         isMobile={isMobile}
+                        staticMode={isStaticBg}
                         className="absolute inset-0 w-full h-full opacity-80"
                     />
                 )}
@@ -1033,7 +1046,7 @@ export function FullscreenPlayer() {
                     {!isMobile && <div className="flex-[0.8] min-h-[2vh] shrink-0" />}
 
                     {/* Content Section: Cover/Info (+ Slides into Lyrics on Mobile) */}
-                    <div className={`relative w-full min-h-0 overflow-hidden ${isMobile ? 'flex-[2.5]' : 'flex-none'}`}>
+                    <div className={`relative w-full min-h-0 overflow-hidden ${isMobile ? 'flex-[2.5] [container-type:size]' : 'flex-none'}`}>
                         <div className={`relative min-h-0 ${isMobile ? 'flex h-full w-[200%] transition-transform duration-700 ease-in-out' : 'w-full'} ${isMobile && showMobileLyrics ? '-translate-x-1/2' : 'translate-x-0'}`}>
                         {/* Part 1: Album Art & Info */}
                         <div className={`flex flex-col items-center shrink-0 ${isMobile ? 'w-1/2 overflow-hidden' : 'w-full'} ${!isMobile ? 'justify-start' : (isImmersiveMode ? 'justify-end pb-4' : 'justify-center')}`}>
@@ -1041,7 +1054,7 @@ export function FullscreenPlayer() {
                             <div className={
                                 isImmersiveMode
                                     ? 'hidden'
-                                    : "relative z-[1] aspect-square w-full max-w-[min(100%,40vh)] lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink transition-all duration-700"
+                                    : `relative z-[1] aspect-square w-full ${isMobile ? 'max-w-[min(90%,36vh,90cqh)]' : 'max-w-[min(100%,40vh)]'} lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink transition-all duration-700`
                             }
                             >
                                 <div
@@ -1155,7 +1168,7 @@ export function FullscreenPlayer() {
                                 <div className="absolute inset-0 w-full h-full flex flex-col animate-in fade-in zoom-in-95 duration-500" onClick={handleMobileLyricsPanelTap}>
                                     {/* 歌词面板顶部歌曲信息栏 */}
                                     {rightPanelMode === 'lyrics' && (
-                                        <div className="flex items-center gap-3 px-4 py-3 shrink-0" style={{ paddingTop: 'calc(env(safe-area-inset-top, 40px) + 48px)' }} onClick={e => e.stopPropagation()}>
+                                        <div className="flex items-center gap-3 px-4 py-3 shrink-0" style={{ paddingTop: 'calc(env(safe-area-inset-top, 40px) + 38px)' }} onClick={e => e.stopPropagation()}>
                                             <img
                                                 src={currentTrack?.picUrl || ''}
                                                 alt={currentTrack?.name || ''}
@@ -1386,34 +1399,34 @@ export function FullscreenPlayer() {
                 <div className={`relative z-[120] flex justify-center items-center gap-4 pb-6 px-8 transition-[filter] duration-500 ${isImmersiveMode && isLightCover ? '[&_button]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] [&_span]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] [&_img]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] [&_svg]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : ''}`}>
                     {/* Left Capsule: Minimize + Toggle Lyrics */}
                     <div
-                        className="relative flex items-center gap-2 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-4 py-2.5"
+                        className="relative flex items-center gap-2 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-4 py-2.5 backdrop-blur-md"
                     >
-                        <LiquidGlass className="bg-white/10" enhanced chromaticOffset={6} />
+                        <LiquidGlass className="bg-white/10" />
                         <button
                             onClick={() => setIsFullscreen(false)}
-                            className="relative z-10 text-white/50 hover:text-white transition-colors p-1.5"
+                            className="text-white/50 hover:text-white transition-colors p-1.5"
                             title="最小化播放器"
                         >
                             <ChevronDown size={20} />
                         </button>
                         <button
                             onClick={() => setIsLyricsFolded(!isLyricsFolded)}
-                            className={`relative z-10 p-1.5 transition-colors ${isLyricsFolded ? 'text-white' : 'text-white/50 hover:text-white'}`}
+                            className={`p-1.5 transition-colors ${isLyricsFolded ? 'text-white' : 'text-white/50 hover:text-white'}`}
                             title={isLyricsFolded ? '展开歌词' : '折叠歌词'}
                         >
                             <img src="/icon/icon_lyrics.svg" alt="Lyrics" className="w-5 h-5" style={{ filter: 'invert(1) brightness(100)', opacity: isLyricsFolded ? 1 : 0.6 }} />
                         </button>
-                        <div className="relative z-10 w-[1px] h-4 bg-white/10 mx-1" />
+                        <div className="w-[1px] h-4 bg-white/10 mx-1" />
                         <button
                             onClick={() => setRightPanelMode(rightPanelMode === 'info' ? 'lyrics' : 'info')}
-                            className={`relative z-10 p-1.5 rounded-full transition-colors ${rightPanelMode === 'info' ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
+                            className={`p-1.5 rounded-full transition-colors ${rightPanelMode === 'info' ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
                             title={rightPanelMode === 'info' ? '显示歌词' : '切换歌曲信息'}
                         >
                             <Info size={20} />
                         </button>
                         <button
                             onClick={() => setRightPanelMode(rightPanelMode === 'eq' ? 'lyrics' : 'eq')}
-                            className={`relative z-10 p-1.5 rounded-full transition-colors ${rightPanelMode === 'eq' ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
+                            className={`p-1.5 rounded-full transition-colors ${rightPanelMode === 'eq' ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
                             title={rightPanelMode === 'eq' ? '关闭均衡器' : '均衡器设置'}
                         >
                             <SlidersHorizontal size={20} />
@@ -1421,7 +1434,7 @@ export function FullscreenPlayer() {
                         {hasTranslation && (
                             <button
                                 onClick={toggleTranslation}
-                                className={`relative z-10 p-1.5 rounded-full transition-colors ${showTranslation ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
+                                className={`p-1.5 rounded-full transition-colors ${showTranslation ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
                                 title={showTranslation ? '隐藏翻译' : '显示翻译'}
                             >
                                 <Languages size={20} />
@@ -1431,11 +1444,11 @@ export function FullscreenPlayer() {
 
                     {/* Center Capsule: Song Info + Playback + Progress */}
                     <div
-                        className="relative flex items-center gap-5 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-5 py-2.5 flex-1 max-w-[900px]"
+                        className="relative flex items-center gap-5 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-5 py-2.5 flex-1 max-w-[900px] backdrop-blur-md"
                     >
-                        <LiquidGlass className="bg-white/10" enhanced chromaticOffset={6} />
+                        <LiquidGlass className="bg-white/10" />
                         {/* Mini Cover + Info */}
-                        <div className="relative z-10 flex items-center gap-2.5 min-w-[140px] shrink-0">
+                        <div className="flex items-center gap-2.5 min-w-[140px] shrink-0">
                             {currentTrack?.picUrl ? (
                                 <img src={currentTrack.picUrl} alt={currentTrack.name} className="w-9 h-9 rounded-lg object-cover shrink-0" />
                             ) : (
@@ -1451,7 +1464,7 @@ export function FullscreenPlayer() {
                         </div>
 
                         {/* Playback Buttons */}
-                        <div className="relative z-10 flex items-center gap-4 shrink-0">
+                        <div className="flex items-center gap-4 shrink-0">
                             {/* Immersive Mode Audio Visualizer (compact) */}
                             {isImmersiveMode && (
                                 <AudioVisualizer
@@ -1494,7 +1507,7 @@ export function FullscreenPlayer() {
                         </div>
 
                         {/* Progress */}
-                        <div className="relative z-10 flex items-center gap-2.5 flex-1 min-w-0">
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
                             <span className="text-[11px] text-white/50 font-semibold tabular-nums shrink-0">{formatTime(isDraggingProgress.current ? localProgress * duration : currentTime)}</span>
                             <div className="flex-1 h-3 flex items-center">
                                 <Slider
@@ -1513,9 +1526,9 @@ export function FullscreenPlayer() {
 
                     {/* Right Capsule: Volume (expands left on hover) */}
                     <div
-                        className="relative group/volbtn flex items-center h-12 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full overflow-hidden transition-all duration-300 ease-in-out w-12 hover:w-[200px]"
+                        className="relative group/volbtn flex items-center h-12 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full overflow-hidden transition-all duration-300 ease-in-out w-12 hover:w-[200px] backdrop-blur-md"
                     >
-                        <LiquidGlass className="bg-white/10 group-hover/volbtn:bg-white/15 transition-colors" enhanced chromaticOffset={6} />
+                        <LiquidGlass className="bg-white/10 group-hover/volbtn:bg-white/15 transition-colors" />
                         {/* Slider (visible on hover) */}
                         <div className="flex items-center gap-2 pl-3.5 pr-1 opacity-0 group-hover/volbtn:opacity-100 transition-opacity duration-300 absolute left-0 top-0 bottom-0 right-12 z-10">
                             <Volume size={14} className="text-white/50 shrink-0" />

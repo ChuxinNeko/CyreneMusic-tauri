@@ -19,6 +19,7 @@ interface LayoutState {
     isImmersivePlaylistEnabled: boolean
     isImmersivePlaybackEnabled: boolean
     isRightSidebarPlayerEnabled: boolean
+    isSuperCyrenePlayerEnabled: boolean
     _settingsClickCount: number
     _lastSettingsClickTime: number
     _recommendPopupTrigger: number
@@ -38,6 +39,7 @@ interface LayoutState {
     setImmersivePlaybackEnabled: (enabled: boolean) => void
     setRightSidebarPlayerEnabled: (enabled: boolean) => void
     toggleRightSidebarPlayer: () => void
+    setSuperCyrenePlayerEnabled: (enabled: boolean) => void
 }
 
 export const useLayoutStore = create<LayoutState>()(
@@ -54,6 +56,7 @@ export const useLayoutStore = create<LayoutState>()(
             isImmersivePlaylistEnabled: true,
             isImmersivePlaybackEnabled: true,
             isRightSidebarPlayerEnabled: false,
+            isSuperCyrenePlayerEnabled: false,
             _settingsClickCount: 0,
             _recommendPopupTrigger: 0,
             _lastSettingsClickTime: 0,
@@ -87,6 +90,7 @@ export const useLayoutStore = create<LayoutState>()(
             triggerRecommendPopup: () => set((state) => ({ _recommendPopupTrigger: state._recommendPopupTrigger + 1 })),
             setImmersivePlaylistEnabled: (enabled: boolean) => set({ isImmersivePlaylistEnabled: enabled }),
             setImmersivePlaybackEnabled: (enabled: boolean) => set({ isImmersivePlaybackEnabled: enabled }),
+            setSuperCyrenePlayerEnabled: (enabled: boolean) => set({ isSuperCyrenePlayerEnabled: enabled }),
         }),
         {
             name: 'cyrene-layout-store',
@@ -101,6 +105,7 @@ export const useLayoutStore = create<LayoutState>()(
                 isImmersivePlaylistEnabled: state.isImmersivePlaylistEnabled,
                 isImmersivePlaybackEnabled: state.isImmersivePlaybackEnabled,
                 isRightSidebarPlayerEnabled: state.isRightSidebarPlayerEnabled,
+                isSuperCyrenePlayerEnabled: state.isSuperCyrenePlayerEnabled,
             }),
         }
     )

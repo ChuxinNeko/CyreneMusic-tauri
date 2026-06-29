@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { ChevronRight, Server, ChevronLeft, User, Music, Music2, KeyRound, Info, FileText, Settings2, Palette, RefreshCw, HardDrive, Sparkles, Trophy } from "lucide-react"
+import { ChevronRight, Server, ChevronLeft, User, Music, Music2, KeyRound, Info, FileText, Settings2, Palette, RefreshCw, HardDrive, Sparkles, Trophy, Search, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -25,7 +25,9 @@ import { CacheSettingsManager } from "@/components/settings/CacheSettingsManager
 import { PlayerSettingsManager } from "@/components/settings/PlayerSettingsManager"
 import { useTheme } from "next-themes"
 import { useLayoutStore } from "@/lib/store/useLayoutStore"
+import { useSearchPreferencesStore, PLATFORM_LABELS } from "@/lib/store/useSearchPreferencesStore"
 import { Switch } from "@/components/ui/switch"
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
 import { FluentProvider, webLightTheme, webDarkTheme, Text, Switch as FluentSwitch, Card as FluentCard, CardHeader as FluentCardHeader } from "@fluentui/react-components"
 import { RwuiSelect } from "@/components/rwui/RwuiSelect"
@@ -72,6 +74,50 @@ function SettingsPageContent() {
     const { theme } = useTheme()
     const { currentTheme } = useUIThemeStore()
     const { showDailyRecommendPopup, setShowDailyRecommendPopup, triggerRecommendPopup, toplistSource, setToplistSource, recommendSource, setRecommendSource } = useLayoutStore()
+    const { enabledPlatforms, setEnabledPlatforms } = useSearchPreferencesStore()
+
+    // 根据当前激活音源计算可用的搜索平台列表（与 searchService 中逻辑保持一致）
+    const availableSearchPlatforms: string[] = (() => {
+        if (!activeSource) return []
+        if (activeSource.type === AudioSourceType.OmniParse) {
+            return ['netease', 'qq', 'kugou', 'kuwo', 'apple', 'spotify', 'qishui']
+        } else if (activeSource.type === AudioSourceType.TuneHub) {
+            return ['netease', 'qq', 'kuwo']
+        } else if (activeSource.type === AudioSourceType.LxMusic) {
+            return ['netease', 'qq', 'kugou', 'kuwo']
+        }
+        return []
+    })()
+
+    // 搜索首选项描述与选中状态（空数组视为全部启用，向后兼容）
+    const isSearchPrefAll = enabledPlatforms.length === 0
+    const selectedSearchCount = isSearchPrefAll
+        ? availableSearchPlatforms.length
+        : availableSearchPlatforms.filter(p => enabledPlatforms.includes(p)).length
+    const searchPrefDescription = !activeSource
+        ? "未配置音源"
+        : isSearchPrefAll
+            ? `全部 ${availableSearchPlatforms.length} 个平台`
+            : `已选 ${selectedSearchCount} / ${availableSearchPlatforms.length} 个平台`
+
+    const handleToggleSearchPlatform = (platform: string, checked: boolean) => {
+        if (isSearchPrefAll) {
+            // 当前为「全部」状态：取消某项 = 选中除该项外的全部
+            if (!checked) {
+                setEnabledPlatforms(availableSearchPlatforms.filter(p => p !== platform))
+            }
+        } else {
+            if (checked) {
+                const next = [...enabledPlatforms, platform]
+                // 若选中后已覆盖全部可用平台，则重置为空（等价于「全部」）
+                setEnabledPlatforms(
+                    availableSearchPlatforms.every(p => next.includes(p)) ? [] : next
+                )
+            } else {
+                setEnabledPlatforms(enabledPlatforms.filter(p => p !== platform))
+            }
+        }
+    }
 
     useEffect(() => {
         // Initial load
@@ -564,6 +610,49 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement, f
                                                 }}
                                                 style={{ width: 80 }}
                                             />
+                                        </div>
+                                    }
+                                />
+                                <SettingsItem
+                                    icon={Search}
+                                    title="搜索首选项"
+                                    description={searchPrefDescription}
+                                    onClick={() => {}}
+                                    rightElement={
+                                        <div onClick={(e) => e.stopPropagation()}>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="outline" size="sm" className="h-7 gap-1 text-xs px-2.5">
+                                                        <span>{isSearchPrefAll ? "全部" : `${selectedSearchCount} 个`}</span>
+                                                        <ChevronDown className="h-3 w-3 opacity-60" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-48">
+                                                    <DropdownMenuLabel>选择搜索平台</DropdownMenuLabel>
+                                                    <DropdownMenuSeparator />
+                                                    {availableSearchPlatforms.length === 0 ? (
+                                                        <div className="px-2 py-3 text-xs text-muted-foreground text-center">未配置音源</div>
+                                                    ) : (
+                                                        availableSearchPlatforms.map(platform => (
+                                                            <DropdownMenuCheckboxItem
+                                                                key={platform}
+                                                                checked={isSearchPrefAll || enabledPlatforms.includes(platform)}
+                                                                onCheckedChange={(checked) => handleToggleSearchPlatform(platform, checked)}
+                                                                onSelect={(e) => e.preventDefault()}
+                                                            >
+                                                                {PLATFORM_LABELS[platform] || platform}
+                                                            </DropdownMenuCheckboxItem>
+                                                        ))
+                                                    )}
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem
+                                                        onSelect={() => setEnabledPlatforms([])}
+                                                        className="text-xs justify-center text-muted-foreground"
+                                                    >
+                                                        重置为全部
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                         </div>
                                     }
                                 />

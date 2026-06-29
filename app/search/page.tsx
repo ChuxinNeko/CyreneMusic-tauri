@@ -14,6 +14,20 @@ import { Button } from "@/components/ui/button"
 import { Loader2, Music2, Search, Play, MoreHorizontal, User } from "lucide-react"
 import { NeteaseArtistBrief } from "@/lib/models/search"
 import { useRouter } from "next/navigation"
+import { useSearchPreferencesStore } from "@/lib/store/useSearchPreferencesStore"
+import { useAudioSourceStore } from "@/lib/store/useAudioSourceStore"
+import { AudioSourceType } from "@/lib/models/audioSourceConfig"
+
+// 平台顺序及对应 SearchResult 字段映射（artist 始终可见，单独处理）
+const PLATFORM_TABS = [
+    { key: 'netease', label: '网易云', resultsKey: 'neteaseResults' as const, loadingKey: 'neteaseLoading' as const },
+    { key: 'qq', label: 'QQ 音乐', resultsKey: 'qqResults' as const, loadingKey: 'qqLoading' as const },
+    { key: 'kugou', label: '酷狗', resultsKey: 'kugouResults' as const, loadingKey: 'kugouLoading' as const },
+    { key: 'kuwo', label: '酷我', resultsKey: 'kuwoResults' as const, loadingKey: 'kuwoLoading' as const },
+    { key: 'apple', label: 'Apple Music', resultsKey: 'appleResults' as const, loadingKey: 'appleLoading' as const },
+    { key: 'spotify', label: 'Spotify', resultsKey: 'spotifyResults' as const, loadingKey: 'spotifyLoading' as const },
+    { key: 'qishui', label: '汽水音乐', resultsKey: 'qishuiResults' as const, loadingKey: 'qishuiLoading' as const },
+]
 
 export default function SearchPage() {
     const router = useRouter()
@@ -21,6 +35,36 @@ export default function SearchPage() {
     const query = searchParams.get("q") || ""
     const [searchState, setSearchState] = React.useState(searchService.searchResult)
     const [isLoading, setIsLoading] = React.useState(false)
+
+    // 计算当前可见的平台 tab（与 searchService / 设置页逻辑保持一致）
+    const { enabledPlatforms } = useSearchPreferencesStore()
+    const { sources } = useAudioSourceStore()
+    const activeSource = sources.length > 0 ? sources[0] : null
+
+    const availablePlatforms: string[] = React.useMemo(() => {
+        if (!activeSource) return []
+        if (activeSource.type === AudioSourceType.OmniParse) {
+            return ['netease', 'qq', 'kugou', 'kuwo', 'apple', 'spotify', 'qishui']
+        } else if (activeSource.type === AudioSourceType.TuneHub) {
+            return ['netease', 'qq', 'kuwo']
+        } else if (activeSource.type === AudioSourceType.LxMusic) {
+            return ['netease', 'qq', 'kugou', 'kuwo']
+        }
+        return []
+    }, [activeSource])
+
+    const visiblePlatformTabs = React.useMemo(() => {
+        // 空数组视为全部启用（向后兼容）
+        if (enabledPlatforms.length === 0) {
+            return PLATFORM_TABS.filter(t => availablePlatforms.includes(t.key))
+        }
+        return PLATFORM_TABS.filter(t =>
+            availablePlatforms.includes(t.key) && enabledPlatforms.includes(t.key)
+        )
+    }, [enabledPlatforms, availablePlatforms])
+
+    // 默认选中的 tab：优先第一个可见平台，否则回退到「歌手」
+    const defaultTab = visiblePlatformTabs[0]?.key ?? 'artist'
 
     React.useEffect(() => {
         if (!query) return
@@ -176,30 +220,14 @@ export default function SearchPage() {
                 )}
             </div>
 
-            <Tabs defaultValue="netease" className="flex-1 flex flex-col min-h-0">
+            <Tabs defaultValue={defaultTab} key={defaultTab} className="flex-1 flex flex-col min-h-0">
                 <div className="px-4 lg:px-8 overflow-hidden">
                     <TabsList className="w-full justify-start h-11 bg-muted/50 p-1 rounded-lg overflow-x-auto flex-nowrap [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
-                        <TabsTrigger value="netease" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
-                            网易云 <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.neteaseResults.length}</Badge>
-                        </TabsTrigger>
-                        <TabsTrigger value="qq" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
-                            QQ 音乐 <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.qqResults.length}</Badge>
-                        </TabsTrigger>
-                        <TabsTrigger value="kugou" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
-                            酷狗 <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.kugouResults.length}</Badge>
-                        </TabsTrigger>
-                        <TabsTrigger value="kuwo" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
-                            酷我 <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.kuwoResults.length}</Badge>
-                        </TabsTrigger>
-                        <TabsTrigger value="apple" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
-                            Apple Music <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.appleResults.length}</Badge>
-                        </TabsTrigger>
-                        <TabsTrigger value="spotify" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
-                            Spotify <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.spotifyResults.length}</Badge>
-                        </TabsTrigger>
-                        <TabsTrigger value="qishui" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
-                            汽水音乐 <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.qishuiResults.length}</Badge>
-                        </TabsTrigger>
+                        {visiblePlatformTabs.map(tab => (
+                            <TabsTrigger key={tab.key} value={tab.key} className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
+                                {tab.label} <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{(searchState as any)[tab.resultsKey].length}</Badge>
+                            </TabsTrigger>
+                        ))}
                         <TabsTrigger value="artist" className="flex-none px-4 whitespace-nowrap data-[state=active]:bg-background">
                             歌手 <Badge variant="secondary" className="ml-2 h-4 px-1 text-[10px]">{searchState.artistResults.length}</Badge>
                         </TabsTrigger>
@@ -209,27 +237,11 @@ export default function SearchPage() {
                 <div className="flex-1 mt-4 overflow-hidden">
                     <ScrollArea className="h-full">
                         <div className="p-4 lg:p-8 pt-0">
-                            <TabsContent value="netease" className="m-0 focus-visible:ring-0">
-                                {renderTrackList(searchState.neteaseResults)}
-                            </TabsContent>
-                            <TabsContent value="qq" className="m-0 focus-visible:ring-0">
-                                {renderTrackList(searchState.qqResults)}
-                            </TabsContent>
-                            <TabsContent value="kugou" className="m-0 focus-visible:ring-0">
-                                {renderTrackList(searchState.kugouResults)}
-                            </TabsContent>
-                            <TabsContent value="kuwo" className="m-0 focus-visible:ring-0">
-                                {renderTrackList(searchState.kuwoResults)}
-                            </TabsContent>
-                            <TabsContent value="apple" className="m-0 focus-visible:ring-0">
-                                {renderTrackList(searchState.appleResults)}
-                            </TabsContent>
-                            <TabsContent value="spotify" className="m-0 focus-visible:ring-0">
-                                {renderTrackList(searchState.spotifyResults)}
-                            </TabsContent>
-                            <TabsContent value="qishui" className="m-0 focus-visible:ring-0">
-                                {renderTrackList(searchState.qishuiResults)}
-                            </TabsContent>
+                            {visiblePlatformTabs.map(tab => (
+                                <TabsContent key={tab.key} value={tab.key} className="m-0 focus-visible:ring-0">
+                                    {renderTrackList((searchState as any)[tab.resultsKey] as Track[])}
+                                </TabsContent>
+                            ))}
                             <TabsContent value="artist" className="m-0 focus-visible:ring-0">
                                 {renderArtistList(searchState.artistResults)}
                             </TabsContent>

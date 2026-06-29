@@ -300,68 +300,69 @@ export function AudioSourceManager() {
                                         : "hover:border-primary/20 hover:shadow-md"
                             )}
                         >
-                            <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between space-y-0">
-                                <div className="flex items-center gap-3">
+                            <CardHeader className="p-3 md:p-4 md:pb-2 flex flex-row items-center justify-between space-y-0 gap-2">
+                                <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
                                     {/* 拖拽手柄 */}
                                     <div
                                         onPointerDown={(e) => handlePointerDown(e, source.id)}
                                         onPointerMove={(e) => handlePointerMove(e, source.id)}
                                         onPointerUp={(e) => handlePointerUp(e, source.id)}
                                         onPointerCancel={(e) => handlePointerCancel(e, source.id)}
-                                        className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground transition-colors p-1.5 rounded hover:bg-muted/50 touch-none"
+                                        className="cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground transition-colors p-1 md:p-1.5 rounded hover:bg-muted/50 touch-none shrink-0"
                                     >
-                                        <GripVertical className="h-5 w-5" />
+                                        <GripVertical className="h-4 w-4 md:h-5 md:w-5" />
                                     </div>
                                     {/* 优先级序号 */}
                                     <div className={cn(
-                                        "flex items-center justify-center h-6 w-6 rounded-full text-xs font-bold shrink-0 transition-colors",
+                                        "flex items-center justify-center h-5 w-5 md:h-6 md:w-6 rounded-full text-[10px] md:text-xs font-bold shrink-0 transition-colors",
                                         index === 0 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                                     )}>
                                         {index + 1}
                                     </div>
                                     <div className={cn(
-                                        "p-2 rounded-lg transition-colors",
+                                        "p-1.5 md:p-2 rounded-lg transition-colors shrink-0",
                                         index === 0 ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
                                     )}>
-                                        {getSourceIcon(source.type)}
+                                        {React.cloneElement(getSourceIcon(source.type) as React.ReactElement, { className: 'h-4 w-4 md:h-5 md:w-5' })}
                                     </div>
-                                    <div className="space-y-0.5">
-                                        <div className="flex items-center gap-2">
-                                            <CardTitle className="text-base">{source.name}</CardTitle>
+                                    <div className="space-y-0.5 min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <CardTitle className="text-sm md:text-base truncate">{source.name}</CardTitle>
                                             {index === 0 && (
-                                                <div className="bg-primary/20 text-primary text-[10px] uppercase font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
+                                                <div className="bg-primary/20 text-primary text-[10px] uppercase font-bold px-1.5 py-0.5 rounded flex items-center gap-1 shrink-0">
                                                     <Check className="h-3 w-3" />
-                                                    最高优先
+                                                    <span className="hidden sm:inline">最高优先</span>
                                                 </div>
                                             )}
                                         </div>
-                                        <CardDescription className="text-xs flex items-center gap-1 truncate max-w-[240px]">
+                                        <CardDescription className="text-xs flex items-center gap-1 truncate">
                                             {getSourceTypeName(source.type)} • {source.type === AudioSourceType.OmniParse ? "(URL 已隐藏)" : source.url.replace(/https?:\/\//, '')}
                                         </CardDescription>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {/* 移动端始终可见，桌面端仅在 hover 时显示 */}
+                                <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                        className="h-7 w-7 md:h-8 md:w-8 text-muted-foreground hover:text-foreground"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             handleOpenEditDialog(source);
                                         }}
                                     >
-                                        <Edit2 className="h-4 w-4" />
+                                        <Edit2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
                                     </Button>
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                        className="h-7 w-7 md:h-8 md:w-8 text-muted-foreground hover:text-destructive"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             removeSource(source.id);
                                         }}
                                     >
-                                        <Trash2 className="h-4 w-4" />
+                                        <Trash2 className="h-3.5 w-3.5 md:h-4 md:w-4" />
                                     </Button>
                                 </div>
                             </CardHeader>

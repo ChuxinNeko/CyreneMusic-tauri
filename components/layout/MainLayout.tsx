@@ -7,6 +7,7 @@ import { TitleBar } from "./TitleBar"
 import { MobileNav } from "./MobileNav"
 import { PlayerBar } from "../player/PlayerBar"
 import { FullscreenPlayer } from "../player/FullscreenPlayer"
+import { SuperCyreneFullscreen } from "../player/SuperCyrenePlayer/SuperCyreneFullscreen"
 import { SetupWizard } from "../setup/SetupWizard"
 import { updateService, UpdateInfo } from "@/lib/services/updateService"
 import { UpdateDialog } from "../common/UpdateDialog"
@@ -35,8 +36,15 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
 
     const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
     const [showUpdateDialog, setShowUpdateDialog] = useState(false)
+    const [isDesktop, setIsDesktop] = useState(false)
     const { material, setSystemSupport } = useWindowMaterialStore()
     const { currentTheme, setTheme, enforceTheme } = useUIThemeStore()
+    const isSuperCyrenePlayerEnabled = useLayoutStore((s) => s.isSuperCyrenePlayerEnabled)
+
+    // 桌面端检测
+    useEffect(() => {
+        setIsDesktop(window.innerWidth >= 768)
+    }, [])
 
     // 根据设备类型修正默认主题（不影响用户手动选择）
     useEffect(() => {
@@ -150,7 +158,11 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
             </div>
             <PlayerBar />
             <MobileNav />
-            <FullscreenPlayer />
+            {isSuperCyrenePlayerEnabled && isDesktop ? (
+                <SuperCyreneFullscreen />
+            ) : (
+                <FullscreenPlayer />
+            )}
             <SetupWizard />
             <UpdateDialog 
                 updateInfo={updateInfo} 
