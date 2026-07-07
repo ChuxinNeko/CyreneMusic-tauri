@@ -131,7 +131,26 @@ export function PlayerSettingsManager() {
             handleSelectImage()
             return
         }
+        if (type === "wallpaper") {
+            handleSelectWallpaper()
+            return
+        }
         setPlayerBgType(type)
+    }
+
+    const handleSelectWallpaper = async () => {
+        try {
+            const isRunning = await invoke<boolean>("is_wallpaper_engine_running")
+            if (!isRunning) {
+                toast.error("Wallpaper Engine 未运行，请先启动 WE")
+                return
+            }
+            setPlayerBgType("wallpaper")
+            toast.success("已切换到 Wallpaper Engine 背景")
+        } catch (error) {
+            console.error("[PlayerSettings] 检查 WE 状态失败:", error)
+            toast.error("检查 Wallpaper Engine 状态失败")
+        }
     }
 
     const lyricStyles: { label: string; value: LyricDisplayStyle }[] = [
@@ -150,6 +169,7 @@ export function PlayerSettingsManager() {
     const bgTypes: { label: string; value: PlayerBgType }[] = [
         { label: "默认动态背景", value: "webgl" },
         { label: "自定义图片", value: "image" },
+        { label: "WE 壁纸", value: "wallpaper" },
     ]
 
     const { currentTheme } = useUIThemeStore()

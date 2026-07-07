@@ -15,6 +15,7 @@ mod thumbbar;
 mod local_music;
 mod audio_proxy;
 mod taskbar_player;
+mod wallpaper_engine;
 
 lazy_static::lazy_static! {
     static ref SYS: Mutex<System> = Mutex::new(System::new_all());
@@ -840,6 +841,52 @@ fn get_audio_proxy_port(state: tauri::State<'_, audio_proxy::AudioProxyPort>) ->
     state.0
 }
 
+/// 获取 Wallpaper Engine 当前壁纸信息
+#[cfg(target_os = "windows")]
+#[tauri::command]
+fn get_wallpaper_engine_background() -> Result<wallpaper_engine::WallpaperInfo, String> {
+    wallpaper_engine::get_wallpaper_engine_background()
+}
+
+/// 读取 HTML 壁纸文件并注入 WE API shim
+#[cfg(target_os = "windows")]
+#[tauri::command]
+fn get_wallpaper_html_with_shim(html_path: String) -> Result<String, String> {
+    wallpaper_engine::get_html_with_shim(&std::path::Path::new(&html_path))
+}
+
+/// 检测 Wallpaper Engine 是否正在运行
+#[cfg(target_os = "windows")]
+#[tauri::command]
+fn is_wallpaper_engine_running() -> bool {
+    let mut sys = sysinfo::System::new_all();
+    sys.refresh_processes();
+    sys.processes()
+        .iter()
+        .any(|(_, p)| {
+            let name = p.name().to_string().to_lowercase();
+            name == "wallpaper64.exe" || name == "wallpaper32.exe"
+        })
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+fn get_wallpaper_engine_background() -> Result<wallpaper_engine::WallpaperInfo, String> {
+    Err("Wallpaper Engine is only supported on Windows".to_string())
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+fn get_wallpaper_html_with_shim(_html_path: String) -> Result<String, String> {
+    Err("Wallpaper Engine is only supported on Windows".to_string())
+}
+
+#[cfg(not(target_os = "windows"))]
+#[tauri::command]
+fn is_wallpaper_engine_running() -> bool {
+    false
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -886,7 +933,10 @@ pub fn run() {
                         close_table_player,
                         toggle_table_player_pin,
                         get_table_player_pin_state,
-                        toggle_devtools
+                        toggle_devtools,
+                        get_wallpaper_engine_background,
+                        get_wallpaper_html_with_shim,
+                        is_wallpaper_engine_running
                     ]
                 }
                 #[cfg(not(target_os = "windows"))]
@@ -922,7 +972,10 @@ pub fn run() {
                         close_recommend_popup,
                         toggle_table_player_pin,
                         get_table_player_pin_state,
-                        toggle_devtools
+                        toggle_devtools,
+                        get_wallpaper_engine_background,
+                        get_wallpaper_html_with_shim,
+                        is_wallpaper_engine_running
                     ]
                 }
             }

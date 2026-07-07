@@ -20,7 +20,10 @@
       "Bash(sed -E \"s/\\\\.\\(get|post|put|delete\\)\\\\\\(\\\\s*[\\\\\"'\\\\`]/ \\\\1 /\")",
       "Bash(grep -cnE \"\\\\.\\(get|post|put|delete\\)\\\\\\(\\\\s*[\\\\\"'\\\\`][^\\\\\"'\\\\`]+\" routes/netease.ts)",
       "Bash(awk -F: '$1>958')",
-      "Bash(grep -cE \"\\\\.\\(get|post|put|delete\\)\\\\\\(\\\\s*[\\\\\"'\\\\`]\" routes/netease.ts)"
+      "Bash(grep -cE \"\\\\.\\(get|post|put|delete\\)\\\\\\(\\\\s*[\\\\\"'\\\\`]\" routes/netease.ts)",
+      "Bash(grep -A2 '^name = \"tauri\"$' src-tauri/Cargo.lock)",
+      "Bash(grep -A2 '^name = \"wry\"$' src-tauri/Cargo.lock)",
+      "Bash(git check-ignore *)"
     ]
   }
 }

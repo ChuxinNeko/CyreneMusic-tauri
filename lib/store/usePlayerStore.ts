@@ -24,7 +24,7 @@ export enum SingleLineAnimation {
 }
 
 // 播放器背景类型
-export type PlayerBgType = 'webgl' | 'image'
+export type PlayerBgType = 'webgl' | 'image' | 'wallpaper'
 
 interface PlayerState {
     // Current track being played

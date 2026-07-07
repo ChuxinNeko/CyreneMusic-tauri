@@ -48,9 +48,15 @@ class MainActivity : TauriActivity() {
           "(window.__cyreneOnAndroidBack && window.__cyreneOnAndroidBack()) ? true : false"
         ) { result ->
           if (result != "true") {
-            isEnabled = false
-            onBackPressedDispatcher.onBackPressed()
-            isEnabled = true
+            // JS 层无人消费：先回退 WebView 历史（SPA 路由返回），
+            // 历史到底后才走系统默认行为（退出/回桌面）。
+            if (webView.canGoBack()) {
+              webView.goBack()
+            } else {
+              isEnabled = false
+              onBackPressedDispatcher.onBackPressed()
+              isEnabled = true
+            }
           }
         }
       }

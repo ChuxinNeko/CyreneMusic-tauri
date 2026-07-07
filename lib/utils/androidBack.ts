@@ -3,7 +3,8 @@
  *
  * - Kotlin 侧覆写 onBackPressed / OnBackInvokedDispatcher 时，
  *   通过 webView.evaluateJavascript 调用 window.__cyreneOnAndroidBack()。
- * - 谁注册谁负责把布尔返回值告诉宿主：true = 消费，false = 让 Activity 走默认行为。
+ * - 谁注册谁负责把布尔返回值告诉宿主：true = 消费；
+ *   false = 交回原生侧，先 webView.goBack() 回退 SPA 路由，历史到底后才走系统默认（退出）。
  * - 栈顶优先：最近注册的 handler 先吃事件（符合"最上层 UI 先关闭"的常识）。
  *
  * 任何全屏覆盖层、Sheet、Dialog 都可以通过 pushAndroidBackHandler 接入。

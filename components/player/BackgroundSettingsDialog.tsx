@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { ImagePlus, Loader2 } from "lucide-react"
+import { ImagePlus, Loader2, Monitor } from "lucide-react"
 import { toast } from "sonner"
 import { convertFileSrc } from "@tauri-apps/api/core"
 import {
@@ -14,6 +14,7 @@ import {
 import { Slider } from "@/components/ui/slider"
 import { usePlayerStore, PlayerBgType } from "@/lib/store/usePlayerStore"
 import { backgroundService } from "@/lib/services/backgroundService"
+import { invoke } from "@tauri-apps/api/core"
 
 interface BackgroundSettingsDialogProps {
     open: boolean
@@ -81,12 +82,33 @@ export function BackgroundSettingsDialog({ open, onOpenChange }: BackgroundSetti
             handleSelectImage()
             return
         }
+        // 切到壁纸选项时检查 WE 是否运行
+        if (type === "wallpaper") {
+            handleSelectWallpaper()
+            return
+        }
         setPlayerBgType(type)
     }
 
-    const bgOptions: { label: string; value: PlayerBgType }[] = [
+    const handleSelectWallpaper = async () => {
+        try {
+            const isRunning = await invoke<boolean>("is_wallpaper_engine_running")
+            if (!isRunning) {
+                toast.error("Wallpaper Engine 未运行，请先启动 WE")
+                return
+            }
+            setPlayerBgType("wallpaper")
+            toast.success("已切换到 Wallpaper Engine 背景")
+        } catch (error) {
+            console.error("[BackgroundSettings] 检查 WE 状态失败:", error)
+            toast.error("检查 Wallpaper Engine 状态失败")
+        }
+    }
+
+    const bgOptions: { label: string; value: PlayerBgType; icon?: React.ReactNode }[] = [
         { label: "默认动态背景", value: "webgl" },
         { label: "自定义图片", value: "image" },
+        { label: "WE 壁纸", value: "wallpaper", icon: <Monitor className="h-3 w-3 inline mr-1" /> },
     ]
 
     return (
@@ -101,17 +123,18 @@ export function BackgroundSettingsDialog({ open, onOpenChange }: BackgroundSetti
 
                 <div className="space-y-4 pt-2">
                     {/* 类型切换 */}
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-3 gap-2">
                         {bgOptions.map(opt => (
                             <button
                                 key={opt.value}
                                 onClick={() => handleSwitchType(opt.value)}
-                                className={`text-sm py-2 px-3 rounded-lg transition-colors ${
+                                className={`text-sm py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-1 ${
                                     mounted && playerBgType === opt.value
                                         ? "bg-white/20 text-white"
                                         : "bg-white/5 text-white/60 hover:bg-white/10"
                                 }`}
                             >
+                                {opt.icon}
                                 {opt.label}
                             </button>
                         ))}

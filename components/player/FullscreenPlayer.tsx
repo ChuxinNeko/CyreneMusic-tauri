@@ -44,6 +44,7 @@ const AMLLLyricPlayer = dynamic(() => import("./AMLLLyricPlayer").then(m => m.AM
 import { LyricPlayerSingleLine } from "./LyricPlayerSingleLine"
 import { SongInfoPanel } from "./song-info/SongInfoPanel"
 const AMLLBackground = dynamic(() => import("./AMLLBackground").then(m => m.AMLLBackground), { ssr: false })
+const WallpaperBackground = dynamic(() => import("./WallpaperBackground").then(m => m.WallpaperBackground), { ssr: false })
 import { EqualizerPanel } from "./EqualizerPanel"
 import { AudioVisualizer } from "./AudioVisualizer"
 import { AddToPlaylistDialog } from "./AddToPlaylistDialog"
@@ -623,7 +624,9 @@ export function FullscreenPlayer() {
         <div className={`fixed inset-0 z-[100] bg-black overflow-hidden flex flex-col transition-all duration-500 ease-in-out ${isAnimatingOut ? 'opacity-0 translate-y-full' : 'opacity-100 translate-y-0'}`}>
             {/* Ambient Background */}
             <div className="absolute inset-0 z-0 bg-black">
-                {playerBgType === 'image' && customBgPath ? (
+                {playerBgType === 'wallpaper' ? (
+                    <WallpaperBackground className="absolute inset-0" />
+                ) : playerBgType === 'image' && customBgPath ? (
                     <div
                         className="absolute inset-0"
                         style={{
@@ -648,7 +651,7 @@ export function FullscreenPlayer() {
                 )}
                 <div
                     className="absolute inset-0 bg-black"
-                    style={{ opacity: playerBgType === 'image' && customBgPath ? customBgOverlay / 100 : 0.2 }}
+                    style={{ opacity: playerBgType === 'image' && customBgPath ? customBgOverlay / 100 : playerBgType === 'wallpaper' ? 0.1 : 0.2 }}
                 />
             </div>
 
