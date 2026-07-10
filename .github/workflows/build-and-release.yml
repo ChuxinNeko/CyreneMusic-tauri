@@ -255,9 +255,19 @@ jobs:
 
   build-ios:
     needs: check-version
-    runs-on: macos-latest
+    # Tauri 的当前 Swift/Rust 桥接静态库仍依赖 Swift 5.6 兼容运行库。
+    # Xcode 26 已移除这些库，因此此任务固定使用兼容的工具链。
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+
+      - name: Select Xcode 16.4
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.4'
+
+      - name: Verify Xcode toolchain
+        run: xcodebuild -version
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -283,8 +293,8 @@ jobs:
           # 1. 构建前端静态资源 (Next.js 导出到 out 目录)
           bun run build
           
-          # 2. 初始化 iOS 项目模板
-          bun run tauri ios init || true
+          # 2. 初始化 iOS 项目模板。
+          bun run tauri ios init
           
           # 3. 使用 Bun 脚本禁用 Xcode 项目中的签名限制，强制配置为 Manual / No Sign
           bun -e "
@@ -301,9 +311,8 @@ jobs:
           console.log('Successfully disabled code signing in pbxproj!');
           "
           
-          # 4. 运行官方 tauri ios build 编译。由于禁用了签名，底层编译能完美通过。
-          # 加上 || true 确保即使在最终的 ipa 导出打包阶段遇到证书警告报错，也不会导致 CI 崩溃。
-          bun run tauri ios build || true
+          # 4. 使用固定工具链执行官方构建。链接或打包失败时直接结束任务，保留真实错误。
+          bun run tauri ios build
           
           # 5. 进入构建工程目录，提取生成的 .app 并打包为未签名的 .ipa 格式
           cd src-tauri/gen/apple
