@@ -25,6 +25,9 @@
     public void updateMediaNotification(java.lang.String);
     public void hideMediaNotification();
     public void setStatusBarDarkText(boolean);
+    public java.lang.String installApkSync(java.lang.String);
+    public void updateLyricNotification(java.lang.String);
+    public void hideLyricNotification();
 }
 
 -keep class com.cyrenemusic.app.AndroidMediaNotificationManager { *; }
