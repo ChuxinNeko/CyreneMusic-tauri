@@ -41,6 +41,7 @@ export function SuperCyreneFullscreen() {
   const [dragProgress, setDragProgress] = useState(0)
   const beatDecayRef = useRef(0)
   const prevBassRef = useRef(0)
+  const isFullscreenRef = useRef(isFullscreen)
 
   // 音频分析循环
   useEffect(() => {
@@ -68,7 +69,7 @@ export function SuperCyreneFullscreen() {
     return () => cancelAnimationFrame(raf)
   }, [isVisible])
 
-  // 全屏状态同步
+  // 全屏状态同步：overlay 模式入场动画
   useEffect(() => {
     if (isFullscreen) {
       // 小延迟让动画入场
@@ -97,6 +98,28 @@ export function SuperCyreneFullscreen() {
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [isFullscreen, handleClose])
+
+  // 移动端 overlay 返回键处理：pushState 虚拟历史条目 + popstate 监听
+  useEffect(() => {
+    isFullscreenRef.current = isFullscreen
+  }, [isFullscreen])
+
+  useEffect(() => {
+    if (!isFullscreen) return
+    window.history.pushState({ __cyreneFullscreen: true }, "")
+    const onPopState = () => {
+      if (isFullscreenRef.current) handleClose()
+    }
+    window.addEventListener("popstate", onPopState)
+    return () => window.removeEventListener("popstate", onPopState)
+  }, [isFullscreen, handleClose])
+
+  // 非返回键关闭（如点击关闭按钮）：清理虚拟历史条目
+  useEffect(() => {
+    if (!isFullscreen && window.history.state?.__cyreneFullscreen) {
+      window.history.back()
+    }
+  }, [isFullscreen])
 
   const handleProgressChange = useCallback((val: number[]) => {
     const p = val[0]

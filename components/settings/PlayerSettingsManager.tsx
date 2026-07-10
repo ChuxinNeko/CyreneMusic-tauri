@@ -54,6 +54,10 @@ export function PlayerSettingsManager() {
     const setDesktopLyricColor = usePlayerStore(s => s.setDesktopLyricColor)
     const setDesktopLyricStrokeColor = usePlayerStore(s => s.setDesktopLyricStrokeColor)
 
+    // 桌面播放器
+    const isDesktopPlayerOpen = usePlayerStore(s => s.isDesktopPlayerOpen)
+    const setIsDesktopPlayerOpen = usePlayerStore(s => s.setIsDesktopPlayerOpen)
+
     // 自定义背景
     const playerBgType = usePlayerStore(s => s.playerBgType)
     const setPlayerBgType = usePlayerStore(s => s.setPlayerBgType)
@@ -91,6 +95,21 @@ export function PlayerSettingsManager() {
         } catch (error) {
             console.error('Failed to open desktop lyric:', error)
             toast.error("打开桌面歌词失败")
+        }
+    }
+
+    const toggleDesktopPlayer = async (open: boolean) => {
+        setIsDesktopPlayerOpen(open)
+        try {
+            if (open) {
+                await invoke('open_desktop_player')
+            } else {
+                await invoke('close_desktop_player')
+            }
+        } catch (error) {
+            console.error('Failed to toggle desktop player:', error)
+            toast.error("切换桌面播放器失败")
+            setIsDesktopPlayerOpen(!open)
         }
     }
 
@@ -486,6 +505,16 @@ export function PlayerSettingsManager() {
                                 }
                             />
                             <FluentHorizontalCard
+                                icon={Monitor}
+                                title="桌面播放器"
+                                description="在桌面上显示播放器和歌词"
+                                action={
+                                    <div className="rwui-scope" data-theme={document.documentElement.getAttribute("data-theme")}>
+                                        <RwuiSwitch checked={isDesktopPlayerOpen} onChange={toggleDesktopPlayer} />
+                                    </div>
+                                }
+                            />
+                            <FluentHorizontalCard
                                 icon={Baseline}
                                 title="桌面歌词字号"
                                 description={`${desktopLyricFontSize}px`}
@@ -707,6 +736,12 @@ export function PlayerSettingsManager() {
                                 <Monitor className="h-4 w-4 mr-2" />
                                 打开桌面歌词窗口
                             </Button>
+                            <SwitchRow
+                                title="桌面播放器"
+                                description="在桌面上显示播放器和歌词"
+                                checked={isDesktopPlayerOpen}
+                                onCheckedChange={toggleDesktopPlayer}
+                            />
                             <SliderRow
                                 label="桌面歌词字号"
                                 value={desktopLyricFontSize}

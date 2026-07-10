@@ -7,6 +7,13 @@ import { useAudioSourceStore } from '../store/useAudioSourceStore';
 import { useSearchPreferencesStore } from '../store/useSearchPreferencesStore';
 import { MusicSource } from './audioSourceService';
 
+type SpotifySearchRequest = {
+    id: number;
+    controller: AbortController;
+    timeoutId: ReturnType<typeof setTimeout>;
+    timedOut: boolean;
+};
+
 class SearchService {
     private static instance: SearchService;
     private _searchResult: SearchResult = { ...initialSearchResult };
@@ -14,6 +21,9 @@ class SearchService {
     private _searchHistory: string[] = [];
     private readonly HISTORY_KEY = 'search_history';
     private readonly MAX_HISTORY_COUNT = 20;
+    private readonly SPOTIFY_SEARCH_TIMEOUT_MS = 7_000;
+    private spotifySearchRequestId = 0;
+    private activeSpotifySearch: SpotifySearchRequest | null = null;
 
     private listeners: Set<() => void> = new Set();
 
@@ -87,6 +97,27 @@ class SearchService {
         this.listeners.forEach(l => l());
     }
 
+    private cancelActiveSpotifySearch(): void {
+        const activeRequest = this.activeSpotifySearch;
+        if (!activeRequest) return;
+
+        clearTimeout(activeRequest.timeoutId);
+        activeRequest.controller.abort();
+        this.activeSpotifySearch = null;
+    }
+
+    private isCurrentSpotifySearch(requestId: number): boolean {
+        return this.activeSpotifySearch?.id === requestId;
+    }
+
+    private completeSpotifySearch(requestId: number): void {
+        const activeRequest = this.activeSpotifySearch;
+        if (!activeRequest || activeRequest.id !== requestId) return;
+
+        clearTimeout(activeRequest.timeoutId);
+        this.activeSpotifySearch = null;
+    }
+
     /**
      * 执行搜索
      */
@@ -95,6 +126,7 @@ class SearchService {
         if (!trimmed) return;
 
         this._currentKeyword = trimmed;
+        this.cancelActiveSpotifySearch();
         this.addToSearchHistory(trimmed);
 
         // 获取当前支持的平台
@@ -272,9 +304,26 @@ class SearchService {
     }
 
     private async searchSpotify(keyword: string) {
+        const controller = new AbortController();
+        const requestId = ++this.spotifySearchRequestId;
+        const request: SpotifySearchRequest = {
+            id: requestId,
+            controller,
+            timeoutId: setTimeout(() => {
+                request.timedOut = true;
+                controller.abort();
+            }, this.SPOTIFY_SEARCH_TIMEOUT_MS),
+            timedOut: false,
+        };
+        this.activeSpotifySearch = request;
+
         try {
-            const resp = await fetch(`${urlService.spotifySearchUrl}?keywords=${encodeURIComponent(keyword)}`);
+            const resp = await fetch(`${urlService.spotifySearchUrl}?keywords=${encodeURIComponent(keyword)}`, {
+                signal: controller.signal,
+            });
             const data = await resp.json();
+            if (!this.isCurrentSpotifySearch(requestId)) return;
+
             if (data.status === 200) {
                 const results: Track[] = (data.result?.tracks || []).map((item: any) => ({
                     id: item.id,
@@ -282,16 +331,31 @@ class SearchService {
                     artists: (item.artists || []).map((a: any) => a.name).join(', '),
                     album: item.album?.name || '',
                     picUrl: item.album?.coverArt || '',
+                    // 后端 parseSearchResults 返回 duration 字段（毫秒）→ 秒；
+                    // OGG 流浏览器无法即时得出总时长，携带元数据时长作为权威兜底，
+                    // 避免进度条显示 Infinity:NaN。
+                    duration: item.duration ? item.duration / 1000 : undefined,
                     source: MusicSource.Spotify
                 }));
                 this._searchResult = { ...this._searchResult, spotifyResults: results, spotifyLoading: false };
             } else {
-                throw new Error(data.message || 'Search failed');
+                throw new Error(data.msg || data.message || 'Search failed');
             }
         } catch (e: any) {
-            this._searchResult = { ...this._searchResult, spotifyLoading: false, spotifyError: e.message };
+            if (!this.isCurrentSpotifySearch(requestId)) return;
+
+            const error = request.timedOut
+                ? 'Spotify 搜索超时，请重试'
+                : e?.name === 'AbortError'
+                    ? 'Spotify 搜索已取消'
+                    : e.message;
+            this._searchResult = { ...this._searchResult, spotifyLoading: false, spotifyError: error };
+        } finally {
+            if (this.isCurrentSpotifySearch(requestId)) {
+                this.completeSpotifySearch(requestId);
+                this.notifyListeners();
+            }
         }
-        this.notifyListeners();
     }
 
     private async searchQishui(keyword: string, cursor: number = 0) {

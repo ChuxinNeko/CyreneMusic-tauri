@@ -5,7 +5,7 @@ import { usePlayerStore, SingleLineAnimation } from "@/lib/store/usePlayerStore"
 import { playerService } from "@/lib/services/playerService"
 import { LyricLineData, INTRO_DELAY, parseLyrics } from "./parser"
 
-export const LyricPlayerSingleLine = React.memo(function LyricPlayerSingleLine({ alignPosition = 'center' }: { alignPosition?: 'center' | 'top-second' }) {
+export const LyricPlayerSingleLine = React.memo(function LyricPlayerSingleLine({ alignPosition = 'center', disableSeek = false }: { alignPosition?: 'center' | 'top-second'; disableSeek?: boolean }) {
     const currentTrack = usePlayerStore(s => s.currentTrack)
     const showTranslation = usePlayerStore(s => s.showTranslation)
     const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
@@ -53,6 +53,7 @@ export const LyricPlayerSingleLine = React.memo(function LyricPlayerSingleLine({
     }, [getActiveIndex])
 
     const handleLineClick = (lineTime: number) => {
+        if (disableSeek) return
         const timeInSeconds = (lineTime - INTRO_DELAY) / 1000
         playerService.seek(timeInSeconds)
     }

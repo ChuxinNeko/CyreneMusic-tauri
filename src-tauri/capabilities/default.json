@@ -8,7 +8,9 @@
     "desktop-lyric",
     "taskbar-player",
     "song-recommend",
-    "table-player"
+    "table-player",
+    "desktop-player",
+    "desktop-player-bar"
   ],
   "permissions": [
     "core:default",

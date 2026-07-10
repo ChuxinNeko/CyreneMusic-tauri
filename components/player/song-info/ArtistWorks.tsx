@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from "react"
 import { Track } from "@/lib/models/track"
 import { artistService, ArtistDetailInfo } from "@/lib/services/artistService"
-import { usePlayerStore } from "@/lib/store/usePlayerStore"
 import { playerService } from "@/lib/services/playerService"
 import { PlayCircle } from "lucide-react"
 
@@ -15,7 +14,6 @@ export function ArtistWorks({ track }: ArtistWorksProps) {
     const [artistId, setArtistId] = useState<number | null>(null)
     const [artistData, setArtistData] = useState<ArtistDetailInfo | null>(null)
     const [isLoading, setIsLoading] = useState(false)
-    const { setIsFullscreen } = usePlayerStore()
 
     useEffect(() => {
         const fetchArtistData = async () => {

@@ -9,18 +9,21 @@ import { INTRO_DELAY, parseLyrics, toAmllLyricLines } from "./parser"
 
 import "@applemusic-like-lyrics/core/style.css"
 
-export const AMLLLyricPlayer = React.memo(function AMLLLyricPlayer() {
+export const AMLLLyricPlayer = React.memo(function AMLLLyricPlayer({ disableSeek = false }: { disableSeek?: boolean } = {}) {
     const currentTrack = usePlayerStore(s => s.currentTrack)
     const isPlaying = usePlayerStore(s => s.isPlaying)
     const showTranslation = usePlayerStore(s => s.showTranslation)
     const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
     const lyricFontFamily = usePlayerStore(s => s.lyricFontFamily)
+    const hideAlbumCover = usePlayerStore(s => s.hideAlbumCover)
 
     const containerRef = useRef<HTMLDivElement>(null)
     const playerRef = useRef<AmllLyricPlayer | null>(null)
     const rafRef = useRef<number>(0)
     const lastFrameTimeRef = useRef<number>(-1)
     const lastTimeMsRef = useRef<number>(-1)
+    const disableSeekRef = useRef(disableSeek)
+    disableSeekRef.current = disableSeek
 
     // 初始化 AMLL 播放器实例
     useEffect(() => {
@@ -131,6 +134,7 @@ export const AMLLLyricPlayer = React.memo(function AMLLLyricPlayer() {
             if (!line) return
             const lineData = line.getLine()
             if (!lineData) return
+            if (disableSeekRef.current) return
             const timeInSeconds = (lineData.startTime - INTRO_DELAY) / 1000
             if (timeInSeconds >= 0) {
                 playerService.seek(timeInSeconds)
@@ -146,7 +150,7 @@ export const AMLLLyricPlayer = React.memo(function AMLLLyricPlayer() {
     return (
         <div
             ref={containerRef}
-            className="w-full h-full overflow-hidden"
+            className={`w-full h-full overflow-hidden ${hideAlbumCover ? 'amll-centered' : ''}`}
             style={{
                 maskImage: "linear-gradient(to bottom, transparent 0%, white 12%, white 82%, transparent 100%)",
                 WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, white 12%, white 82%, transparent 100%)",

@@ -10,11 +10,12 @@ const ARC_ANGLE_PER_LINE = 12 // 每行歌词占据的角度
 const VISIBLE_ABOVE = 3
 const VISIBLE_BELOW = 3
 
-export const LyricPlayerRoulette = React.memo(function LyricPlayerRoulette({ alignPosition = 'center' }: { alignPosition?: 'center' | 'top-second' }) {
+export const LyricPlayerRoulette = React.memo(function LyricPlayerRoulette({ alignPosition = 'center', disableSeek = false }: { alignPosition?: 'center' | 'top-second'; disableSeek?: boolean }) {
     const currentTrack = usePlayerStore(s => s.currentTrack)
     const showTranslation = usePlayerStore(s => s.showTranslation)
     const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
     const lyricFontFamily = usePlayerStore(s => s.lyricFontFamily)
+    const hideAlbumCover = usePlayerStore(s => s.hideAlbumCover)
     const containerRef = useRef<HTMLDivElement>(null)
     const requestRef = useRef<number>(0)
     const currentIndexRef = useRef(0)
@@ -57,6 +58,7 @@ export const LyricPlayerRoulette = React.memo(function LyricPlayerRoulette({ ali
     }, [getActiveIndex])
 
     const handleLineClick = (lineTime: number) => {
+        if (disableSeek) return
         const timeInSeconds = (lineTime - INTRO_DELAY) / 1000
         playerService.seek(timeInSeconds)
     }
@@ -92,10 +94,9 @@ export const LyricPlayerRoulette = React.memo(function LyricPlayerRoulette({ ali
 
                     // 圆心在左侧外面，半径大约是容器宽度的 90%
                     // 歌词位置：从圆心出发，3点钟方向为水平向右
-                    // x = centerX + R * cos(angle), y = centerY + R * sin(angle)
-                    // centerX 在容器左边缘附近（比如 -20%），centerY 在 50%
-                    const radius = 120 // 百分比
-                    const centerX = -100
+                    // 如果隐藏封面（居中模式），我们不使用圆弧，而是简单的垂直滚动
+                    const radius = hideAlbumCover ? 0 : 120 // 百分比
+                    const centerX = hideAlbumCover ? 50 : -100
                     const centerY = alignPosition === 'top-second' ? 25 : 50
 
                     const x = centerX + radius * Math.cos(angleRad)
@@ -104,19 +105,24 @@ export const LyricPlayerRoulette = React.memo(function LyricPlayerRoulette({ ali
                     const opacity = isActive ? 1 : Math.max(0.2, 0.65 - absDiff * 0.15)
                     const scale = isActive ? 1 : Math.max(0.65, 0.85 - absDiff * 0.06)
 
+                    const transformStyle = hideAlbumCover
+                        ? `translate(-50%, calc(-50% + ${offset * 6}vh)) scale(${scale})`
+                        : `translateY(-50%) rotate(${angle}deg) scale(${scale})`
+
                     return (
                         <div
                             key={index}
                             onClick={() => handleLineClick(line.time)}
-                            className="absolute cursor-pointer origin-left"
+                            className="absolute cursor-pointer"
                             style={{
                                 left: `${x}%`,
-                                top: `${y}%`,
-                                transform: `translateY(-50%) rotate(${angle}deg) scale(${scale})`,
+                                top: hideAlbumCover ? '50%' : `${y}%`,
+                                transform: transformStyle,
                                 opacity,
                                 transition: "all 1000ms cubic-bezier(0.16, 1, 0.3, 1)",
-                                transformOrigin: "left center",
-                                maxWidth: "55%",
+                                transformOrigin: hideAlbumCover ? "center center" : "left center",
+                                maxWidth: hideAlbumCover ? "90%" : "55%",
+                                textAlign: hideAlbumCover ? "center" : "left",
                             }}
                         >
                             <div

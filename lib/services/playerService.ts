@@ -145,17 +145,24 @@ class PlayerService {
                         this.playTrack((event.payload as any).track)
                     }
                     break
+                case 'set-volume':
+                    if (event.payload && typeof (event.payload as any).volume === 'number') {
+                        this.setVolume((event.payload as any).volume)
+                    }
+                    break
                 case 'request-sync':
                     if (typeof window !== 'undefined') {
                         const state = usePlayerStore.getState()
                         emit('player:state-change', {
                             currentTrack: state.currentTrack,
-                            isPlaying: state.isPlaying
+                            isPlaying: state.isPlaying,
+                            duration: state.duration
                         })
                         emit('player:time-sync', {
                             time: this.getCurrentTime(),
                             timestamp: Date.now(),
-                            isPlaying: state.isPlaying
+                            isPlaying: state.isPlaying,
+                            duration: state.duration
                         })
                         emit('player:settings-sync', {
                             desktopLyricFontSize: state.desktopLyricFontSize,
@@ -286,15 +293,31 @@ class PlayerService {
 
         howl.on('load', () => {
             usePlayerStore.getState().setIsLoading(false)
-            const duration = howl.duration()
+            const track = usePlayerStore.getState().currentTrack
+
+            // OGG Vorbis 等流式音频（Spotify）在 loadedmetadata 时刻，浏览器尚未读取
+            // 文件尾部的 granule position，howl.duration() 会返回 Infinity（或 0），
+            // 直接写入会导致进度条总时长显示为 Infinity:NaN。
+            // 处理顺序：1) 取曲目元数据时长兜底；2) 仍无效则注册 durationchange 监听，
+            // 待浏览器解析出真实时长后补正。
+            let duration = howl.duration()
+            if (!isFinite(duration) || duration <= 0) {
+                const metaDur = track?.duration
+                if (metaDur && isFinite(metaDur) && metaDur > 0) {
+                    duration = metaDur
+                } else {
+                    duration = 0
+                    this.attachDurationChangeFallback(howl)
+                }
+            }
             usePlayerStore.getState().setDuration(duration)
             this.syncAndroidMediaNotification(true)
 
-            const track = usePlayerStore.getState().currentTrack
             if (track) {
                 this.updateSMTCMetadata(track, duration)
                 this.updateMediaSessionPosition()
             }
+            this.broadcastState()
         })
 
         howl.on('loaderror', (id, err) => {
@@ -614,6 +637,44 @@ class PlayerService {
             }
         } catch (e) {
             console.warn("[PlayerService] Failed to set MediaSession position state:", e)
+        }
+    }
+
+    /**
+     * 为流式音频（如 Spotify OGG）注册 durationchange 兜底监听。
+     *
+     * OGG Vorbis 的总时长需读取文件尾部 granule position 才能确定，浏览器在
+     * loadedmetadata 时返回 Infinity，随后 range 请求到文件尾部后会触发 <audio>
+     * 的 durationchange 事件补上真实时长。但 Howler 仅在 load 时读取一次 duration，
+     * 不会更新，故这里手动监听底层 <audio> 元素，拿到有效时长后回填 store.duration。
+     */
+    private attachDurationChangeFallback(howl: Howl) {
+        try {
+            const sounds = (howl as any)._sounds
+            const node = sounds?.[0]?._node as HTMLAudioElement | undefined
+            if (!node) return
+
+            const onDurationChange = () => {
+                const d = node.duration
+                if (!isFinite(d) || d <= 0) return
+
+                // 仅当 store 仍指向同一 Howl（未切歌）且当前时长无效时才回填，
+                // 避免覆盖已由元数据设置的正确时长或影响下一首。
+                if (this.howl === howl) {
+                    const cur = usePlayerStore.getState().duration
+                    if (!isFinite(cur) || cur <= 0) {
+                        usePlayerStore.getState().setDuration(d)
+                        const track = usePlayerStore.getState().currentTrack
+                        if (track) this.updateSMTCMetadata(track, d)
+                        this.updateMediaSessionPosition()
+                    }
+                }
+                node.removeEventListener('durationchange', onDurationChange)
+            }
+
+            node.addEventListener('durationchange', onDurationChange)
+        } catch (e) {
+            console.warn("[PlayerService] attachDurationChangeFallback failed:", e)
         }
     }
 
@@ -1106,6 +1167,17 @@ class PlayerService {
                 const baseUrl = configSource.url.replace(/\/$/, '')
                 url = `${baseUrl}${result.data.url}`
 
+                // 用 Spotify 权威时长（毫秒 → 秒）兜底：OGG 流浏览器在 loadedmetadata
+                // 时刻无法算出总时长（howl.duration() 返回 Infinity）。仅在曲目当前无有效
+                // 时长时写入，避免覆盖搜索结果已带的时长。
+                const durationMs = result.data?.metadata?.durationMs
+                if (
+                    durationMs && isFinite(durationMs) && durationMs > 0 &&
+                    (!track.duration || !isFinite(track.duration) || track.duration <= 0)
+                ) {
+                    track.duration = durationMs / 1000
+                }
+
                 // 异步加载歌词（与 Apple Music 一致的模式），不阻塞播放流程
                 this.fetchAndApplyLyrics(track)
             } else {
@@ -1242,9 +1314,11 @@ class PlayerService {
         this.progressArmStart = resumeTime !== undefined && resumeTime > 0 ? resumeTime : 0
 
         // Spotify 通过 librespot 返回 OGG Vorbis 流，URL 无扩展名，
-        // 必须显式告知 Howler.js 格式，否则 Android WebView 按 mp3 解码导致播放失败
+        // 我们在后端追加了 .ogg 后缀。但部分 WebView2 环境下 Howler 的 canPlayType('audio/ogg')
+        // 预检可能返回 false 从而直接拦截播放 (报 1006 4)。
+        // 注入 'mp3' 作为伪装首选项，欺骗 Howler 绕过预检，交由底层媒体管道嗅探并播放真实 OGG 流。
         const howlFormat = track.source === 'spotify'
-            ? ['ogg']
+            ? ['mp3', 'ogg']
             : ['mp3', 'flac', 'm4a', 'ogg', 'wav']
 
         this.howl = new Howl({
@@ -1260,8 +1334,15 @@ class PlayerService {
             const sounds = (this.howl as any)._sounds
             if (sounds?.[0]?._node) {
                 const audioEl = sounds[0]._node as HTMLAudioElement
-                audioEl.crossOrigin = "anonymous"
-                console.log('[PlayerService] Set crossOrigin on audio element')
+                
+                // Spotify 流 (通过 librespot 代理) 常因缺乏 CORS 头而在 crossOrigin="anonymous" 下被浏览器阻断，导致 1006 4 错误。
+                // 牺牲 Spotify 的频谱可视化，换取正常播放。
+                if (track.source === 'spotify' && url.startsWith('http')) {
+                    console.log('[PlayerService] Skipped crossOrigin for Spotify stream to prevent CORS blocking')
+                } else {
+                    audioEl.crossOrigin = "anonymous"
+                    console.log('[PlayerService] Set crossOrigin on audio element')
+                }
             }
         } catch (e) {
             console.warn('[PlayerService] Failed to set crossOrigin:', e)
@@ -1451,7 +1532,8 @@ class PlayerService {
         const state = usePlayerStore.getState()
         emit('player:state-change', {
             currentTrack: state.currentTrack,
-            isPlaying: state.isPlaying
+            isPlaying: state.isPlaying,
+            duration: state.duration
         })
     }
 

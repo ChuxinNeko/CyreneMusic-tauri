@@ -61,12 +61,23 @@ interface PlayerState {
     desktopLyricFontSize: number
     desktopLyricColor: string
     desktopLyricStrokeColor: string
+    desktopLyricRotationX: number
+    desktopLyricRotationY: number
+    desktopLyricRotationZ: number
+    desktopLyricPerspective: number
     isLyricsFolded: boolean
     isImmersiveMode: boolean
     lyricDisplayStyle: LyricDisplayStyle
     singleLineAnimation: SingleLineAnimation
+    hideAlbumCover: boolean
     playError: string | null
     isTaskbarPlayerOpen: boolean
+    isDesktopPlayerOpen: boolean
+
+    // Lyric Editor Mode
+    isLyricEditorMode: boolean
+    lyricOffsetX: number
+    lyricOffsetY: number
 
     // Custom Player Background
     playerBgType: PlayerBgType
@@ -108,12 +119,22 @@ interface PlayerState {
     setDesktopLyricFontSize: (size: number) => void
     setDesktopLyricColor: (color: string) => void
     setDesktopLyricStrokeColor: (color: string) => void
+    setDesktopLyricRotationX: (val: number) => void
+    setDesktopLyricRotationY: (val: number) => void
+    setDesktopLyricRotationZ: (val: number) => void
+    setDesktopLyricPerspective: (val: number) => void
     setIsLyricsFolded: (folded: boolean) => void
     setIsImmersiveMode: (isImmersiveMode: boolean) => void
     setLyricDisplayStyle: (style: LyricDisplayStyle) => void
     setSingleLineAnimation: (animation: SingleLineAnimation) => void
+    setHideAlbumCover: (hide: boolean) => void
     setPlayError: (error: string | null) => void
     setIsTaskbarPlayerOpen: (open: boolean) => void
+    setIsDesktopPlayerOpen: (open: boolean) => void
+
+    setIsLyricEditorMode: (enabled: boolean) => void
+    setLyricOffsetX: (x: number) => void
+    setLyricOffsetY: (y: number) => void
 
     setPlayerBgType: (type: PlayerBgType) => void
     setCustomBgPath: (path: string | null) => void
@@ -152,12 +173,22 @@ export const usePlayerStore = create<PlayerState>()(
             desktopLyricFontSize: 40,
             desktopLyricColor: '#ffffff',
             desktopLyricStrokeColor: '#bababa',
+            desktopLyricRotationX: 0,
+            desktopLyricRotationY: 0,
+            desktopLyricRotationZ: 0,
+            desktopLyricPerspective: 1000,
             isLyricsFolded: false,
             isImmersiveMode: false,
             lyricDisplayStyle: LyricDisplayStyle.Scroll,
             singleLineAnimation: SingleLineAnimation.SlideUp,
+            hideAlbumCover: false,
             playError: null,
             isTaskbarPlayerOpen: true,
+            isDesktopPlayerOpen: false,
+
+            isLyricEditorMode: false,
+            lyricOffsetX: 0,
+            lyricOffsetY: 0,
 
             playerBgType: 'webgl',
             customBgPath: null,
@@ -236,14 +267,24 @@ export const usePlayerStore = create<PlayerState>()(
             setDesktopLyricFontSize: (desktopLyricFontSize) => set({ desktopLyricFontSize }),
             setDesktopLyricColor: (desktopLyricColor) => set({ desktopLyricColor }),
             setDesktopLyricStrokeColor: (desktopLyricStrokeColor) => set({ desktopLyricStrokeColor }),
+            setDesktopLyricRotationX: (desktopLyricRotationX) => set({ desktopLyricRotationX }),
+            setDesktopLyricRotationY: (desktopLyricRotationY) => set({ desktopLyricRotationY }),
+            setDesktopLyricRotationZ: (desktopLyricRotationZ) => set({ desktopLyricRotationZ }),
+            setDesktopLyricPerspective: (desktopLyricPerspective) => set({ desktopLyricPerspective }),
             setIsLyricsFolded: (isLyricsFolded) => set({ isLyricsFolded }),
             setIsImmersiveMode: (isImmersiveMode) => set({ isImmersiveMode }),
             setLyricDisplayStyle: (lyricDisplayStyle) => set({ lyricDisplayStyle }),
-            setSingleLineAnimation: (singleLineAnimation) => set({ singleLineAnimation }),
-            setPlayError: (playError) => set({ playError }),
-            setIsTaskbarPlayerOpen: (isTaskbarPlayerOpen) => set({ isTaskbarPlayerOpen }),
+            setSingleLineAnimation: (animation) => set({ singleLineAnimation: animation }),
+            setHideAlbumCover: (hideAlbumCover) => set({ hideAlbumCover }),
+            setPlayError: (error) => set({ playError: error }),
+            setIsTaskbarPlayerOpen: (open) => set({ isTaskbarPlayerOpen: open }),
+            setIsDesktopPlayerOpen: (open) => set({ isDesktopPlayerOpen: open }),
 
-            setPlayerBgType: (playerBgType) => set({ playerBgType }),
+            setIsLyricEditorMode: (enabled) => set({ isLyricEditorMode: enabled }),
+            setLyricOffsetX: (x) => set({ lyricOffsetX: x }),
+            setLyricOffsetY: (y) => set({ lyricOffsetY: y }),
+
+            setPlayerBgType: (type) => set({ playerBgType: type }),
             setCustomBgPath: (customBgPath) => set({ customBgPath }),
             setCustomBgBlur: (customBgBlur) => set({ customBgBlur }),
             setCustomBgBrightness: (customBgBrightness) => set({ customBgBrightness }),
@@ -301,11 +342,18 @@ export const usePlayerStore = create<PlayerState>()(
                 desktopLyricFontSize: state.desktopLyricFontSize,
                 desktopLyricColor: state.desktopLyricColor,
                 desktopLyricStrokeColor: state.desktopLyricStrokeColor,
+                desktopLyricRotationX: state.desktopLyricRotationX,
+                desktopLyricRotationY: state.desktopLyricRotationY,
+                desktopLyricRotationZ: state.desktopLyricRotationZ,
+                desktopLyricPerspective: state.desktopLyricPerspective,
                 isLyricsFolded: state.isLyricsFolded,
                 isImmersiveMode: state.isImmersiveMode,
                 lyricDisplayStyle: state.lyricDisplayStyle,
                 singleLineAnimation: state.singleLineAnimation,
+                hideAlbumCover: state.hideAlbumCover,
                 isTaskbarPlayerOpen: state.isTaskbarPlayerOpen,
+                lyricOffsetX: state.lyricOffsetX,
+                lyricOffsetY: state.lyricOffsetY,
                 playerBgType: state.playerBgType,
                 customBgPath: state.customBgPath,
                 customBgBlur: state.customBgBlur,

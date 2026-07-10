@@ -257,3 +257,16 @@
 .dark * {
   scrollbar-color: oklch(1 0 0 / 18%) transparent;
 }
+
+/* AMLL 居中对齐覆盖 (当隐藏专辑封面时) */
+.amll-centered [class*="_lyricLineWrapper"] {
+  align-items: center !important;
+}
+
+.amll-centered [class*="_lyricMainLine"] span {
+  text-align: center !important;
+}
+
+.amll-centered [class*="_lyricLine"] {
+  transform-origin: center center !important;
+}

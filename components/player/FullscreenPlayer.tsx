@@ -29,6 +29,7 @@ import {
     Shuffle,
     Disc,
     AppWindow,
+    ListMusic,
     Image as ImageIcon
 } from "lucide-react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
@@ -57,6 +58,7 @@ import { useAudioSourceStore, useActiveSource } from "@/lib/store/useAudioSource
 import { AudioQuality } from "@/lib/services/audioSourceService"
 import { lxMusicRuntimeService } from "@/lib/services/lxMusicRuntimeService"
 import { AudioSourceType } from "@/lib/models/audioSourceConfig"
+import { CapsulePlayerBar } from "./CapsulePlayerBar"
 import { extractColorsFromImage, extractBrightnessFromImage } from "@/lib/utils/extractColors"
 import {
     DropdownMenu,
@@ -70,11 +72,11 @@ import {
 import { invoke } from "@tauri-apps/api/core"
 import { toast } from "sonner"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { PlayerSettingsMenu } from "./PlayerSettingsMenu"
 import { useTheme } from "next-themes"
 import { LiquidGlass } from "@/components/ui/LiquidGlass"
 import { useRouter } from "next/navigation"
 import { artistService } from "@/lib/services/artistService"
-import { pushAndroidBackHandler } from "@/lib/utils/androidBack"
 import {
     Dialog,
     DialogContent,
@@ -127,6 +129,7 @@ export function FullscreenPlayer() {
     const setIsLyricsFolded = usePlayerStore(s => s.setIsLyricsFolded)
     const isImmersiveMode = usePlayerStore(s => s.isImmersiveMode)
     const setIsImmersiveMode = usePlayerStore(s => s.setIsImmersiveMode)
+    const hideAlbumCover = usePlayerStore(s => s.hideAlbumCover)
     const lyricDisplayStyle = usePlayerStore(s => s.lyricDisplayStyle)
     const setLyricDisplayStyle = usePlayerStore(s => s.setLyricDisplayStyle)
     const singleLineAnimation = usePlayerStore(s => s.singleLineAnimation)
@@ -151,6 +154,7 @@ export function FullscreenPlayer() {
     const [localVolume, setLocalVolume] = React.useState(0)
     const isDraggingProgress = React.useRef(false)
     const isDraggingVolume = React.useRef(false)
+    const isFullscreenRef = React.useRef(isFullscreen)
     const [isVisible, setIsVisible] = React.useState(isFullscreen)
     const [isAnimatingOut, setIsAnimatingOut] = React.useState(false)
     const [isMaximized, setIsMaximized] = React.useState(false)
@@ -171,6 +175,11 @@ export function FullscreenPlayer() {
     const { quality, setQuality } = useAudioSourceStore()
     const activeSource = useActiveSource()
     const router = useRouter()
+
+    // 关闭全屏播放器：overlay 模式下直接隐藏
+    const handleClose = React.useCallback(() => {
+        setIsFullscreen(false)
+    }, [setIsFullscreen])
     const [showArtistPicker, setShowArtistPicker] = React.useState(false)
     const [artistList, setArtistList] = React.useState<string[]>([])
     const [bgDialogOpen, setBgDialogOpen] = React.useState(false)
@@ -352,6 +361,7 @@ export function FullscreenPlayer() {
         }
     }, [volume])
 
+    // 全屏 overlay 入场/退场动画
     React.useEffect(() => {
         if (isFullscreen) {
             setIsVisible(true)
@@ -394,13 +404,30 @@ export function FullscreenPlayer() {
         }
     }, [isVisible, resolvedTheme, isMobile, lyricDisplayStyle])
 
+    // 移动端 overlay 返回键处理：pushState 虚拟历史条目 + popstate 监听
+    // 不依赖 evaluateJavascript 的异步回调，时序可靠
     React.useEffect(() => {
-        if (!isMobile || !isVisible) return
-        return pushAndroidBackHandler(() => {
-            setIsFullscreen(false)
-            return true
-        })
-    }, [isMobile, isVisible, setIsFullscreen])
+        isFullscreenRef.current = isFullscreen
+    }, [isFullscreen])
+
+    React.useEffect(() => {
+        if (!isFullscreen) return
+        // 向 WebView 历史栈推入虚拟条目，使返回键只 pop 此条目（URL 不变）
+        window.history.pushState({ __cyreneFullscreen: true }, "")
+        const onPopState = () => {
+            // 返回键已 pop 虚拟条目，关闭 overlay 即可（无需再 history.back）
+            if (isFullscreenRef.current) handleClose()
+        }
+        window.addEventListener("popstate", onPopState)
+        return () => window.removeEventListener("popstate", onPopState)
+    }, [isFullscreen, handleClose])
+
+    // 非返回键关闭（如点击关闭按钮）：清理虚拟历史条目
+    React.useEffect(() => {
+        if (!isFullscreen && window.history.state?.__cyreneFullscreen) {
+            window.history.back()
+        }
+    }, [isFullscreen])
 
     // 移动端歌词面板：进入后延迟自动折叠底部控制栏，点击歌词区域可重新唤出
     React.useEffect(() => {
@@ -437,7 +464,7 @@ export function FullscreenPlayer() {
     const hasTranslation = !!(currentTrack?.tlyric || currentTrack?.ytlrc)
 
     const formatTime = (seconds: number) => {
-        if (!seconds || isNaN(seconds)) return "0:00"
+        if (!seconds || !isFinite(seconds)) return "0:00"
         const mins = Math.floor(Math.abs(seconds) / 60)
         const secs = Math.floor(Math.abs(seconds) % 60)
         return `${mins}:${secs.toString().padStart(2, "0")}`
@@ -660,343 +687,18 @@ export function FullscreenPlayer() {
             {/* Top Bar / Close Button */}
             <div data-tauri-drag-region className={`relative z-[110] flex justify-between items-center px-6 pb-4 lg:px-8 lg:pb-4 pt-14 lg:pt-4 transition-all duration-300 overflow-hidden ${isImmersiveMode ? 'bg-gradient-to-b from-black/30 to-transparent' : ''} ${isMobile ? (showMobileLyrics ? 'max-h-0 !pt-0 !pb-0 opacity-0 pointer-events-none' : 'max-h-40') : ''}`} style={isMobile ? { paddingTop: 'calc(env(safe-area-inset-top, 40px) + 24px)' } : {}}>
                 <button
-                    onClick={() => setIsFullscreen(false)}
+                    onClick={handleClose}
                     className="text-white/30 hover:text-white/80 transition-colors p-2 hover:bg-white/5 rounded-full z-10"
                 >
                     <ChevronDown size={28} />
                 </button>
                 {!isMobile && (
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <button className="text-white/30 hover:text-white/80 transition-colors p-2 hover:bg-white/5 rounded-full z-10 ml-1">
-                            <MoreHorizontal size={22} />
-                        </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-48 bg-black/80 backdrop-blur-xl border-white/10 text-white">
-                        <DropdownMenuLabel>播放器设置</DropdownMenuLabel>
-                        <DropdownMenuSeparator className="bg-white/10" />
-                        <DropdownMenuCheckboxItem
-                            checked={audioVisualization}
-                            onCheckedChange={toggleAudioVisualization}
-                            className="focus:bg-white/10 focus:text-white data-[state=checked]:bg-white/5"
-                        >
-                            <Activity className="mr-2 h-4 w-4" />
-                            音频律动
-                        </DropdownMenuCheckboxItem>
-                        <DropdownMenuCheckboxItem
-                            checked={isImmersiveMode}
-                            onCheckedChange={setIsImmersiveMode}
-                            className="focus:bg-white/10 focus:text-white data-[state=checked]:bg-white/5"
-                        >
-                            <Monitor className="mr-2 h-4 w-4" />
-                            沉浸模式
-                        </DropdownMenuCheckboxItem>
-                        <DropdownMenuItem
-                            onClick={openDesktopLyric}
-                            className="focus:bg-white/10 focus:text-white"
-                        >
-                            <Monitor className="mr-2 h-4 w-4" />
-                            桌面歌词
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                            onSelect={(e) => { e.preventDefault(); setBgDialogOpen(true) }}
-                            className="focus:bg-white/10 focus:text-white"
-                        >
-                            <ImageIcon className="mr-2 h-4 w-4" />
-                            播放器背景…
-                        </DropdownMenuItem>
-                        {currentTrack?.source === 'netease' && (
-                            <DropdownMenuCheckboxItem
-                                checked={heartMode}
-                                onCheckedChange={() => handleToggleHeartMode()}
-                                className="focus:bg-white/10 focus:text-white data-[state=checked]:bg-white/5"
-                            >
-                                <Sparkles className="mr-2 h-4 w-4" />
-                                心动模式
-                            </DropdownMenuCheckboxItem>
-                        )}
-                        <DropdownMenuSeparator className="bg-white/10" />
-                        <div className="px-2 py-1.5">
-                            <div className="flex items-center text-sm font-medium mb-2 opacity-80">
-                                <Disc className="mr-2 h-4 w-4" /> 歌词样式
-                            </div>
-                            <div className="flex gap-1">
-                                <button
-                                    onClick={() => setLyricDisplayStyle(LyricDisplayStyle.Scroll)}
-                                    className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.Scroll ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                                >
-                                    滚动
-                                </button>
-                                <button
-                                    onClick={() => setLyricDisplayStyle(LyricDisplayStyle.Roulette)}
-                                    className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.Roulette ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                                >
-                                    轮盘
-                                </button>
-                                <button
-                                    onClick={() => setLyricDisplayStyle(LyricDisplayStyle.SingleLine)}
-                                    className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.SingleLine ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                                >
-                                    单行
-                                </button>
-                            </div>
-                            {lyricDisplayStyle === LyricDisplayStyle.SingleLine && (
-                                <div className="flex gap-1 mt-2">
-                                    <button
-                                        onClick={() => setSingleLineAnimation(SingleLineAnimation.SlideUp)}
-                                        className={`flex-1 text-xs py-1 px-1 rounded transition-colors ${singleLineAnimation === SingleLineAnimation.SlideUp ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                                    >
-                                        上推
-                                    </button>
-                                    <button
-                                        onClick={() => setSingleLineAnimation(SingleLineAnimation.Fade)}
-                                        className={`flex-1 text-xs py-1 px-1 rounded transition-colors ${singleLineAnimation === SingleLineAnimation.Fade ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                                    >
-                                        渐变
-                                    </button>
-                                    <button
-                                        onClick={() => setSingleLineAnimation(SingleLineAnimation.Zoom)}
-                                        className={`flex-1 text-xs py-1 px-1 rounded transition-colors ${singleLineAnimation === SingleLineAnimation.Zoom ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                                    >
-                                        缩放
-                                    </button>
-                                    <button
-                                        onClick={() => setSingleLineAnimation(SingleLineAnimation.Blur)}
-                                        className={`flex-1 text-xs py-1 px-1 rounded transition-colors ${singleLineAnimation === SingleLineAnimation.Blur ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                                    >
-                                        模糊
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                        <DropdownMenuSeparator className="bg-white/10" />
-                        <div className="px-2 py-1.5">
-                            <div className="flex items-center text-sm font-medium mb-2 opacity-80">
-                                <Type className="mr-2 h-4 w-4" /> 歌词字体
-                            </div>
-                            <select
-                                value={lyricFontFamily}
-                                onChange={(e) => setLyricFontFamily(e.target.value)}
-                                className="w-full bg-white/10 text-white text-sm rounded-md px-2 py-1.5 outline-none cursor-pointer appearance-none [&>option]:text-black"
-                            >
-                                {LYRIC_FONT_OPTIONS.map(f => (
-                                    <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
-                                        {f.label}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <DropdownMenuSeparator className="bg-white/10" />
-                        <div className="px-2 py-1.5">
-                            <div className="flex items-center text-sm font-medium mb-2 opacity-80">
-                                <Type className="mr-2 h-4 w-4" /> 歌词字号
-                            </div>
-                            <Slider
-                                value={[lyricFontSize]}
-                                max={60}
-                                min={20}
-                                step={1}
-                                onValueChange={(v) => setLyricFontSize(v[0])}
-                                className="w-full"
-                            />
-                        </div>
-                        <div className="px-2 py-1.5 mb-1.5">
-                            <div className="flex items-center text-sm font-medium mb-2 opacity-80">
-                                <Droplets className="mr-2 h-4 w-4" /> 背景模糊
-                            </div>
-                            <Slider
-                                value={[lyricBlurStrength]}
-                                max={20}
-                                min={0}
-                                step={1}
-                                onValueChange={(v) => setLyricBlurStrength(v[0])}
-                                className="w-full"
-                            />
-                        </div>
-                        <DropdownMenuSeparator className="bg-white/10" />
-                        <div className="px-2 py-1.5">
-                            <div className="flex items-center text-sm font-medium mb-2 opacity-80">
-                                <Monitor className="mr-2 h-4 w-4" /> 桌面歌词字号
-                            </div>
-                            <Slider
-                                value={[desktopLyricFontSize]}
-                                max={80}
-                                min={20}
-                                step={1}
-                                onValueChange={(v) => {
-                                    setDesktopLyricFontSize(v[0])
-                                    syncDesktopSettings({ desktopLyricFontSize: v[0] })
-                                }}
-                                className="w-full"
-                            />
-                        </div>
-                        <div className="px-2 py-1.5 flex flex-col gap-2">
-                            <label className="flex items-center justify-between text-sm opacity-80 cursor-pointer">
-                                <div className="flex items-center"><Baseline className="mr-2 h-4 w-4" /> 桌面歌词颜色</div>
-                                <input
-                                    type="color"
-                                    value={desktopLyricColor}
-                                    className="w-6 h-6 p-0 border-0 rounded cursor-pointer bg-transparent"
-                                    onChange={(e) => {
-                                        setDesktopLyricColor(e.target.value)
-                                        syncDesktopSettings({ desktopLyricColor: e.target.value })
-                                    }}
-                                />
-                            </label>
-                            <label className="flex items-center justify-between text-sm opacity-80 cursor-pointer">
-                                <div className="flex items-center"><Palette className="mr-2 h-4 w-4" /> 桌面歌词描边</div>
-                                <input
-                                    type="color"
-                                    value={desktopLyricStrokeColor}
-                                    className="w-6 h-6 p-0 border-0 rounded cursor-pointer bg-transparent"
-                                    onChange={(e) => {
-                                        setDesktopLyricStrokeColor(e.target.value)
-                                        syncDesktopSettings({ desktopLyricStrokeColor: e.target.value })
-                                    }}
-                                />
-                            </label>
-                        </div>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                    <PlayerSettingsMenu />
                 )}
                 <div data-tauri-drag-region className="flex-1 h-full mx-4" />
                 <div className="flex items-center gap-2 z-10">
                     {isMobile && (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <button className="text-white/30 hover:text-white/80 transition-colors p-2 hover:bg-white/5 rounded-full z-10">
-                                    <MoreHorizontal size={22} />
-                                </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48 bg-black/80 backdrop-blur-xl border-white/10 text-white">
-                                <DropdownMenuLabel>播放器设置</DropdownMenuLabel>
-                                <DropdownMenuSeparator className="bg-white/10" />
-
-                                <DropdownMenuCheckboxItem
-                                    checked={isImmersiveMode}
-                                    onCheckedChange={setIsImmersiveMode}
-                                    className="focus:bg-white/10 focus:text-white data-[state=checked]:bg-white/5"
-                                >
-                                    <Monitor className="mr-2 h-4 w-4" />
-                                    沉浸模式
-                                </DropdownMenuCheckboxItem>
-                                <DropdownMenuItem
-                                    onSelect={(e) => { e.preventDefault(); setBgDialogOpen(true) }}
-                                    className="focus:bg-white/10 focus:text-white"
-                                >
-                                    <ImageIcon className="mr-2 h-4 w-4" />
-                                    播放器背景…
-                                </DropdownMenuItem>
-                                {currentTrack?.source === 'netease' && (
-                                    <DropdownMenuCheckboxItem
-                                        checked={heartMode}
-                                        onCheckedChange={() => handleToggleHeartMode()}
-                                        className="focus:bg-white/10 focus:text-white data-[state=checked]:bg-white/5"
-                                    >
-                                        <Sparkles className="mr-2 h-4 w-4" />
-                                        心动模式
-                                    </DropdownMenuCheckboxItem>
-                                )}
-                                <DropdownMenuSeparator className="bg-white/10" />
-                                <div className="px-2 py-1.5">
-                                    <div className="flex items-center text-sm font-medium mb-2 opacity-80">
-                                        <Disc className="mr-2 h-4 w-4" /> 歌词样式
-                                    </div>
-                                    <div className="flex gap-1">
-                                        <button
-                                            onClick={() => setLyricDisplayStyle(LyricDisplayStyle.Scroll)}
-                                            className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.Scroll ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                                        >
-                                            滚动
-                                        </button>
-                                        <button
-                                            onClick={() => setLyricDisplayStyle(LyricDisplayStyle.Roulette)}
-                                            className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.Roulette ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                                        >
-                                            轮盘
-                                        </button>
-                                        <button
-                                            onClick={() => setLyricDisplayStyle(LyricDisplayStyle.SingleLine)}
-                                            className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.SingleLine ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                                        >
-                                            单行
-                                        </button>
-                                    </div>
-                                    {lyricDisplayStyle === LyricDisplayStyle.SingleLine && (
-                                        <div className="flex gap-1 mt-2">
-                                            <button
-                                                onClick={() => setSingleLineAnimation(SingleLineAnimation.SlideUp)}
-                                                className={`flex-1 text-xs py-1 px-1 rounded transition-colors ${singleLineAnimation === SingleLineAnimation.SlideUp ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                                            >
-                                                上推
-                                            </button>
-                                            <button
-                                                onClick={() => setSingleLineAnimation(SingleLineAnimation.Fade)}
-                                                className={`flex-1 text-xs py-1 px-1 rounded transition-colors ${singleLineAnimation === SingleLineAnimation.Fade ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                                            >
-                                                渐变
-                                            </button>
-                                            <button
-                                                onClick={() => setSingleLineAnimation(SingleLineAnimation.Zoom)}
-                                                className={`flex-1 text-xs py-1 px-1 rounded transition-colors ${singleLineAnimation === SingleLineAnimation.Zoom ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                                            >
-                                                缩放
-                                            </button>
-                                            <button
-                                                onClick={() => setSingleLineAnimation(SingleLineAnimation.Blur)}
-                                                className={`flex-1 text-xs py-1 px-1 rounded transition-colors ${singleLineAnimation === SingleLineAnimation.Blur ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                                            >
-                                                模糊
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                                <DropdownMenuSeparator className="bg-white/10" />
-                                <div className="px-2 py-1.5">
-                                    <div className="flex items-center text-sm font-medium mb-2 opacity-80">
-                                        <Type className="mr-2 h-4 w-4" /> 歌词字体
-                                    </div>
-                                    <select
-                                        value={lyricFontFamily}
-                                        onChange={(e) => setLyricFontFamily(e.target.value)}
-                                        className="w-full bg-white/10 text-white text-sm rounded-md px-2 py-1.5 outline-none cursor-pointer appearance-none [&>option]:text-black"
-                                    >
-                                        {LYRIC_FONT_OPTIONS.map(f => (
-                                            <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
-                                                {f.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <DropdownMenuSeparator className="bg-white/10" />
-                                <div className="px-2 py-1.5">
-                                    <div className="flex items-center text-sm font-medium mb-2 opacity-80">
-                                        <Type className="mr-2 h-4 w-4" /> 歌词字号
-                                    </div>
-                                    <Slider
-                                        value={[lyricFontSize]}
-                                        max={60}
-                                        min={20}
-                                        step={1}
-                                        onValueChange={(v) => setLyricFontSize(v[0])}
-                                        className="w-full"
-                                    />
-                                </div>
-                                <div className="px-2 py-1.5 mb-1.5">
-                                    <div className="flex items-center text-sm font-medium mb-2 opacity-80">
-                                        <Droplets className="mr-2 h-4 w-4" /> 背景模糊
-                                    </div>
-                                    <Slider
-                                        value={[lyricBlurStrength]}
-                                        max={20}
-                                        min={0}
-                                        step={1}
-                                        onValueChange={(v) => setLyricBlurStrength(v[0])}
-                                        className="w-full"
-                                    />
-                                </div>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <PlayerSettingsMenu align="end" isMobile={true} />
                     )}
                     {!isMobile && (
                         <>
@@ -1041,10 +743,10 @@ export function FullscreenPlayer() {
             </div>
 
             {/* Main Content Layout (45/55 Grid for Desktop, Single Col for Mobile) */}
-            <div className={`relative z-10 grid flex-1 min-h-0 w-full max-w-[1700px] mx-auto overflow-hidden transition-all duration-700 ease-in-out ${isLyricsFolded ? 'grid-cols-1 max-w-[800px]' : (lyricDisplayStyle === LyricDisplayStyle.SingleLine && !isMobile ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[45%_55%]')}`}>
+            <div className={`relative z-10 grid flex-1 min-h-0 w-full max-w-[1700px] mx-auto overflow-hidden transition-all duration-700 ease-in-out ${isLyricsFolded ? 'grid-cols-1 max-w-[800px]' : ((lyricDisplayStyle === LyricDisplayStyle.SingleLine || hideAlbumCover) && !isMobile ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[45%_55%]')}`}>
 
                 {/* Left Column (Desktop & Mobile) */}
-                <div className={`flex flex-col items-center h-full min-h-0 overflow-hidden w-full transition-all duration-700 ease-in-out ${isLyricsFolded ? 'px-4' : 'px-[2vw] lg:px-[4vw]'} ${!isMobile && lyricDisplayStyle === LyricDisplayStyle.SingleLine ? 'hidden' : ''}`}>
+                <div className={`flex flex-col items-center h-full min-h-0 overflow-hidden w-full transition-all duration-700 ease-in-out ${isLyricsFolded ? 'px-4' : 'px-[2vw] lg:px-[4vw]'} ${!isMobile && (lyricDisplayStyle === LyricDisplayStyle.SingleLine || hideAlbumCover) ? 'hidden' : ''}`}>
                     {/* Top flexible spacer to balance vertical position */}
                     {!isMobile && <div className="flex-[0.8] min-h-[2vh] shrink-0" />}
 
@@ -1055,7 +757,7 @@ export function FullscreenPlayer() {
                         <div className={`flex flex-col items-center shrink-0 ${isMobile ? 'w-1/2 overflow-hidden' : 'w-full'} ${!isMobile ? 'justify-start' : (isImmersiveMode ? 'justify-end pb-4' : 'justify-center')}`}>
                             {isMobile && <div className="flex-[0.05] min-h-0" />}
                             <div className={
-                                isImmersiveMode
+                                isImmersiveMode || hideAlbumCover
                                     ? 'hidden'
                                     : `relative z-[1] aspect-square w-full ${isMobile ? 'max-w-[min(90%,36vh,90cqh)]' : 'max-w-[min(100%,40vh)]'} lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink transition-all duration-700`
                             }
@@ -1192,18 +894,51 @@ export function FullscreenPlayer() {
                                                     </button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="w-56 bg-black/90 backdrop-blur-xl border-white/10 text-white">
+                                                    <DropdownMenuItem onClick={handleHeartClick} className="focus:bg-white/10 focus:text-white">
+                                                        <Heart className={`mr-2 h-4 w-4 ${isInPlaylist ? 'text-red-500' : ''}`} fill={isInPlaylist ? "currentColor" : "none"} />
+                                                        {isInPlaylist ? '取消收藏' : '收藏'}
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => { setShowAddToPlaylistMode('add'); setShowAddToPlaylist(true) }} className="focus:bg-white/10 focus:text-white">
+                                                        <ListMusic className="mr-2 h-4 w-4" />
+                                                        添加到歌单
+                                                    </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => handleArtistClick()} className="focus:bg-white/10 focus:text-white">
+                                                        <Disc className="mr-2 h-4 w-4" />
                                                         查看歌手
                                                     </DropdownMenuItem>
+                                                    <DropdownMenuSeparator className="bg-white/10" />
+                                                    <div className="px-2 py-1.5">
+                                                        <div className="text-xs font-medium mb-2 opacity-60">歌词样式</div>
+                                                        <div className="flex gap-1">
+                                                            <button
+                                                                onClick={() => setLyricDisplayStyle(LyricDisplayStyle.Scroll)}
+                                                                className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.Scroll ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                                                            >
+                                                                滚动
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setLyricDisplayStyle(LyricDisplayStyle.Roulette)}
+                                                                className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.Roulette ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                                                            >
+                                                                轮盘
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setLyricDisplayStyle(LyricDisplayStyle.SingleLine)}
+                                                                className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.SingleLine ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
+                                                            >
+                                                                单行
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </div>
                                     )}
-                                    <div className="flex-1 min-h-0">
+                                    <div className="flex-1 min-h-0" onClick={isMobileLyricsControlsHidden ? undefined : e => e.stopPropagation()}>
                                         {rightPanelMode === 'lyrics' ? (
-                                            lyricDisplayStyle === LyricDisplayStyle.Roulette ? <LyricPlayerRoulette /> :
-                                            lyricDisplayStyle === LyricDisplayStyle.SingleLine ? <LyricPlayerSingleLine /> :
-                                            <AMLLLyricPlayer />
+                                            lyricDisplayStyle === LyricDisplayStyle.Roulette ? <LyricPlayerRoulette disableSeek={isMobileLyricsControlsHidden} /> :
+                                            lyricDisplayStyle === LyricDisplayStyle.SingleLine ? <LyricPlayerSingleLine disableSeek={isMobileLyricsControlsHidden} /> :
+                                            <AMLLLyricPlayer disableSeek={isMobileLyricsControlsHidden} />
                                         ) : rightPanelMode === 'info' ? <SongInfoPanel /> : <EqualizerPanel />}
                                     </div>
                                 </div>
@@ -1399,160 +1134,20 @@ export function FullscreenPlayer() {
 
             {/* Desktop Bottom Capsule Bar */}
             {!isMobile && (
-                <div className={`relative z-[120] flex justify-center items-center gap-4 pb-6 px-8 transition-[filter] duration-500 ${isImmersiveMode && isLightCover ? '[&_button]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] [&_span]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] [&_img]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] [&_svg]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : ''}`}>
-                    {/* Left Capsule: Minimize + Toggle Lyrics */}
-                    <div
-                        className="relative flex items-center gap-2 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-4 py-2.5 backdrop-blur-md"
-                    >
-                        <LiquidGlass className="bg-white/10" />
-                        <button
-                            onClick={() => setIsFullscreen(false)}
-                            className="text-white/50 hover:text-white transition-colors p-1.5"
-                            title="最小化播放器"
-                        >
-                            <ChevronDown size={20} />
-                        </button>
-                        <button
-                            onClick={() => setIsLyricsFolded(!isLyricsFolded)}
-                            className={`p-1.5 transition-colors ${isLyricsFolded ? 'text-white' : 'text-white/50 hover:text-white'}`}
-                            title={isLyricsFolded ? '展开歌词' : '折叠歌词'}
-                        >
-                            <img src="/icon/icon_lyrics.svg" alt="Lyrics" className="w-5 h-5" style={{ filter: 'invert(1) brightness(100)', opacity: isLyricsFolded ? 1 : 0.6 }} />
-                        </button>
-                        <div className="w-[1px] h-4 bg-white/10 mx-1" />
-                        <button
-                            onClick={() => setRightPanelMode(rightPanelMode === 'info' ? 'lyrics' : 'info')}
-                            className={`p-1.5 rounded-full transition-colors ${rightPanelMode === 'info' ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
-                            title={rightPanelMode === 'info' ? '显示歌词' : '切换歌曲信息'}
-                        >
-                            <Info size={20} />
-                        </button>
-                        <button
-                            onClick={() => setRightPanelMode(rightPanelMode === 'eq' ? 'lyrics' : 'eq')}
-                            className={`p-1.5 rounded-full transition-colors ${rightPanelMode === 'eq' ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
-                            title={rightPanelMode === 'eq' ? '关闭均衡器' : '均衡器设置'}
-                        >
-                            <SlidersHorizontal size={20} />
-                        </button>
-                        {hasTranslation && (
-                            <button
-                                onClick={toggleTranslation}
-                                className={`p-1.5 rounded-full transition-colors ${showTranslation ? 'text-white bg-white/10' : 'text-white/50 hover:text-white'}`}
-                                title={showTranslation ? '隐藏翻译' : '显示翻译'}
-                            >
-                                <Languages size={20} />
-                            </button>
-                        )}
-                    </div>
-
-                    {/* Center Capsule: Song Info + Playback + Progress */}
-                    <div
-                        className="relative flex items-center gap-5 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-5 py-2.5 flex-1 max-w-[900px] backdrop-blur-md"
-                    >
-                        <LiquidGlass className="bg-white/10" />
-                        {/* Mini Cover + Info */}
-                        <div className="flex items-center gap-2.5 min-w-[140px] shrink-0">
-                            {currentTrack?.picUrl ? (
-                                <img src={currentTrack.picUrl} alt={currentTrack.name} className="w-9 h-9 rounded-lg object-cover shrink-0" />
-                            ) : (
-                                <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center shrink-0 text-white/30 text-xs">♪</div>
-                            )}
-                            <div className="flex flex-col min-w-0">
-                                <span className="text-[13px] font-bold text-white truncate">{currentTrack?.name || '未在播放'}</span>
-                                <span
-                                    className={`text-[11px] truncate ${currentTrack?.source === 'netease' ? 'text-white/50 hover:text-white/80 cursor-pointer transition-colors' : 'text-white/50'}`}
-                                    onClick={() => currentTrack?.source === 'netease' && handleArtistClick()}
-                                >{currentTrack?.artists || '未知歌手'}</span>
-                            </div>
-                        </div>
-
-                        {/* Playback Buttons */}
-                        <div className="flex items-center gap-4 shrink-0">
-                            {/* Immersive Mode Audio Visualizer (compact) */}
-                            {isImmersiveMode && (
-                                <AudioVisualizer
-                                    colors={coverColors}
-                                    compact
-                                    isPlaying={isPlaying}
-                                    className="mr-1"
-                                />
-                            )}
-                            <button onClick={handleSkipPrevious} className="text-white/80 hover:text-white transition-all active:scale-90">
-                                <img src="/icon/icon_rewind.svg" alt="Previous" className="w-5 h-5" style={{ filter: 'invert(1) brightness(100)' }} />
-                            </button>
-                            <button onClick={handleTogglePlay} className="text-white hover:text-white/90 active:scale-95 transition-all">
-                                {isPlaying
-                                    ? <img src="/icon/icon_pause.svg" alt="Pause" className="w-7 h-7" style={{ filter: 'invert(1) brightness(100)' }} />
-                                    : <img src="/icon/icon_play.svg" alt="Play" className="w-7 h-7" style={{ filter: 'invert(1) brightness(100)' }} />
-                                }
-                            </button>
-                            <button onClick={handleSkipNext} className="text-white/80 hover:text-white transition-all active:scale-90">
-                                <img src="/icon/icon_forward.svg" alt="Next" className="w-5 h-5" style={{ filter: 'invert(1) brightness(100)' }} />
-                            </button>
-                            {/* Heart Button */}
-                            {currentTrack && (
-                                <button onClick={handleHeartClick} className={`transition-all duration-300 ${isInPlaylist ? 'text-red-500' : 'text-white/50 hover:text-white/80'}`}>
-                                    <Heart size={18} fill={isInPlaylist ? "currentColor" : "none"} />
-                                </button>
-                            )}
-                            {/* Repeat Mode Button */}
-                            <button
-                                onClick={() => {
-                                    const modes = [RepeatMode.All, RepeatMode.One, RepeatMode.Shuffle]
-                                    const currentIndex = modes.indexOf(repeatMode)
-                                    setRepeatMode(modes[(currentIndex + 1) % modes.length])
-                                }}
-                                className={`transition-colors ${repeatMode === RepeatMode.All ? 'text-white/50 hover:text-white/80' : 'text-white hover:text-white/90'}`}
-                                title={repeatMode === RepeatMode.All ? '顺序播放' : repeatMode === RepeatMode.One ? '单曲循环' : '随机播放'}
-                            >
-                                {repeatMode === RepeatMode.One ? <Repeat1 size={18} /> : repeatMode === RepeatMode.Shuffle ? <Shuffle size={18} /> : <Repeat size={18} />}
-                            </button>
-                        </div>
-
-                        {/* Progress */}
-                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                            <span className="text-[11px] text-white/50 font-semibold tabular-nums shrink-0">{formatTime(isDraggingProgress.current ? localProgress * duration : currentTime)}</span>
-                            <div className="flex-1 h-3 flex items-center">
-                                <Slider
-                                    value={[localProgress]}
-                                    max={1}
-                                    step={0.0001}
-                                    onValueChange={handleSeekChange}
-                                    onValueCommit={handleSeekCommit}
-                                    className="w-full"
-                                    variant="apple"
-                                />
-                            </div>
-                            <span className="text-[11px] text-white/50 font-semibold tabular-nums shrink-0">{formatTime(Math.max(0, duration - (isDraggingProgress.current ? localProgress * duration : currentTime)))}</span>
-                        </div>
-                    </div>
-
-                    {/* Right Capsule: Volume (expands left on hover) */}
-                    <div
-                        className="relative group/volbtn flex items-center h-12 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full overflow-hidden transition-all duration-300 ease-in-out w-12 hover:w-[200px] backdrop-blur-md"
-                    >
-                        <LiquidGlass className="bg-white/10 group-hover/volbtn:bg-white/15 transition-colors" />
-                        {/* Slider (visible on hover) */}
-                        <div className="flex items-center gap-2 pl-3.5 pr-1 opacity-0 group-hover/volbtn:opacity-100 transition-opacity duration-300 absolute left-0 top-0 bottom-0 right-12 z-10">
-                            <Volume size={14} className="text-white/50 shrink-0" />
-                            <div className="flex-1 h-3 flex items-center">
-                                <Slider
-                                    value={[localVolume]}
-                                    max={1}
-                                    step={0.01}
-                                    onValueChange={handleVolumeChange}
-                                    onValueCommit={handleVolumeCommit}
-                                    className="w-full"
-                                    variant="apple"
-                                />
-                            </div>
-                        </div>
-                        {/* Icon (always visible, anchored right) */}
-                        <div className="absolute right-0 top-0 bottom-0 w-12 flex items-center justify-center z-10 text-white/70 group-hover/volbtn:text-white transition-colors">
-                            <Volume2 size={20} />
-                        </div>
-                    </div>
-                </div>
+                <CapsulePlayerBar 
+                    isImmersiveMode={isImmersiveMode}
+                    isLightCover={isLightCover}
+                    coverColors={coverColors}
+                    onClose={handleClose}
+                    isLyricsFolded={isLyricsFolded}
+                    onToggleLyrics={() => setIsLyricsFolded(!isLyricsFolded)}
+                    rightPanelMode={rightPanelMode}
+                    onChangeRightPanelMode={setRightPanelMode}
+                    hasTranslation={hasTranslation}
+                    showTranslation={showTranslation}
+                    onToggleTranslation={toggleTranslation}
+                    onArtistClick={handleArtistClick}
+                />
             )}
 
             <Dialog open={showArtistPicker} onOpenChange={setShowArtistPicker}>
@@ -1583,10 +1178,6 @@ export function FullscreenPlayer() {
                 track={currentTrack}
                 onStatusChange={checkPlaylistStatus}
                 mode={showAddToPlaylistMode}
-            />
-            <BackgroundSettingsDialog
-                open={bgDialogOpen}
-                onOpenChange={setBgDialogOpen}
             />
         </div>
     )

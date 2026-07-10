@@ -33,6 +33,8 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
     const isTaskbarDropZone = pathname === "/taskbar-drop-zone"
     const isSongRecommend = pathname === "/song-recommend"
     const isTablePlayer = pathname === "/tableplayer"
+    const isDesktopPlayer = pathname === "/desktop-player"
+    const isDesktopPlayerBar = pathname === "/desktop-player-bar"
 
     const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
     const [showUpdateDialog, setShowUpdateDialog] = useState(false)
@@ -78,7 +80,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
         document.addEventListener("contextmenu", handleContextMenu)
 
         // 桌面歌词、托盘和任务栏窗口不需要检查更新和初始化材质
-        if (isTray || isDesktopLyric || isTaskbar || isTaskbarDropZone || isSongRecommend) {
+        if (isTray || isDesktopLyric || isTaskbar || isTaskbarDropZone || isSongRecommend || isDesktopPlayer || isDesktopPlayerBar) {
             return () => {
                 document.removeEventListener("contextmenu", handleContextMenu)
             }
@@ -134,13 +136,17 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
         return () => {
             document.removeEventListener("contextmenu", handleContextMenu)
         }
-    }, [isTray, isDesktopLyric, isTaskbar, isTaskbarDropZone, isSongRecommend])
+    }, [isTray, isDesktopLyric, isTaskbar, isTaskbarDropZone, isSongRecommend, isDesktopPlayer, isDesktopPlayerBar])
 
     // 是否使用透明背景
     const isTransparent = material === "mica" || material === "acrylic"
 
-    if (isTray || isDesktopLyric || isTaskbar || isTaskbarDropZone || isSongRecommend || isTablePlayer) {
+    if (isDesktopPlayer || isDesktopPlayerBar) {
         return <div className="h-screen w-full bg-transparent overflow-hidden">{children}</div>
+    }
+
+    if (isTray || isDesktopLyric || isTaskbar || isTaskbarDropZone || isSongRecommend || isTablePlayer) {
+        return <div className="h-screen w-full bg-black overflow-hidden">{children}</div>
     }
 
     return (

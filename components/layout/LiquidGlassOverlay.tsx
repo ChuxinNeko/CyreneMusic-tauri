@@ -1,6 +1,6 @@
 "use client"
 
-import LiquidGlass from "liquid-glass-react"
+import LiquidGlass from "@nkzw/liquid-glass"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useLayoutStore } from "@/lib/store/useLayoutStore"
@@ -24,10 +24,12 @@ export function LiquidGlassOverlay() {
                         saturation={145}
                         aberrationIntensity={2}
                         elasticity={0.22}
-                        cornerRadius={32}
+                        borderRadius={32}
                         padding="0"
                         style={{ position: "absolute", inset: 0 }}
-                    />
+                    >
+                        <></>
+                    </LiquidGlass>
 
                     <div className="relative z-10 flex items-start justify-between gap-4">
                         <div className="space-y-2">

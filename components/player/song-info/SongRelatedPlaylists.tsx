@@ -5,7 +5,6 @@ import { Track } from "@/lib/models/track"
 import { neteaseSongWikiService } from "@/lib/services/neteaseSongWikiService"
 import { PlayCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { usePlayerStore } from "@/lib/store/usePlayerStore"
 
 interface SongRelatedPlaylistsProps {
     track: Track | null
@@ -29,7 +28,6 @@ export function SongRelatedPlaylists({ track }: SongRelatedPlaylistsProps) {
     const [playlists, setPlaylists] = useState<RelatedPlaylist[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const router = useRouter()
-    const { setIsFullscreen } = usePlayerStore()
 
     useEffect(() => {
         const fetchRelatedPlaylists = async () => {
@@ -95,9 +93,7 @@ export function SongRelatedPlaylists({ track }: SongRelatedPlaylistsProps) {
     }, [track])
 
     const handleOpenPlaylist = (playlist: RelatedPlaylist) => {
-        // 关闭全屏播放器
-        setIsFullscreen(false)
-        // 触发路由跳转显示歌单详情
+        // 路由跳转显示歌单详情（自动离开 /player 路由）
         router.push(`/?playlist=${playlist.id}`)
     }
 

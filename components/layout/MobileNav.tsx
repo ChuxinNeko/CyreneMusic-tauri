@@ -4,6 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Home, Compass, User, MoreHorizontal } from "lucide-react"
+import LiquidGlass from '@nkzw/liquid-glass'
 import { cn } from "@/lib/utils"
 import { MoreMenuSheet } from "./MoreMenuSheet"
 
@@ -57,8 +58,22 @@ export function MobileNav() {
 
     return (
         <>
-            <div className="md:hidden w-full flex-shrink-0 bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 border-t z-40 pb-[env(safe-area-inset-bottom)]">
-                <div className="flex items-center justify-around px-2 h-[72px]">
+            <div className="md:hidden fixed bottom-0 left-0 right-0 w-full z-40 pb-[calc(1.5rem+env(safe-area-inset-bottom))] px-4 pointer-events-none flex justify-center">
+                <div className="relative w-full max-w-sm pointer-events-auto rounded-full border border-black/5 dark:border-white/5 bg-white/5 dark:bg-black/5 shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-3xl overflow-hidden">
+                    <LiquidGlass
+                        className=""
+                        displacementScale={72}
+                        blurAmount={0.075}
+                        saturation={145}
+                        aberrationIntensity={2}
+                        elasticity={0.22}
+                        borderRadius={999}
+                        padding="0"
+                        style={{ position: "absolute", inset: 0 }}
+                    >
+                        <></>
+                    </LiquidGlass>
+                    <div className="relative z-10 flex items-center justify-around px-2 h-[68px]">
                     <NavItem
                         icon={Home}
                         label="首页"
@@ -83,6 +98,7 @@ export function MobileNav() {
                         onClick={() => setSheetOpen(true)}
                         isActive={sheetOpen}
                     />
+                </div>
                 </div>
             </div>
 

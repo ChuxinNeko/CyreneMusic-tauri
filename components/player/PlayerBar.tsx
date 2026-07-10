@@ -36,8 +36,10 @@ export function PlayerBar() {
         playError,
         setVolume,
         setRepeatMode,
-        setIsFullscreen
     } = usePlayerStore()
+    const setIsFullscreen = usePlayerStore(s => s.setIsFullscreen)
+
+    const openFullscreen = () => setIsFullscreen(true)
 
     const [localProgress, setLocalProgress] = React.useState(0)
     const [localVolume, setLocalVolume] = React.useState(0)
@@ -61,7 +63,7 @@ export function PlayerBar() {
     }, [volume])
 
     const formatTime = (seconds: number) => {
-        if (!seconds || isNaN(seconds)) return "00:00"
+        if (!seconds || !isFinite(seconds)) return "00:00"
         const mins = Math.floor(seconds / 60)
         const secs = Math.floor(seconds % 60)
         return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
@@ -136,7 +138,7 @@ export function PlayerBar() {
                 <div className="flex items-center gap-3 w-1/4 min-w-[200px]">
                     <div
                         className="relative group cursor-pointer overflow-hidden rounded-md w-12 h-12 bg-muted flex-shrink-0 border"
-                        onClick={() => setIsFullscreen(true)}
+                        onClick={openFullscreen}
                     >
                         {currentTrack?.picUrl ? (
                             <img
@@ -268,7 +270,7 @@ export function PlayerBar() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                        onClick={() => setIsFullscreen(true)}
+                        onClick={openFullscreen}
                     >
                         <Maximize2 className="h-4 w-4" />
                     </Button>
@@ -288,7 +290,7 @@ export function PlayerBar() {
                 {/* Left: Album Cover */}
                 <div 
                     className="relative group cursor-pointer overflow-hidden rounded-full w-12 h-12 bg-muted flex-shrink-0 shadow-sm ml-0.5"
-                    onClick={() => setIsFullscreen(true)}
+                    onClick={openFullscreen}
                 >
                     <div 
                         className="w-full h-full animate-[spin_10s_linear_infinite]"
@@ -315,7 +317,7 @@ export function PlayerBar() {
                 {/* Middle: Song Info */}
                 <div 
                     className="flex-1 flex flex-col justify-center min-w-0 mx-3 cursor-pointer overflow-hidden hover-pause"
-                    onClick={() => setIsFullscreen(true)}
+                    onClick={openFullscreen}
                 >
                     {/* Song Name with Marquee if long */}
                     <div className="w-full overflow-hidden whitespace-nowrap mask-fade">

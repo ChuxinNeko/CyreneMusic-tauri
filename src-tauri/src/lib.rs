@@ -16,6 +16,7 @@ mod local_music;
 mod audio_proxy;
 mod taskbar_player;
 mod wallpaper_engine;
+mod desktop_player;
 
 lazy_static::lazy_static! {
     static ref SYS: Mutex<System> = Mutex::new(System::new_all());
@@ -936,7 +937,9 @@ pub fn run() {
                         toggle_devtools,
                         get_wallpaper_engine_background,
                         get_wallpaper_html_with_shim,
-                        is_wallpaper_engine_running
+                        is_wallpaper_engine_running,
+                        desktop_player::open_desktop_player,
+                        desktop_player::close_desktop_player
                     ]
                 }
                 #[cfg(not(target_os = "windows"))]
@@ -975,7 +978,9 @@ pub fn run() {
                         toggle_devtools,
                         get_wallpaper_engine_background,
                         get_wallpaper_html_with_shim,
-                        is_wallpaper_engine_running
+                        is_wallpaper_engine_running,
+                        desktop_player::open_desktop_player,
+                        desktop_player::close_desktop_player
                     ]
                 }
             }
