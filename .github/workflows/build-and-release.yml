@@ -296,39 +296,20 @@ jobs:
           # 2. 初始化 iOS 项目模板。
           bun run tauri ios init
           
-          # 3. 直接对生成的 Xcode 工程创建无签名 Archive。
-          # 不调用 `tauri ios build`，因为它会在 Archive 后执行需要 Apple Team 的 exportArchive。
+          # 3. 通过 Tauri 的无签名构建路径创建 Archive 和 IPA。
+          # `--no-sign` 会保留 Xcode 构建阶段依赖的 Tauri 协调服务，并跳过需要 Apple Team 的 exportArchive。
+          bun run tauri ios build --no-sign
+
+          # 4. 收集 Tauri 生成的未签名 IPA，供用户在本地自行签名。
           APPLE_DIR="$PWD/src-tauri/gen/apple"
-          PROJECT_PATH=$(find "$APPLE_DIR" -maxdepth 1 -name "*.xcodeproj" -print -quit)
-          if [ -z "$PROJECT_PATH" ]; then
-            echo "Error: No .xcodeproj found after iOS initialization."
+          IPA_PATH=$(find "$APPLE_DIR" -type f -name "*.ipa" -print -quit)
+          if [ -z "$IPA_PATH" ]; then
+            echo "Error: Tauri did not produce an unsigned IPA."
             exit 1
           fi
 
-          PROJECT_NAME=$(basename "$PROJECT_PATH" .xcodeproj)
-          ARCHIVE_PATH="$APPLE_DIR/build/Unsigned.xcarchive"
-          xcodebuild archive \
-            -project "$PROJECT_PATH" \
-            -scheme "${PROJECT_NAME}_iOS" \
-            -archivePath "$ARCHIVE_PATH" \
-            -configuration Release \
-            -destination "generic/platform=iOS" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
-
-          # 4. 将 Archive 内的未签名 .app 封装为 IPA，供用户在本地自行签名。
-          APP_PATH=$(find "$ARCHIVE_PATH/Products/Applications" -maxdepth 1 -name "*.app" -print -quit)
-          if [ -z "$APP_PATH" ]; then
-            echo "Error: No .app found in the unsigned archive."
-            exit 1
-          fi
-
-          echo "Found compiled app at: $APP_PATH"
-          cd "$APPLE_DIR"
-          mkdir -p Payload
-          cp -R "$APP_PATH" Payload/
-          zip -r CyreneMusicNext.ipa Payload
+          echo "Found unsigned IPA at: $IPA_PATH"
+          cp "$IPA_PATH" "$APPLE_DIR/CyreneMusicNext.ipa"
 
       - name: Rename IPA
         run: |
