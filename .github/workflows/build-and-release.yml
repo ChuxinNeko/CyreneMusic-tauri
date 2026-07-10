@@ -296,20 +296,67 @@ jobs:
           # 2. 初始化 iOS 项目模板。
           bun run tauri ios init
           
-          # 3. 通过 Tauri 的无签名构建路径创建 Archive 和 IPA。
-          # `--no-sign` 会保留 Xcode 构建阶段依赖的 Tauri 协调服务，并跳过需要 Apple Team 的 exportArchive。
-          bun run tauri ios build --no-sign
+          # 3. 启动 Tauri 构建协调器。Xcode 的 Build Rust Code 阶段需要它提供编译参数。
+          # CLI 2.10.0 不支持 --no-sign；--open 会创建协调服务但不自动 Archive 或 export IPA。
+          BUNDLE_ID=$(bun -e "console.log(require('./src-tauri/tauri.conf.json').identifier)")
+          SERVER_ADDR="${TMPDIR%/}/${BUNDLE_ID}-server-addr"
+          COORDINATOR_LOG="$RUNNER_TEMP/tauri-ios-coordinator.log"
+          bun run tauri ios build --open > "$COORDINATOR_LOG" 2>&1 &
+          TAURI_COORDINATOR_PID=$!
+          trap 'kill "$TAURI_COORDINATOR_PID" 2>/dev/null || true' EXIT
 
-          # 4. 收集 Tauri 生成的未签名 IPA，供用户在本地自行签名。
-          APPLE_DIR="$PWD/src-tauri/gen/apple"
-          IPA_PATH=$(find "$APPLE_DIR" -type f -name "*.ipa" -print -quit)
-          if [ -z "$IPA_PATH" ]; then
-            echo "Error: Tauri did not produce an unsigned IPA."
+          for _ in {1..60}; do
+            if [ -s "$SERVER_ADDR" ]; then
+              break
+            fi
+            if ! kill -0 "$TAURI_COORDINATOR_PID" 2>/dev/null; then
+              echo "Error: Tauri iOS coordinator stopped before becoming ready."
+              cat "$COORDINATOR_LOG"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          if [ ! -s "$SERVER_ADDR" ]; then
+            echo "Error: Timed out waiting for the Tauri iOS coordinator."
+            cat "$COORDINATOR_LOG"
             exit 1
           fi
 
-          echo "Found unsigned IPA at: $IPA_PATH"
-          cp "$IPA_PATH" "$APPLE_DIR/CyreneMusicNext.ipa"
+          # 4. 协调器已就绪，直接创建无签名 Archive；不会调用需要 Apple Team 的 exportArchive。
+          APPLE_DIR="$PWD/src-tauri/gen/apple"
+          PROJECT_PATH=$(find "$APPLE_DIR" -maxdepth 1 -name "*.xcodeproj" -print -quit)
+          if [ -z "$PROJECT_PATH" ]; then
+            echo "Error: No .xcodeproj found after iOS initialization."
+            exit 1
+          fi
+
+          PROJECT_NAME=$(basename "$PROJECT_PATH" .xcodeproj)
+          ARCHIVE_PATH="$APPLE_DIR/build/Unsigned.xcarchive"
+          xcodebuild archive \
+            -project "$PROJECT_PATH" \
+            -scheme "${PROJECT_NAME}_iOS" \
+            -archivePath "$ARCHIVE_PATH" \
+            -configuration release \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+          # 5. 将 Archive 内的 .app 封装为 IPA，供用户在本地自行签名。
+          APP_PATH=$(find "$ARCHIVE_PATH/Products/Applications" -maxdepth 1 -name "*.app" -print -quit)
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: No .app found in the unsigned archive."
+            exit 1
+          fi
+
+          echo "Found compiled app at: $APP_PATH"
+          mkdir -p "$APPLE_DIR/Payload"
+          cp -R "$APP_PATH" "$APPLE_DIR/Payload/"
+          (
+            cd "$APPLE_DIR"
+            zip -r CyreneMusicNext.ipa Payload
+          )
 
       - name: Rename IPA
         run: |
