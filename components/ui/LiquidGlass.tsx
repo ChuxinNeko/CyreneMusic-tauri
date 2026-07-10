@@ -9,6 +9,7 @@ interface LiquidGlassProps {
   saturate?: number
   edgeHighlight?: number
   lightAngle?: number
+  zIndex?: number
 }
 
 function smoothStep(a: number, b: number, t: number) {
@@ -35,6 +36,7 @@ export function LiquidGlass({
   saturate = 1.6,
   edgeHighlight = 0.9,
   lightAngle = 135,
+  zIndex = -1,
 }: LiquidGlassProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [filterId] = useState(() => `liquid-glass-${++glassIdCounter}-${Math.random().toString(36).substr(2, 9)}`)
@@ -175,8 +177,15 @@ export function LiquidGlass({
     <div 
       ref={containerRef} 
       className={`absolute inset-0 pointer-events-none rounded-[inherit] overflow-hidden ${className}`}
-      style={{ zIndex: -1 }}
+      style={{ zIndex }}
     >
+      <div
+        className="absolute inset-0 h-full w-full rounded-[inherit]"
+        style={{
+          backdropFilter: `blur(${blur}px) saturate(${saturate}) brightness(1.05) contrast(1.1)`,
+          WebkitBackdropFilter: `blur(${blur}px) saturate(${saturate}) brightness(1.05) contrast(1.1)`,
+        }}
+      />
       {svgParams && (
         <>
           <svg style={{ position: "absolute", width: 0, height: 0 }}>
@@ -187,33 +196,32 @@ export function LiquidGlass({
               </filter>
             </defs>
           </svg>
-          <div 
-            className="absolute inset-0 w-full h-full rounded-[inherit]"
-            style={{ 
-              backdropFilter: `url(#${filterId}) blur(${blur}px) saturate(${saturate}) brightness(1.05) contrast(1.1)`, 
-              WebkitBackdropFilter: `url(#${filterId}) blur(${blur}px) saturate(${saturate}) brightness(1.05) contrast(1.1)` 
-            }}
-          />
-          {/* Specular edge highlight overlay */}
-          {highlightUrl && (
-            <div
-              className="absolute inset-0 w-full h-full rounded-[inherit] mix-blend-screen"
-              style={{
-                backgroundImage: `url(${highlightUrl})`,
-                backgroundSize: '100% 100%',
-                opacity: 1,
-              }}
-            />
-          )}
-          {/* Inner edge glow (top-left light source) */}
           <div
-            className="absolute inset-0 w-full h-full rounded-[inherit]"
+            className="absolute inset-0 h-full w-full rounded-[inherit]"
             style={{
-              boxShadow: `inset 1px 1px 2px 0px rgba(255,255,255,0.25), inset -1px -1px 2px 0px rgba(255,255,255,0.05)`,
+              backdropFilter: `url(#${filterId})`,
+              WebkitBackdropFilter: `url(#${filterId})`,
             }}
           />
         </>
       )}
+      {highlightUrl && (
+        <div
+          className="absolute inset-0 h-full w-full rounded-[inherit] mix-blend-screen"
+          style={{
+            backgroundImage: `url(${highlightUrl})`,
+            backgroundSize: '100% 100%',
+            opacity: 1,
+          }}
+        />
+      )}
+      <div
+        className="absolute inset-0 h-full w-full rounded-[inherit]"
+        style={{
+          background: "linear-gradient(135deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.04) 34%, rgba(255,255,255,0) 60%)",
+          boxShadow: `inset 1px 1px 2px 0 rgba(255,255,255,${0.2 + edgeHighlight * 0.16}), inset -1px -1px 3px 0 rgba(255,255,255,0.08), inset 0 -12px 22px rgba(0,0,0,0.08)`,
+        }}
+      />
     </div>
   )
 }

@@ -6,6 +6,8 @@ import { X, Play, Pause, SkipBack, SkipForward, Music2, ListMusic, Mic2, Minus, 
 import { emit } from "@tauri-apps/api/event"
 import { invoke, convertFileSrc } from "@tauri-apps/api/core"
 import { usePlayerStore, RepeatMode, LyricDisplayStyle } from "@/lib/store/usePlayerStore"
+import { useFullscreenSettingsStore } from "@/lib/store/useFullscreenSettingsStore"
+import { LyricSettingsProvider } from "@/components/player/LyricSettingsContext"
 import { playerService } from "@/lib/services/playerService"
 import { Slider } from "@/components/ui/slider"
 import { AsyncImage } from "@/components/common/AsyncImage"
@@ -109,15 +111,15 @@ export function RightSidebarPlayer({ isStandalone = false }: { isStandalone?: bo
     const progress = usePlayerStore(s => s.progress)
     const currentTime = usePlayerStore(s => s.currentTime)
     const duration = usePlayerStore(s => s.duration)
-    const lyricDisplayStyle = usePlayerStore(s => s.lyricDisplayStyle)
+    const lyricDisplayStyle = useFullscreenSettingsStore(s => s.lyricDisplayStyle)
     const remoteBarData = usePlayerStore(s => s.remoteBarData)
 
-    const playerBgType = usePlayerStore(s => s.playerBgType)
-    const customBgPath = usePlayerStore(s => s.customBgPath)
-    const customBgBlur = usePlayerStore(s => s.customBgBlur)
-    const customBgBrightness = usePlayerStore(s => s.customBgBrightness)
-    const customBgScale = usePlayerStore(s => s.customBgScale)
-    const customBgOverlay = usePlayerStore(s => s.customBgOverlay)
+    const playerBgType = useFullscreenSettingsStore(s => s.playerBgType)
+    const customBgPath = useFullscreenSettingsStore(s => s.customBgPath)
+    const customBgBlur = useFullscreenSettingsStore(s => s.customBgBlur)
+    const customBgBrightness = useFullscreenSettingsStore(s => s.customBgBrightness)
+    const customBgScale = useFullscreenSettingsStore(s => s.customBgScale)
+    const customBgOverlay = useFullscreenSettingsStore(s => s.customBgOverlay)
 
     const queue = usePlayerStore(s => s.queue)
 
@@ -416,9 +418,11 @@ export function RightSidebarPlayer({ isStandalone = false }: { isStandalone?: bo
             {/* Content Area */}
             {!isCollapsed && (activeTab === 'lyrics' ? (
                 <div className="flex-1 w-full relative z-10 px-4 pb-4 pt-1 overflow-hidden" style={{ WebkitAppRegion: 'no-drag' } as any}>
-                    {lyricDisplayStyle === LyricDisplayStyle.Roulette ? <LyricPlayerRoulette /> :
-                     lyricDisplayStyle === LyricDisplayStyle.SingleLine ? <LyricPlayerSingleLine /> :
-                     <AMLLLyricPlayer />}
+                    <LyricSettingsProvider scope="fullscreen">
+                        {lyricDisplayStyle === LyricDisplayStyle.Roulette ? <LyricPlayerRoulette /> :
+                         lyricDisplayStyle === LyricDisplayStyle.SingleLine ? <LyricPlayerSingleLine /> :
+                         <AMLLLyricPlayer />}
+                    </LyricSettingsProvider>
                 </div>
             ) : (
                 <div className="flex-1 min-h-0 relative z-10 overflow-y-auto px-4 pb-4 space-y-1" style={{ WebkitAppRegion: 'no-drag' } as any}>

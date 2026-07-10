@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react"
 import { usePlayerStore } from "@/lib/store/usePlayerStore"
+import { useLyricSettings } from "./LyricSettingsContext"
 import { playerService } from "@/lib/services/playerService"
 import { LyricLineData, INTRO_DELAY, parseLyrics } from "./parser"
 
@@ -12,10 +13,7 @@ const VISIBLE_BELOW = 3
 
 export const LyricPlayerRoulette = React.memo(function LyricPlayerRoulette({ alignPosition = 'center', disableSeek = false }: { alignPosition?: 'center' | 'top-second'; disableSeek?: boolean }) {
     const currentTrack = usePlayerStore(s => s.currentTrack)
-    const showTranslation = usePlayerStore(s => s.showTranslation)
-    const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
-    const lyricFontFamily = usePlayerStore(s => s.lyricFontFamily)
-    const hideAlbumCover = usePlayerStore(s => s.hideAlbumCover)
+    const { showTranslation, lyricFontSize, lyricFontFamily, hideAlbumCover } = useLyricSettings()
     const containerRef = useRef<HTMLDivElement>(null)
     const requestRef = useRef<number>(0)
     const currentIndexRef = useRef(0)

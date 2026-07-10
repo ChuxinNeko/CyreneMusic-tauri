@@ -43,7 +43,7 @@ import { UserAgreementContent } from "@/components/common/UserAgreementContent"
 import { updateService, UpdateInfo } from "@/lib/services/updateService"
 import { UpdateDialog } from "@/components/common/UpdateDialog"
 
-type SettingsView = "main" | "backend-source" | "audio-source" | "account-binding" | "appearance" | "player" | "about" | "user-agreement" | "cache-management"
+type SettingsView = "main" | "account" | "interface" | "content" | "playback" | "storage" | "support" | "backend-source" | "audio-source" | "account-binding" | "appearance" | "player" | "content-preferences" | "about" | "user-agreement" | "cache-management"
 
 function SettingsPageContent() {
     const router = useRouter()
@@ -198,84 +198,32 @@ function SettingsPageContent() {
     const getBreadcrumb = () => {
         if (view === "main") {
             return "设置"
+        } else if (view === "account") {
+            return <SettingsBreadcrumb label="账户与连接" onBack={() => setView("main")} />
+        } else if (view === "interface") {
+            return <SettingsBreadcrumb label="外观与界面" onBack={() => setView("main")} />
+        } else if (view === "content") {
+            return <SettingsBreadcrumb label="内容与音源" onBack={() => setView("main")} />
+        } else if (view === "playback") {
+            return <SettingsBreadcrumb label="播放与歌词" onBack={() => setView("main")} />
+        } else if (view === "storage") {
+            return <SettingsBreadcrumb label="存储与缓存" onBack={() => setView("main")} />
+        } else if (view === "support") {
+            return <SettingsBreadcrumb label="关于与支持" onBack={() => setView("main")} />
         } else if (view === "backend-source") {
-            return (
-                <div className="flex items-center gap-1">
-                    <span
-                        className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={() => setView("main")}
-                    >
-                        设置
-                    </span>
-                    <ChevronRight className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-foreground">后端源</span>
-                </div>
-            )
+            return <SettingsBreadcrumb label="服务连接" onBack={() => setView("main")} parent={{ label: "内容与音源", onClick: () => setView("content") }} />
         } else if (view === "audio-source") {
-            return (
-                <div className="flex items-center gap-1">
-                    <span
-                        className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={() => setView("main")}
-                    >
-                        设置
-                    </span>
-                    <ChevronRight className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-foreground">音源设置</span>
-                </div>
-            )
+            return <SettingsBreadcrumb label="音源管理" onBack={() => setView("main")} parent={{ label: "内容与音源", onClick: () => setView("content") }} />
         } else if (view === "account-binding") {
-            return (
-                <div className="flex items-center gap-1">
-                    <span
-                        className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={() => setView("main")}
-                    >
-                        设置
-                    </span>
-                    <ChevronRight className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-foreground">第三方账号绑定</span>
-                </div>
-            )
+            return <SettingsBreadcrumb label="音乐平台绑定" onBack={() => setView("main")} parent={{ label: "账户与连接", onClick: () => setView("account") }} />
         } else if (view === "appearance") {
-            return (
-                <div className="flex items-center gap-1">
-                    <span
-                        className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={() => setView("main")}
-                    >
-                        设置
-                    </span>
-                    <ChevronRight className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-foreground">外观设置</span>
-                </div>
-            )
+            return <SettingsBreadcrumb label="主题与窗口" onBack={() => setView("main")} parent={{ label: "外观与界面", onClick: () => setView("interface") }} />
         } else if (view === "player") {
-            return (
-                <div className="flex items-center gap-1">
-                    <span
-                        className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={() => setView("main")}
-                    >
-                        设置
-                    </span>
-                    <ChevronRight className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-foreground">播放器设置</span>
-                </div>
-            )
+            return <SettingsBreadcrumb label="播放器与歌词" onBack={() => setView("main")} parent={{ label: "播放与歌词", onClick: () => setView("playback") }} />
+        } else if (view === "content-preferences") {
+            return <SettingsBreadcrumb label="搜索与推荐" onBack={() => setView("main")} parent={{ label: "内容与音源", onClick: () => setView("content") }} />
         } else if (view === "about") {
-            return (
-                <div className="flex items-center gap-1">
-                    <span
-                        className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={() => setView("main")}
-                    >
-                        设置
-                    </span>
-                    <ChevronRight className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-foreground">关于</span>
-                </div>
-            )
+            return <SettingsBreadcrumb label="应用信息" onBack={() => setView("main")} parent={{ label: "关于与支持", onClick: () => setView("support") }} />
         } else if (view === "user-agreement") {
             return (
                 <div className="flex items-center gap-1">
@@ -297,18 +245,7 @@ function SettingsPageContent() {
                 </div>
             )
         } else if (view === "cache-management") {
-            return (
-                <div className="flex items-center gap-1">
-                    <span
-                        className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
-                        onClick={() => setView("main")}
-                    >
-                        设置
-                    </span>
-                    <ChevronRight className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-foreground">缓存管理</span>
-                </div>
-            )
+            return <SettingsBreadcrumb label="本地缓存" onBack={() => setView("main")} parent={{ label: "存储与缓存", onClick: () => setView("storage") }} />
         }
     }
 
@@ -421,6 +358,38 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement, f
     );
 };
 
+const SettingsBreadcrumb = ({
+    label,
+    onBack,
+    parent,
+}: {
+    label: string;
+    onBack: () => void;
+    parent?: { label: string; onClick: () => void };
+}) => (
+    <div className="flex items-center gap-1">
+        <span
+            className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+            onClick={onBack}
+        >
+            设置
+        </span>
+        <ChevronRight className="h-6 w-6 text-muted-foreground" />
+        {parent && (
+            <>
+                <span
+                    className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={parent.onClick}
+                >
+                    {parent.label}
+                </span>
+                <ChevronRight className="h-6 w-6 text-muted-foreground" />
+            </>
+        )}
+        <span className="text-foreground">{label}</span>
+    </div>
+)
+
     const content = (
         <div className="h-full flex flex-col p-6 space-y-6">
             <div className="flex items-center space-x-2 h-8">
@@ -431,22 +400,85 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement, f
 
             <div className="flex-1 overflow-auto">
                 {view === "main" && (
-                    <div className="space-y-8 max-w-2xl mx-auto animate-in fade-in slide-in-from-left-4 duration-300 pb-10">
+                    <div className="space-y-3 max-w-2xl mx-auto animate-in fade-in slide-in-from-left-4 duration-300 pb-10">
+                        <SettingsSectionHeader icon={Settings2} title="设置分类" description="按使用目标选择需要配置的功能" />
+                        <SettingsItemGroup>
+                            <SettingsItem
+                                icon={User}
+                                title="账户与连接"
+                                description="账号信息与音乐平台授权"
+                                onClick={() => setView("account")}
+                            />
+                            <SettingsItem
+                                icon={Palette}
+                                title="外观与界面"
+                                description="主题、窗口、启动行为与桌面组件"
+                                onClick={() => setView("interface")}
+                            />
+                            <SettingsItem
+                                icon={Music}
+                                title="内容与音源"
+                                description="音源、搜索推荐与服务连接"
+                                onClick={() => setView("content")}
+                            />
+                            <SettingsItem
+                                icon={Music2}
+                                title="播放与歌词"
+                                description="音质、播放器背景与歌词显示"
+                                onClick={() => setView("playback")}
+                            />
+                            <SettingsItem
+                                icon={HardDrive}
+                                title="存储与缓存"
+                                description="本地音频数据与磁盘空间"
+                                onClick={() => setView("storage")}
+                            />
+                            <SettingsItem
+                                icon={Info}
+                                title="关于与支持"
+                                description="应用版本、更新与协议"
+                                onClick={() => setView("support")}
+                            />
+                        </SettingsItemGroup>
+                    </div>
+                )}
+
+                {view === "account" && (
+                    <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-right-4 duration-300 pb-10">
                         <section className="space-y-3">
-                            <SettingsSectionHeader icon={User} title="账号" description="管理您的个人资料及同步设置" />
+                            <SettingsSectionHeader icon={User} title="账号" description="登录、个人资料与账户状态" />
                             <UserCard className="rounded-xl" onLoginClick={() => setAuthDialogOpen(true)} />
                         </section>
-
                         <section className="space-y-3">
-                            <SettingsSectionHeader icon={Palette} title="界面" description="个性化视觉与交互体验" />
+                            <SettingsSectionHeader icon={KeyRound} title="音乐平台绑定" description="授权第三方平台以使用关联数据" />
+                            <SettingsItemGroup>
+                                <SettingsItem
+                                    icon={KeyRound}
+                                    title="管理平台绑定"
+                                    description="网易云、QQ 音乐与酷狗音乐"
+                                    onClick={() => setView("account-binding")}
+                                />
+                            </SettingsItemGroup>
+                        </section>
+                    </div>
+                )}
 
+                {view === "interface" && (
+                    <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-right-4 duration-300 pb-10">
+                        <section className="space-y-3">
+                            <SettingsSectionHeader icon={Palette} title="主题与窗口" description="应用配色、窗口材质与桌面组件" />
                             <SettingsItemGroup>
                                 <SettingsItem
                                     icon={Palette}
-                                    title="外观设置"
+                                    title="主题与窗口"
                                     description={theme === "dark" ? "深色模式" : theme === "light" ? "浅色模式" : "跟随系统"}
                                     onClick={() => setView("appearance")}
                                 />
+                            </SettingsItemGroup>
+                        </section>
+                        <section className="space-y-3">
+                            <SettingsSectionHeader icon={Sparkles} title="页面体验" description="控制应用启动后的推荐内容" />
+                            <SettingsItemGroup>
                                 <SettingsItem
                                     icon={Sparkles}
                                     title="启动推荐"
@@ -468,9 +500,7 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement, f
                                             )}
                                             <Switch
                                                 checked={showDailyRecommendPopup}
-                                                onCheckedChange={(checked) => {
-                                                    setShowDailyRecommendPopup(checked)
-                                                }}
+                                                onCheckedChange={setShowDailyRecommendPopup}
                                                 onClick={(e) => e.stopPropagation()}
                                             />
                                         </div>
@@ -490,129 +520,128 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement, f
                                                 </button>
                                             )}
                                             <div onClick={(e) => e.stopPropagation()} className="rwui-scope" data-theme={document.documentElement.getAttribute("data-theme")}>
-                                                <RwuiSwitch
-                                                    checked={showDailyRecommendPopup}
-                                                    onChange={(checked) => {
-                                                        setShowDailyRecommendPopup(checked)
-                                                    }}
-                                                />
+                                                <RwuiSwitch checked={showDailyRecommendPopup} onChange={setShowDailyRecommendPopup} />
                                             </div>
                                         </div>
                                     }
                                 />
                             </SettingsItemGroup>
                         </section>
+                    </div>
+                )}
 
+                {view === "content" && (
+                    <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-right-4 duration-300 pb-10">
                         <section className="space-y-3">
-                            <SettingsSectionHeader icon={Server} title="服务" description="配置后端连接及数据来源" />
-
+                            <SettingsSectionHeader icon={Music} title="音源管理" description="添加、排序、导入和配置音乐音源" />
                             <SettingsItemGroup>
                                 <SettingsItem
                                     icon={Music}
-                                    title="音源设置"
+                                    title="管理音源"
                                     description={activeSource ? `${sources.length} 个音源 · 优先: ${activeSource.name}` : "未配置音源，歌曲可能无法播放"}
                                     onClick={() => setView("audio-source")}
                                 />
+                            </SettingsItemGroup>
+                        </section>
+                        <section className="space-y-3">
+                            <SettingsSectionHeader icon={Search} title="搜索与推荐" description="选择搜索平台、榜单与推荐内容来源" />
+                            <SettingsItemGroup>
+                                <SettingsItem
+                                    icon={Search}
+                                    title="搜索与推荐"
+                                    description={searchPrefDescription}
+                                    onClick={() => setView("content-preferences")}
+                                />
+                            </SettingsItemGroup>
+                        </section>
+                        <section className="space-y-3">
+                            <SettingsSectionHeader icon={Server} title="服务连接" description="选择官方服务或连接自定义服务" />
+                            <SettingsItemGroup>
                                 <SettingsItem
                                     icon={Server}
-                                    title="后端源"
-                                    description={sourceType === BackendSourceType.Official ? "当前使用官方源" : `自定义源: ${customUrl || "未配置"}`}
+                                    title="服务连接"
+                                    description={sourceType === BackendSourceType.Official ? "当前使用官方服务" : `自定义服务: ${customUrl || "未配置"}`}
                                     onClick={() => setView("backend-source")}
                                 />
+                            </SettingsItemGroup>
+                        </section>
+                    </div>
+                )}
+
+                {view === "playback" && (
+                    <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-right-4 duration-300 pb-10">
+                        <section className="space-y-3">
+                            <SettingsSectionHeader icon={Settings2} title="播放体验" description="选择播放音质" />
+                            <SettingsItemGroup>
                                 <SettingsItem
-                                    icon={KeyRound}
-                                    title="第三方账号绑定"
-                                    description="同步网易云、酷狗音乐等平台数据"
-                                    onClick={() => setView("account-binding")}
-                                />
-                                <SettingsItem
-                                    icon={Trophy}
-                                    title="榜单来源"
-                                    description="首页「全部榜单」的数据来源"
-                                    onClick={() => {}}
-                                    rightElement={
-                                        <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/60" onClick={(e) => e.stopPropagation()}>
-                                            {(["netease", "qq"] as const).map((src) => (
-                                                <button
-                                                    key={src}
-                                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                                                        toplistSource === src
-                                                            ? "bg-background text-foreground shadow-sm"
-                                                            : "text-muted-foreground hover:text-foreground"
-                                                    }`}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        setToplistSource(src)
-                                                        toast.success(src === 'qq' ? '已切换为 QQ 音乐榜单' : '已切换为网易云音乐榜单')
-                                                    }}
-                                                >
-                                                    {src === 'qq' ? 'QQ 音乐' : '网易云'}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    }
+                                    icon={Settings2}
+                                    title="音质选择"
+                                    description={`当前音质：${quality === "standard" || quality === "128k" ? "标准" : quality === "exhigh" || quality === "320k" ? "极高" : quality === "lossless" || quality === "flac" ? "无损" : quality === "hires" || quality === "flac24bit" ? "Hi-Res" : quality.toUpperCase()}`}
+                                    onClick={() => setQualityDialogOpen(true)}
                                     fluentRightElement={
                                         <div onClick={(e) => e.stopPropagation()}>
                                             <RwuiSelect
-                                                data={[
-                                                    { label: "网易云", value: "netease" },
-                                                    { label: "QQ 音乐", value: "qq" },
-                                                ]}
-                                                value={toplistSource}
-                                                onChange={(value) => {
-                                                    const src = value as "netease" | "qq"
-                                                    setToplistSource(src)
-                                                    toast.success(src === 'qq' ? '已切换为 QQ 音乐榜单' : '已切换为网易云音乐榜单')
-                                                }}
-                                                style={{ width: 80 }}
+                                                data={qualityOptions}
+                                                value={quality}
+                                                onChange={(value) => setQuality(value as AudioQuality)}
+                                                style={{ width: 100 }}
                                             />
                                         </div>
                                     }
                                 />
+                            </SettingsItemGroup>
+                        </section>
+                        <section className="space-y-3">
+                            <SettingsSectionHeader icon={Music2} title="播放器与歌词" description="管理显示模式、歌词排版、背景与桌面歌词" />
+                            <SettingsItemGroup>
                                 <SettingsItem
-                                    icon={Sparkles}
-                                    title="为你推荐源"
-                                    description="首页「为你推荐」的数据来源"
-                                    onClick={() => {}}
-                                    rightElement={
-                                        <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/60" onClick={(e) => e.stopPropagation()}>
-                                            {(["netease", "qq"] as const).map((src) => (
-                                                <button
-                                                    key={src}
-                                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                                                        recommendSource === src
-                                                            ? "bg-background text-foreground shadow-sm"
-                                                            : "text-muted-foreground hover:text-foreground"
-                                                    }`}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        setRecommendSource(src)
-                                                        toast.success(src === 'qq' ? '已切换为 QQ音乐推荐' : '已切换为网易云音乐推荐')
-                                                    }}
-                                                >
-                                                    {src === 'qq' ? 'QQ 音乐' : '网易云'}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    }
-                                    fluentRightElement={
-                                        <div onClick={(e) => e.stopPropagation()}>
-                                            <RwuiSelect
-                                                data={[
-                                                    { label: "网易云", value: "netease" },
-                                                    { label: "QQ 音乐", value: "qq" },
-                                                ]}
-                                                value={recommendSource}
-                                                onChange={(value) => {
-                                                    const src = value as "netease" | "qq"
-                                                    setRecommendSource(src)
-                                                    toast.success(src === 'qq' ? '已切换为 QQ音乐推荐' : '已切换为网易云音乐推荐')
-                                                }}
-                                                style={{ width: 80 }}
-                                            />
-                                        </div>
-                                    }
+                                    icon={Music2}
+                                    title="播放器与歌词"
+                                    description="显示模式、歌词样式、背景与桌面歌词"
+                                    onClick={() => setView("player")}
                                 />
+                            </SettingsItemGroup>
+                        </section>
+                    </div>
+                )}
+
+                {view === "storage" && (
+                    <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-right-4 duration-300 pb-10">
+                        <section className="space-y-3">
+                            <SettingsSectionHeader icon={HardDrive} title="本地缓存" description="管理本地音频数据与磁盘空间" />
+                            <SettingsItemGroup>
+                                <SettingsItem
+                                    icon={HardDrive}
+                                    title="本地缓存"
+                                    description="缓存目录、空间占用与清理"
+                                    onClick={() => setView("cache-management")}
+                                />
+                            </SettingsItemGroup>
+                        </section>
+                    </div>
+                )}
+
+                {view === "support" && (
+                    <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-right-4 duration-300 pb-10">
+                        <section className="space-y-3">
+                            <SettingsSectionHeader icon={Info} title="应用信息" description="查看版本、检查更新与阅读用户协议" />
+                            <SettingsItemGroup>
+                                <SettingsItem
+                                    icon={Info}
+                                    title="应用信息"
+                                    description="版本、更新与协议"
+                                    onClick={() => setView("about")}
+                                />
+                            </SettingsItemGroup>
+                        </section>
+                    </div>
+                )}
+
+                {view === "content-preferences" && (
+                    <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-right-4 duration-300 pb-10">
+                        <section className="space-y-3">
+                            <SettingsSectionHeader icon={Search} title="搜索平台" description="决定搜索时参与匹配的音乐平台" />
+                            <SettingsItemGroup>
                                 <SettingsItem
                                     icon={Search}
                                     title="搜索首选项"
@@ -656,46 +685,99 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement, f
                                         </div>
                                     }
                                 />
-                                <SettingsItem
-                                    icon={Info}
-                                    title="关于"
-                                    description="关于 CyreneMusicNext"
-                                    onClick={() => setView("about")}
-                                />
                             </SettingsItemGroup>
                         </section>
 
                         <section className="space-y-3">
-                            <SettingsSectionHeader icon={Music2} title="播放" description="自定义音乐播放体验" />
-
+                            <SettingsSectionHeader icon={Trophy} title="首页内容" description="选择榜单与个性化推荐的数据来源" />
                             <SettingsItemGroup>
                                 <SettingsItem
-                                    icon={Settings2}
-                                    title="音质选择"
-                                    description={`当前选择: ${quality === 'standard' || quality === '128k' ? '标准' : quality === 'exhigh' || quality === '320k' ? '极高' : quality === 'lossless' || quality === 'flac' ? '无损' : quality === 'hires' || quality === 'flac24bit' ? 'Hi-Res' : quality.toUpperCase()}`}
-                                    onClick={() => setQualityDialogOpen(true)}
+                                    icon={Trophy}
+                                    title="榜单来源"
+                                    description="首页“全部榜单”的数据来源"
+                                    onClick={() => {}}
+                                    rightElement={
+                                        <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/60" onClick={(e) => e.stopPropagation()}>
+                                            {(["netease", "qq"] as const).map((src) => (
+                                                <button
+                                                    key={src}
+                                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                                                        toplistSource === src
+                                                            ? "bg-background text-foreground shadow-sm"
+                                                            : "text-muted-foreground hover:text-foreground"
+                                                    }`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        setToplistSource(src)
+                                                        toast.success(src === "qq" ? "已切换为 QQ 音乐榜单" : "已切换为网易云音乐榜单")
+                                                    }}
+                                                >
+                                                    {src === "qq" ? "QQ 音乐" : "网易云"}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    }
                                     fluentRightElement={
                                         <div onClick={(e) => e.stopPropagation()}>
                                             <RwuiSelect
-                                                data={qualityOptions}
-                                                value={quality}
-                                                onChange={(value) => setQuality(value as AudioQuality)}
-                                                style={{ width: 100 }}
+                                                data={[
+                                                    { label: "网易云", value: "netease" },
+                                                    { label: "QQ 音乐", value: "qq" },
+                                                ]}
+                                                value={toplistSource}
+                                                onChange={(value) => {
+                                                    const src = value as "netease" | "qq"
+                                                    setToplistSource(src)
+                                                    toast.success(src === "qq" ? "已切换为 QQ 音乐榜单" : "已切换为网易云音乐榜单")
+                                                }}
+                                                style={{ width: 80 }}
                                             />
                                         </div>
                                     }
                                 />
                                 <SettingsItem
-                                    icon={Music2}
-                                    title="播放器设置"
-                                    description="歌词、字体、背景与桌面歌词"
-                                    onClick={() => setView("player")}
-                                />
-                                <SettingsItem
-                                    icon={HardDrive}
-                                    title="缓存管理"
-                                    description="管理本地加密音频缓存，离线可用"
-                                    onClick={() => setView("cache-management")}
+                                    icon={Sparkles}
+                                    title="为你推荐来源"
+                                    description="首页“为你推荐”的数据来源"
+                                    onClick={() => {}}
+                                    rightElement={
+                                        <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/60" onClick={(e) => e.stopPropagation()}>
+                                            {(["netease", "qq"] as const).map((src) => (
+                                                <button
+                                                    key={src}
+                                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                                                        recommendSource === src
+                                                            ? "bg-background text-foreground shadow-sm"
+                                                            : "text-muted-foreground hover:text-foreground"
+                                                    }`}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        setRecommendSource(src)
+                                                        toast.success(src === "qq" ? "已切换为 QQ 音乐推荐" : "已切换为网易云音乐推荐")
+                                                    }}
+                                                >
+                                                    {src === "qq" ? "QQ 音乐" : "网易云"}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    }
+                                    fluentRightElement={
+                                        <div onClick={(e) => e.stopPropagation()}>
+                                            <RwuiSelect
+                                                data={[
+                                                    { label: "网易云", value: "netease" },
+                                                    { label: "QQ 音乐", value: "qq" },
+                                                ]}
+                                                value={recommendSource}
+                                                onChange={(value) => {
+                                                    const src = value as "netease" | "qq"
+                                                    setRecommendSource(src)
+                                                    toast.success(src === "qq" ? "已切换为 QQ 音乐推荐" : "已切换为网易云音乐推荐")
+                                                }}
+                                                style={{ width: 80 }}
+                                            />
+                                        </div>
+                                    }
                                 />
                             </SettingsItemGroup>
                         </section>
@@ -736,9 +818,9 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, rightElement, f
                     <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-right-4 duration-300 pb-10">
                         <Card className="border-none shadow-none bg-transparent">
                             <CardHeader className="px-0 pt-0">
-                                <CardTitle>后端服务配置</CardTitle>
+                                <CardTitle>服务连接</CardTitle>
                                 <CardDescription>
-                                    选择应用数据来源。官方源稳定可靠，自定义源适合高级用户。
+                                    选择应用服务连接。官方服务稳定可靠，自定义连接适合高级用户。
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6 px-0">

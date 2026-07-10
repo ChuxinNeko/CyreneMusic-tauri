@@ -35,7 +35,8 @@ import {
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { emit } from "@tauri-apps/api/event"
 import { convertFileSrc } from "@tauri-apps/api/core"
-import { usePlayerStore, RepeatMode, LyricDisplayStyle, SingleLineAnimation } from "@/lib/store/usePlayerStore"
+import { usePlayerStore, RepeatMode, LyricDisplayStyle } from "@/lib/store/usePlayerStore"
+import { useFullscreenSettingsStore } from "@/lib/store/useFullscreenSettingsStore"
 import { playerService } from "@/lib/services/playerService"
 import { audioAnalyser } from "@/lib/services/audioAnalyser"
 import { urlService } from "@/lib/services/urlService"
@@ -73,6 +74,7 @@ import { invoke } from "@tauri-apps/api/core"
 import { toast } from "sonner"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { PlayerSettingsMenu } from "./PlayerSettingsMenu"
+import { LyricSettingsProvider } from "./LyricSettingsContext"
 import { useTheme } from "next-themes"
 import { LiquidGlass } from "@/components/ui/LiquidGlass"
 import { useRouter } from "next/navigation"
@@ -109,31 +111,20 @@ export function FullscreenPlayer() {
     const volume = usePlayerStore(s => s.volume)
     const isFullscreen = usePlayerStore(s => s.isFullscreen)
     const setIsFullscreen = usePlayerStore(s => s.setIsFullscreen)
-    const showTranslation = usePlayerStore(s => s.showTranslation)
-    const toggleTranslation = usePlayerStore(s => s.toggleTranslation)
-    const audioVisualization = usePlayerStore(s => s.audioVisualization)
-    const toggleAudioVisualization = usePlayerStore(s => s.toggleAudioVisualization)
-    const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
-    const setLyricFontSize = usePlayerStore(s => s.setLyricFontSize)
-    const lyricFontFamily = usePlayerStore(s => s.lyricFontFamily)
-    const setLyricFontFamily = usePlayerStore(s => s.setLyricFontFamily)
-    const lyricBlurStrength = usePlayerStore(s => s.lyricBlurStrength)
-    const setLyricBlurStrength = usePlayerStore(s => s.setLyricBlurStrength)
-    const desktopLyricFontSize = usePlayerStore(s => s.desktopLyricFontSize)
-    const desktopLyricColor = usePlayerStore(s => s.desktopLyricColor)
-    const desktopLyricStrokeColor = usePlayerStore(s => s.desktopLyricStrokeColor)
-    const setDesktopLyricFontSize = usePlayerStore(s => s.setDesktopLyricFontSize)
-    const setDesktopLyricColor = usePlayerStore(s => s.setDesktopLyricColor)
-    const setDesktopLyricStrokeColor = usePlayerStore(s => s.setDesktopLyricStrokeColor)
-    const isLyricsFolded = usePlayerStore(s => s.isLyricsFolded)
-    const setIsLyricsFolded = usePlayerStore(s => s.setIsLyricsFolded)
-    const isImmersiveMode = usePlayerStore(s => s.isImmersiveMode)
-    const setIsImmersiveMode = usePlayerStore(s => s.setIsImmersiveMode)
-    const hideAlbumCover = usePlayerStore(s => s.hideAlbumCover)
-    const lyricDisplayStyle = usePlayerStore(s => s.lyricDisplayStyle)
-    const setLyricDisplayStyle = usePlayerStore(s => s.setLyricDisplayStyle)
-    const singleLineAnimation = usePlayerStore(s => s.singleLineAnimation)
-    const setSingleLineAnimation = usePlayerStore(s => s.setSingleLineAnimation)
+    const showTranslation = useFullscreenSettingsStore(s => s.showTranslation)
+    const toggleTranslation = useFullscreenSettingsStore(s => s.toggleTranslation)
+    const desktopLyricFontSize = useFullscreenSettingsStore(s => s.desktopLyricFontSize)
+    const desktopLyricColor = useFullscreenSettingsStore(s => s.desktopLyricColor)
+    const desktopLyricStrokeColor = useFullscreenSettingsStore(s => s.desktopLyricStrokeColor)
+    const setDesktopLyricFontSize = useFullscreenSettingsStore(s => s.setDesktopLyricFontSize)
+    const setDesktopLyricColor = useFullscreenSettingsStore(s => s.setDesktopLyricColor)
+    const setDesktopLyricStrokeColor = useFullscreenSettingsStore(s => s.setDesktopLyricStrokeColor)
+    const isLyricsFolded = useFullscreenSettingsStore(s => s.isLyricsFolded)
+    const setIsLyricsFolded = useFullscreenSettingsStore(s => s.setIsLyricsFolded)
+    const isImmersiveMode = useFullscreenSettingsStore(s => s.isImmersiveMode)
+    const hideAlbumCover = useFullscreenSettingsStore(s => s.hideAlbumCover)
+    const lyricDisplayStyle = useFullscreenSettingsStore(s => s.lyricDisplayStyle)
+    const setLyricDisplayStyle = useFullscreenSettingsStore(s => s.setLyricDisplayStyle)
     const repeatMode = usePlayerStore(s => s.repeatMode)
     const setRepeatMode = usePlayerStore(s => s.setRepeatMode)
     const isTaskbarPlayerOpen = usePlayerStore(s => s.isTaskbarPlayerOpen)
@@ -143,12 +134,12 @@ export function FullscreenPlayer() {
     const sourcePlaylistId = usePlayerStore(s => s.sourcePlaylistId)
 
     // 自定义播放器背景
-    const playerBgType = usePlayerStore(s => s.playerBgType)
-    const customBgPath = usePlayerStore(s => s.customBgPath)
-    const customBgBlur = usePlayerStore(s => s.customBgBlur)
-    const customBgBrightness = usePlayerStore(s => s.customBgBrightness)
-    const customBgScale = usePlayerStore(s => s.customBgScale)
-    const customBgOverlay = usePlayerStore(s => s.customBgOverlay)
+    const playerBgType = useFullscreenSettingsStore(s => s.playerBgType)
+    const customBgPath = useFullscreenSettingsStore(s => s.customBgPath)
+    const customBgBlur = useFullscreenSettingsStore(s => s.customBgBlur)
+    const customBgBrightness = useFullscreenSettingsStore(s => s.customBgBrightness)
+    const customBgScale = useFullscreenSettingsStore(s => s.customBgScale)
+    const customBgOverlay = useFullscreenSettingsStore(s => s.customBgOverlay)
 
     const [localProgress, setLocalProgress] = React.useState(0)
     const [localVolume, setLocalVolume] = React.useState(0)
@@ -648,6 +639,7 @@ export function FullscreenPlayer() {
     }
 
     return (
+      <LyricSettingsProvider scope="fullscreen">
         <div className={`fixed inset-0 z-[100] bg-black overflow-hidden flex flex-col transition-all duration-500 ease-in-out ${isAnimatingOut ? 'opacity-0 translate-y-full' : 'opacity-100 translate-y-0'}`}>
             {/* Ambient Background */}
             <div className="absolute inset-0 z-0 bg-black">
@@ -1180,5 +1172,6 @@ export function FullscreenPlayer() {
                 mode={showAddToPlaylistMode}
             />
         </div>
+      </LyricSettingsProvider>
     )
 }

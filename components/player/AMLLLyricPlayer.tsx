@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from "react"
 import { LyricPlayer as AmllLyricPlayer } from "@applemusic-like-lyrics/core"
 import type { LyricLineMouseEvent } from "@applemusic-like-lyrics/core"
 import { usePlayerStore } from "@/lib/store/usePlayerStore"
+import { useLyricSettings } from "./LyricSettingsContext"
 import { playerService } from "@/lib/services/playerService"
 import { INTRO_DELAY, parseLyrics, toAmllLyricLines } from "./parser"
 
@@ -12,10 +13,7 @@ import "@applemusic-like-lyrics/core/style.css"
 export const AMLLLyricPlayer = React.memo(function AMLLLyricPlayer({ disableSeek = false }: { disableSeek?: boolean } = {}) {
     const currentTrack = usePlayerStore(s => s.currentTrack)
     const isPlaying = usePlayerStore(s => s.isPlaying)
-    const showTranslation = usePlayerStore(s => s.showTranslation)
-    const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
-    const lyricFontFamily = usePlayerStore(s => s.lyricFontFamily)
-    const hideAlbumCover = usePlayerStore(s => s.hideAlbumCover)
+    const { showTranslation, lyricFontSize, lyricFontFamily, hideAlbumCover } = useLyricSettings()
 
     const containerRef = useRef<HTMLDivElement>(null)
     const playerRef = useRef<AmllLyricPlayer | null>(null)

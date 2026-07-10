@@ -1,19 +1,20 @@
 "use client"
 
 import React from "react"
-import { Activity, Layers, Languages, Type, Disc, Droplets, Monitor, Baseline, Palette, ImagePlus, Loader2 } from "lucide-react"
+import { Activity, Layers, Languages, Type, Disc, Droplets, Monitor, Baseline, Palette, Box, Move } from "lucide-react"
 import { toast } from "sonner"
 import { invoke } from "@tauri-apps/api/core"
 import { emit } from "@tauri-apps/api/event"
-import { convertFileSrc } from "@tauri-apps/api/core"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { usePlayerStore, LyricDisplayStyle, SingleLineAnimation, PlayerBgType } from "@/lib/store/usePlayerStore"
+import { LyricDisplayStyle, SingleLineAnimation } from "@/lib/store/usePlayerStore"
+import { useDesktopPlayerStore } from "@/lib/store/useDesktopPlayerStore"
+import { usePlayerStore } from "@/lib/store/usePlayerStore"
+import { useFullscreenSettingsStore } from "@/lib/store/useFullscreenSettingsStore"
 import { LYRIC_FONT_OPTIONS } from "@/lib/constants/fonts"
-import { backgroundService } from "@/lib/services/backgroundService"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useUIThemeStore } from "@/lib/store/useUIThemeStore"
 import { Card as FluentCard, CardHeader as FluentCardHeader, Text, Button as FluentButton } from "@fluentui/react-components"
@@ -24,62 +25,61 @@ import { RwuiSelect } from "@/components/rwui/RwuiSelect"
 export function PlayerSettingsManager() {
     const isMobile = useIsMobile()
 
-    // 显示模式
-    const audioVisualization = usePlayerStore(s => s.audioVisualization)
-    const toggleAudioVisualization = usePlayerStore(s => s.toggleAudioVisualization)
-    const isImmersiveMode = usePlayerStore(s => s.isImmersiveMode)
-    const setIsImmersiveMode = usePlayerStore(s => s.setIsImmersiveMode)
-    const showTranslation = usePlayerStore(s => s.showTranslation)
-    const toggleTranslation = usePlayerStore(s => s.toggleTranslation)
+    // ── 桌面播放器独立设置 ──
+    const audioVisualization = useDesktopPlayerStore(s => s.audioVisualization)
+    const toggleAudioVisualization = useDesktopPlayerStore(s => s.toggleAudioVisualization)
+    const isImmersiveMode = useDesktopPlayerStore(s => s.isImmersiveMode)
+    const setIsImmersiveMode = useDesktopPlayerStore(s => s.setIsImmersiveMode)
+    const showTranslation = useDesktopPlayerStore(s => s.showTranslation)
+    const toggleTranslation = useDesktopPlayerStore(s => s.toggleTranslation)
 
-    // 歌词样式
-    const lyricDisplayStyle = usePlayerStore(s => s.lyricDisplayStyle)
-    const setLyricDisplayStyle = usePlayerStore(s => s.setLyricDisplayStyle)
-    const singleLineAnimation = usePlayerStore(s => s.singleLineAnimation)
-    const setSingleLineAnimation = usePlayerStore(s => s.setSingleLineAnimation)
+    const lyricDisplayStyle = useDesktopPlayerStore(s => s.lyricDisplayStyle)
+    const setLyricDisplayStyle = useDesktopPlayerStore(s => s.setLyricDisplayStyle)
+    const singleLineAnimation = useDesktopPlayerStore(s => s.singleLineAnimation)
+    const setSingleLineAnimation = useDesktopPlayerStore(s => s.setSingleLineAnimation)
 
-    // 歌词排版
-    const lyricFontFamily = usePlayerStore(s => s.lyricFontFamily)
-    const setLyricFontFamily = usePlayerStore(s => s.setLyricFontFamily)
-    const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
-    const setLyricFontSize = usePlayerStore(s => s.setLyricFontSize)
-    const lyricBlurStrength = usePlayerStore(s => s.lyricBlurStrength)
-    const setLyricBlurStrength = usePlayerStore(s => s.setLyricBlurStrength)
+    const lyricFontFamily = useDesktopPlayerStore(s => s.lyricFontFamily)
+    const setLyricFontFamily = useDesktopPlayerStore(s => s.setLyricFontFamily)
+    const lyricFontSize = useDesktopPlayerStore(s => s.lyricFontSize)
+    const setLyricFontSize = useDesktopPlayerStore(s => s.setLyricFontSize)
+    const lyricBlurStrength = useDesktopPlayerStore(s => s.lyricBlurStrength)
+    const setLyricBlurStrength = useDesktopPlayerStore(s => s.setLyricBlurStrength)
 
-    // 桌面歌词
-    const desktopLyricFontSize = usePlayerStore(s => s.desktopLyricFontSize)
-    const desktopLyricColor = usePlayerStore(s => s.desktopLyricColor)
-    const desktopLyricStrokeColor = usePlayerStore(s => s.desktopLyricStrokeColor)
-    const setDesktopLyricFontSize = usePlayerStore(s => s.setDesktopLyricFontSize)
-    const setDesktopLyricColor = usePlayerStore(s => s.setDesktopLyricColor)
-    const setDesktopLyricStrokeColor = usePlayerStore(s => s.setDesktopLyricStrokeColor)
+    // 桌面播放器编辑模式 + 偏移量
+    const isLyricEditorMode = useDesktopPlayerStore(s => s.isLyricEditorMode)
+    const setIsLyricEditorMode = useDesktopPlayerStore(s => s.setIsLyricEditorMode)
+    const lyricOffsetX = useDesktopPlayerStore(s => s.lyricOffsetX)
+    const setLyricOffsetX = useDesktopPlayerStore(s => s.setLyricOffsetX)
+    const lyricOffsetY = useDesktopPlayerStore(s => s.lyricOffsetY)
+    const setLyricOffsetY = useDesktopPlayerStore(s => s.setLyricOffsetY)
 
-    // 桌面播放器
+    // 3D 效果
+    const desktopLyricRotationX = useDesktopPlayerStore(s => s.desktopLyricRotationX)
+    const setDesktopLyricRotationX = useDesktopPlayerStore(s => s.setDesktopLyricRotationX)
+    const desktopLyricRotationY = useDesktopPlayerStore(s => s.desktopLyricRotationY)
+    const setDesktopLyricRotationY = useDesktopPlayerStore(s => s.setDesktopLyricRotationY)
+    const desktopLyricRotationZ = useDesktopPlayerStore(s => s.desktopLyricRotationZ)
+    const setDesktopLyricRotationZ = useDesktopPlayerStore(s => s.setDesktopLyricRotationZ)
+    const desktopLyricPerspective = useDesktopPlayerStore(s => s.desktopLyricPerspective)
+    const setDesktopLyricPerspective = useDesktopPlayerStore(s => s.setDesktopLyricPerspective)
+
+    // ── 浮动桌面歌词窗口（全局共享） ──
+    const desktopLyricFontSize = useFullscreenSettingsStore(s => s.desktopLyricFontSize)
+    const desktopLyricColor = useFullscreenSettingsStore(s => s.desktopLyricColor)
+    const desktopLyricStrokeColor = useFullscreenSettingsStore(s => s.desktopLyricStrokeColor)
+    const setDesktopLyricFontSize = useFullscreenSettingsStore(s => s.setDesktopLyricFontSize)
+    const setDesktopLyricColor = useFullscreenSettingsStore(s => s.setDesktopLyricColor)
+    const setDesktopLyricStrokeColor = useFullscreenSettingsStore(s => s.setDesktopLyricStrokeColor)
+
+    // 桌面播放器开关
     const isDesktopPlayerOpen = usePlayerStore(s => s.isDesktopPlayerOpen)
     const setIsDesktopPlayerOpen = usePlayerStore(s => s.setIsDesktopPlayerOpen)
 
-    // 自定义背景
-    const playerBgType = usePlayerStore(s => s.playerBgType)
-    const setPlayerBgType = usePlayerStore(s => s.setPlayerBgType)
-    const customBgPath = usePlayerStore(s => s.customBgPath)
-    const setCustomBgPath = usePlayerStore(s => s.setCustomBgPath)
-    const customBgBlur = usePlayerStore(s => s.customBgBlur)
-    const setCustomBgBlur = usePlayerStore(s => s.setCustomBgBlur)
-    const customBgBrightness = usePlayerStore(s => s.customBgBrightness)
-    const setCustomBgBrightness = usePlayerStore(s => s.setCustomBgBrightness)
-    const customBgScale = usePlayerStore(s => s.customBgScale)
-    const setCustomBgScale = usePlayerStore(s => s.setCustomBgScale)
-    const customBgOverlay = usePlayerStore(s => s.customBgOverlay)
-    const setCustomBgOverlay = usePlayerStore(s => s.setCustomBgOverlay)
-
     const [mounted, setMounted] = React.useState(false)
-    const [isImporting, setIsImporting] = React.useState(false)
+    const [isImporting] = React.useState(false)
     const [desktopLyricOpen, setDesktopLyricOpen] = React.useState(false)
     React.useEffect(() => { setMounted(true) }, [])
 
-    const customBgUrl = customBgPath ? convertFileSrc(customBgPath) : null
-
-    // 桌面歌词跨窗口同步（复制自 FullscreenPlayer）
     const syncDesktopSettings = (overrides: Partial<any> = {}) => {
         emit('player:settings-sync', {
             desktopLyricFontSize: overrides.desktopLyricFontSize || desktopLyricFontSize,
@@ -113,65 +113,6 @@ export function PlayerSettingsManager() {
         }
     }
 
-    const handleSelectImage = async () => {
-        if (isImporting) return
-        setIsImporting(true)
-        try {
-            const { open } = await import("@tauri-apps/plugin-dialog")
-            const selected = await open({
-                directory: false,
-                multiple: false,
-                title: "选择背景图片",
-                filters: [{ name: "图片", extensions: ["png", "jpg", "jpeg", "webp", "gif", "bmp"] }],
-            })
-            if (selected === null) {
-                setIsImporting(false)
-                return
-            }
-            const sourcePath = Array.isArray(selected) ? selected[0] : selected
-            if (!sourcePath) {
-                setIsImporting(false)
-                return
-            }
-            const savedPath = await backgroundService.saveBackground(sourcePath)
-            setCustomBgPath(savedPath)
-            setPlayerBgType("image")
-            toast.success("背景图片已应用")
-        } catch (error) {
-            console.error("[PlayerSettings] 导入背景失败:", error)
-            toast.error("导入背景图片失败")
-        } finally {
-            setIsImporting(false)
-        }
-    }
-
-    const handleSwitchBgType = (type: PlayerBgType) => {
-        if (type === "image" && !customBgPath) {
-            handleSelectImage()
-            return
-        }
-        if (type === "wallpaper") {
-            handleSelectWallpaper()
-            return
-        }
-        setPlayerBgType(type)
-    }
-
-    const handleSelectWallpaper = async () => {
-        try {
-            const isRunning = await invoke<boolean>("is_wallpaper_engine_running")
-            if (!isRunning) {
-                toast.error("Wallpaper Engine 未运行，请先启动 WE")
-                return
-            }
-            setPlayerBgType("wallpaper")
-            toast.success("已切换到 Wallpaper Engine 背景")
-        } catch (error) {
-            console.error("[PlayerSettings] 检查 WE 状态失败:", error)
-            toast.error("检查 Wallpaper Engine 状态失败")
-        }
-    }
-
     const lyricStyles: { label: string; value: LyricDisplayStyle }[] = [
         { label: "滚动", value: LyricDisplayStyle.Scroll },
         { label: "轮盘", value: LyricDisplayStyle.Roulette },
@@ -183,12 +124,6 @@ export function PlayerSettingsManager() {
         { label: "渐变", value: SingleLineAnimation.Fade },
         { label: "缩放", value: SingleLineAnimation.Zoom },
         { label: "模糊", value: SingleLineAnimation.Blur },
-    ]
-
-    const bgTypes: { label: string; value: PlayerBgType }[] = [
-        { label: "默认动态背景", value: "webgl" },
-        { label: "自定义图片", value: "image" },
-        { label: "WE 壁纸", value: "wallpaper" },
     ]
 
     const { currentTheme } = useUIThemeStore()
@@ -227,7 +162,7 @@ export function PlayerSettingsManager() {
                             <Layers className="h-4 w-4 text-neutral-700 dark:text-neutral-300" />
                             显示模式
                         </h2>
-                        <p className="text-sm text-neutral-500 dark:text-neutral-400">控制播放器的视觉表现</p>
+                        <p className="text-sm text-neutral-500 dark:text-neutral-400">控制桌面播放器的视觉表现</p>
                     </div>
                     <div className="flex flex-col gap-1.5">
                         <FluentHorizontalCard
@@ -257,6 +192,16 @@ export function PlayerSettingsManager() {
                             action={
                                 <div className="rwui-scope" data-theme={document.documentElement.getAttribute("data-theme")}>
                                     <RwuiSwitch checked={mounted ? showTranslation : false} onChange={toggleTranslation} />
+                                </div>
+                            }
+                        />
+                        <FluentHorizontalCard
+                            icon={Move}
+                            title="编辑模式"
+                            description="允许拖拽歌词面板调整位置"
+                            action={
+                                <div className="rwui-scope" data-theme={document.documentElement.getAttribute("data-theme")}>
+                                    <RwuiSwitch checked={mounted ? isLyricEditorMode : false} onChange={setIsLyricEditorMode} />
                                 </div>
                             }
                         />
@@ -368,130 +313,92 @@ export function PlayerSettingsManager() {
                     </div>
                 </section>
 
-                {/* 播放器背景 */}
+                {/* 3D 效果 */}
                 <section className="space-y-3">
                     <div className="space-y-1">
                         <h2 className="text-base font-semibold tracking-tight flex items-center gap-2">
-                            <ImagePlus className="h-4 w-4 text-neutral-700 dark:text-neutral-300" />
-                            播放器背景
+                            <Box className="h-4 w-4 text-neutral-700 dark:text-neutral-300" />
+                            3D 效果
                         </h2>
-                        <p className="text-sm text-neutral-500 dark:text-neutral-400">自定义全屏播放器的背景效果</p>
+                        <p className="text-sm text-neutral-500 dark:text-neutral-400">调整歌词面板的 3D 旋转与透视</p>
                     </div>
                     <div className="flex flex-col gap-1.5">
                         <FluentHorizontalCard
-                            icon={ImagePlus}
-                            title="背景类型"
-                            description={mounted && playerBgType === "image" ? "自定义图片" : "默认动态背景"}
+                            icon={Box}
+                            title="X轴旋转"
+                            description={`${desktopLyricRotationX}°`}
                             action={
-                                <div onClick={(e) => e.stopPropagation()}>
-                                    <RwuiSelect
-                                        data={bgTypes.map(t => ({ label: t.label, value: t.value }))}
-                                        value={mounted ? playerBgType : undefined}
-                                        onChange={(v) => handleSwitchBgType(v as PlayerBgType)}
-                                        style={{ width: 140 }}
-                                    />
-                                </div>
+                                <RwuiSlider
+                                    value={desktopLyricRotationX}
+                                    min={-90}
+                                    max={90}
+                                    step={1}
+                                    onChange={setDesktopLyricRotationX}
+                                    width={180}
+                                    showPopupValue={false}
+                                />
                             }
                         />
-                        {mounted && playerBgType === "image" && (
-                            <>
-                                <FluentHorizontalCard
-                                    icon={ImagePlus}
-                                    title="更换图片"
-                                    description={customBgPath ? "已设置自定义背景" : "选择一张图片作为背景"}
-                                    action={
-                                        <div onClick={(e) => e.stopPropagation()}>
-                                            <FluentButton
-                                                appearance="outline"
-                                                size="small"
-                                                className="rounded-md"
-                                                onClick={handleSelectImage}
-                                                disabled={isImporting}
-                                                icon={isImporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
-                                            >
-                                                {customBgPath ? "更换" : "选择"}
-                                            </FluentButton>
-                                        </div>
-                                    }
+                        <FluentHorizontalCard
+                            icon={Box}
+                            title="Y轴旋转"
+                            description={`${desktopLyricRotationY}°`}
+                            action={
+                                <RwuiSlider
+                                    value={desktopLyricRotationY}
+                                    min={-90}
+                                    max={90}
+                                    step={1}
+                                    onChange={setDesktopLyricRotationY}
+                                    width={180}
+                                    showPopupValue={false}
                                 />
-                                <FluentHorizontalCard
-                                    icon={Droplets}
-                                    title="模糊度"
-                                    description={`${customBgBlur}px`}
-                                    action={
-                                        <RwuiSlider
-                                            value={customBgBlur}
-                                            min={0}
-                                            max={40}
-                                            step={1}
-                                            onChange={setCustomBgBlur}
-                                            width={180}
-                                            showPopupValue={false}
-                                        />
-                                    }
+                            }
+                        />
+                        <FluentHorizontalCard
+                            icon={Box}
+                            title="Z轴旋转"
+                            description={`${desktopLyricRotationZ}°`}
+                            action={
+                                <RwuiSlider
+                                    value={desktopLyricRotationZ}
+                                    min={-180}
+                                    max={180}
+                                    step={1}
+                                    onChange={setDesktopLyricRotationZ}
+                                    width={180}
+                                    showPopupValue={false}
                                 />
-                                <FluentHorizontalCard
-                                    icon={Monitor}
-                                    title="亮度"
-                                    description={`${customBgBrightness}%`}
-                                    action={
-                                        <RwuiSlider
-                                            value={customBgBrightness}
-                                            min={20}
-                                            max={100}
-                                            step={1}
-                                            onChange={setCustomBgBrightness}
-                                            width={180}
-                                            showPopupValue={false}
-                                        />
-                                    }
+                            }
+                        />
+                        <FluentHorizontalCard
+                            icon={Box}
+                            title="3D视距"
+                            description={`${desktopLyricPerspective}px`}
+                            action={
+                                <RwuiSlider
+                                    value={desktopLyricPerspective}
+                                    min={200}
+                                    max={3000}
+                                    step={50}
+                                    onChange={setDesktopLyricPerspective}
+                                    width={180}
+                                    showPopupValue={false}
                                 />
-                                <FluentHorizontalCard
-                                    icon={Layers}
-                                    title="缩放"
-                                    description={`${customBgScale}%`}
-                                    action={
-                                        <RwuiSlider
-                                            value={customBgScale}
-                                            min={100}
-                                            max={130}
-                                            step={1}
-                                            onChange={setCustomBgScale}
-                                            width={180}
-                                            showPopupValue={false}
-                                        />
-                                    }
-                                />
-                                <FluentHorizontalCard
-                                    icon={Palette}
-                                    title="遮罩"
-                                    description={`${customBgOverlay}%`}
-                                    action={
-                                        <RwuiSlider
-                                            value={customBgOverlay}
-                                            min={0}
-                                            max={80}
-                                            step={1}
-                                            onChange={setCustomBgOverlay}
-                                            width={180}
-                                            showPopupValue={false}
-                                        />
-                                    }
-                                />
-                            </>
-                        )}
+                            }
+                        />
                     </div>
                 </section>
 
-                {/* 桌面歌词（仅桌面端） */}
+                {/* 桌面歌词 + 桌面播放器（仅桌面端） */}
                 {mounted && !isMobile && (
                     <section className="space-y-3">
                         <div className="space-y-1">
                             <h2 className="text-base font-semibold tracking-tight flex items-center gap-2">
                                 <Monitor className="h-4 w-4 text-neutral-700 dark:text-neutral-300" />
-                                桌面歌词
+                                桌面歌词窗口
                             </h2>
-                            <p className="text-sm text-neutral-500 dark:text-neutral-400">设置桌面悬浮歌词窗口</p>
+                            <p className="text-sm text-neutral-500 dark:text-neutral-400">设置桌面悬浮歌词窗口与桌面播放器</p>
                         </div>
                         <div className="flex flex-col gap-1.5">
                             <FluentHorizontalCard
@@ -566,8 +473,8 @@ export function PlayerSettingsManager() {
     return (
         <Card className="border-none shadow-none bg-transparent">
             <CardHeader className="px-0 pt-0">
-                <CardTitle>播放器设置</CardTitle>
-                <CardDescription>自定义全屏播放器的歌词、字体、背景与桌面歌词，偏好会自动保存在此设备。</CardDescription>
+                <CardTitle>桌面播放器设置</CardTitle>
+                <CardDescription>自定义桌面播放器的歌词、字体、3D 效果与桌面歌词窗口，偏好会自动保存在此设备。全屏播放器设置请通过其左上角菜单调整。</CardDescription>
             </CardHeader>
             <CardContent className="space-y-8 px-0">
                 {/* 区块 A · 显示模式 */}
@@ -593,6 +500,12 @@ export function PlayerSettingsManager() {
                             description="歌词下方显示翻译行"
                             checked={mounted ? showTranslation : false}
                             onCheckedChange={toggleTranslation}
+                        />
+                        <SwitchRow
+                            title="编辑模式"
+                            description="允许拖拽歌词面板调整位置"
+                            checked={mounted ? isLyricEditorMode : false}
+                            onCheckedChange={setIsLyricEditorMode}
                         />
                     </div>
                 </section>
@@ -667,69 +580,24 @@ export function PlayerSettingsManager() {
                     </div>
                 </section>
 
-                {/* 区块 D · 自定义播放器背景 */}
+                {/* 区块 D · 3D 效果 */}
                 <section className="space-y-4">
                     <div className="space-y-1">
-                        <h3 className="text-base font-semibold flex items-center gap-2"><ImagePlus className="h-4 w-4" /> 播放器背景</h3>
+                        <h3 className="text-base font-semibold flex items-center gap-2"><Box className="h-4 w-4" /> 3D 效果</h3>
                     </div>
                     <div className="space-y-4 rounded-xl border p-4">
-                        <div>
-                            <p className="text-sm mb-2">背景类型</p>
-                            <div className="grid grid-cols-2 gap-2">
-                                {bgTypes.map(t => (
-                                    <button
-                                        key={t.value}
-                                        onClick={() => handleSwitchBgType(t.value)}
-                                        className={cn(
-                                            "text-sm py-2 px-3 rounded-lg transition-colors",
-                                            mounted && playerBgType === t.value ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-muted/80"
-                                        )}
-                                    >
-                                        {t.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {mounted && playerBgType === "image" && (
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-24 h-24 rounded-lg overflow-hidden bg-muted border shrink-0 relative">
-                                        {customBgUrl ? (
-                                            <img
-                                                src={customBgUrl}
-                                                alt="背景预览"
-                                                className="w-full h-full object-cover"
-                                                style={{
-                                                    filter: `blur(${customBgBlur}px) brightness(${customBgBrightness}%)`,
-                                                    transform: `scale(${customBgScale / 100})`,
-                                                }}
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                                                无图片
-                                            </div>
-                                        )}
-                                    </div>
-                                    <Button variant="outline" size="sm" onClick={handleSelectImage} disabled={isImporting}>
-                                        {isImporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ImagePlus className="h-4 w-4 mr-2" />}
-                                        {customBgPath ? "更换图片" : "选择图片"}
-                                    </Button>
-                                </div>
-                                <SliderRow label="模糊度" value={customBgBlur} min={0} max={40} step={1} unit="px" onChange={setCustomBgBlur} />
-                                <SliderRow label="亮度" value={customBgBrightness} min={20} max={100} step={1} unit="%" onChange={setCustomBgBrightness} />
-                                <SliderRow label="缩放" value={customBgScale} min={100} max={130} step={1} unit="%" onChange={setCustomBgScale} />
-                                <SliderRow label="遮罩" value={customBgOverlay} min={0} max={80} step={1} unit="%" onChange={setCustomBgOverlay} />
-                            </div>
-                        )}
+                        <SliderRow label="X轴旋转 (前后倾斜)" value={desktopLyricRotationX} min={-90} max={90} step={1} unit="°" onChange={setDesktopLyricRotationX} />
+                        <SliderRow label="Y轴旋转 (左右倾斜)" value={desktopLyricRotationY} min={-90} max={90} step={1} unit="°" onChange={setDesktopLyricRotationY} />
+                        <SliderRow label="Z轴旋转 (平面旋转)" value={desktopLyricRotationZ} min={-180} max={180} step={1} unit="°" onChange={setDesktopLyricRotationZ} />
+                        <SliderRow label="3D视距 (透视)" value={desktopLyricPerspective} min={200} max={3000} step={50} unit="px" onChange={setDesktopLyricPerspective} />
                     </div>
                 </section>
 
-                {/* 区块 E · 桌面歌词（仅桌面端） */}
+                {/* 区块 E · 桌面歌词窗口（仅桌面端） */}
                 {mounted && !isMobile && (
                     <section className="space-y-4">
                         <div className="space-y-1">
-                            <h3 className="text-base font-semibold flex items-center gap-2"><Monitor className="h-4 w-4" /> 桌面歌词</h3>
+                            <h3 className="text-base font-semibold flex items-center gap-2"><Monitor className="h-4 w-4" /> 桌面歌词窗口</h3>
                         </div>
                         <div className="space-y-4 rounded-xl border p-4">
                             <Button variant="outline" size="sm" onClick={openDesktopLyric}>

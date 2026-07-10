@@ -12,7 +12,8 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog"
 import { Slider } from "@/components/ui/slider"
-import { usePlayerStore, PlayerBgType } from "@/lib/store/usePlayerStore"
+import { useFullscreenSettingsStore, FullscreenSettingsState } from "@/lib/store/useFullscreenSettingsStore"
+import { PlayerBgType } from "@/lib/store/usePlayerStore"
 import { backgroundService } from "@/lib/services/backgroundService"
 import { invoke } from "@tauri-apps/api/core"
 
@@ -22,18 +23,18 @@ interface BackgroundSettingsDialogProps {
 }
 
 export function BackgroundSettingsDialog({ open, onOpenChange }: BackgroundSettingsDialogProps) {
-    const playerBgType = usePlayerStore(s => s.playerBgType)
-    const setPlayerBgType = usePlayerStore(s => s.setPlayerBgType)
-    const customBgPath = usePlayerStore(s => s.customBgPath)
-    const setCustomBgPath = usePlayerStore(s => s.setCustomBgPath)
-    const customBgBlur = usePlayerStore(s => s.customBgBlur)
-    const setCustomBgBlur = usePlayerStore(s => s.setCustomBgBlur)
-    const customBgBrightness = usePlayerStore(s => s.customBgBrightness)
-    const setCustomBgBrightness = usePlayerStore(s => s.setCustomBgBrightness)
-    const customBgScale = usePlayerStore(s => s.customBgScale)
-    const setCustomBgScale = usePlayerStore(s => s.setCustomBgScale)
-    const customBgOverlay = usePlayerStore(s => s.customBgOverlay)
-    const setCustomBgOverlay = usePlayerStore(s => s.setCustomBgOverlay)
+    const playerBgType = useFullscreenSettingsStore(s => s.playerBgType)
+    const setPlayerBgType = useFullscreenSettingsStore(s => s.setPlayerBgType)
+    const customBgPath = useFullscreenSettingsStore(s => s.customBgPath)
+    const setCustomBgPath = useFullscreenSettingsStore(s => s.setCustomBgPath)
+    const customBgBlur = useFullscreenSettingsStore(s => s.customBgBlur)
+    const setCustomBgBlur = useFullscreenSettingsStore(s => s.setCustomBgBlur)
+    const customBgBrightness = useFullscreenSettingsStore(s => s.customBgBrightness)
+    const setCustomBgBrightness = useFullscreenSettingsStore(s => s.setCustomBgBrightness)
+    const customBgScale = useFullscreenSettingsStore(s => s.customBgScale)
+    const setCustomBgScale = useFullscreenSettingsStore(s => s.setCustomBgScale)
+    const customBgOverlay = useFullscreenSettingsStore(s => s.customBgOverlay)
+    const setCustomBgOverlay = useFullscreenSettingsStore(s => s.setCustomBgOverlay)
 
     const [isImporting, setIsImporting] = React.useState(false)
     const [mounted, setMounted] = React.useState(false)

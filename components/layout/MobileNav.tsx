@@ -4,7 +4,7 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Home, Compass, User, MoreHorizontal } from "lucide-react"
-import LiquidGlass from '@nkzw/liquid-glass'
+import { LiquidGlass } from "@/components/ui/LiquidGlass"
 import { cn } from "@/lib/utils"
 import { MoreMenuSheet } from "./MoreMenuSheet"
 
@@ -58,22 +58,16 @@ export function MobileNav() {
 
     return (
         <>
-            <div className="md:hidden fixed bottom-0 left-0 right-0 w-full z-40 pb-[calc(1.5rem+env(safe-area-inset-bottom))] px-4 pointer-events-none flex justify-center">
-                <div className="relative w-full max-w-sm pointer-events-auto rounded-full border border-black/5 dark:border-white/5 bg-white/5 dark:bg-black/5 shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-3xl overflow-hidden">
+            <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 flex w-full justify-center px-4 pb-[calc(0.5rem+env(safe-area-inset-bottom))] pointer-events-none">
+                <div className="relative isolate w-full max-w-sm overflow-hidden rounded-full bg-white/42 shadow-[0_14px_38px_rgba(15,23,42,0.26),inset_0_-12px_22px_rgba(15,23,42,0.08)] backdrop-blur-[34px] backdrop-saturate-[1.7] dark:bg-slate-950/58 dark:shadow-[0_16px_42px_rgba(0,0,0,0.56),inset_0_-14px_24px_rgba(0,0,0,0.3)] pointer-events-auto">
                     <LiquidGlass
-                        className=""
-                        displacementScale={72}
-                        blurAmount={0.075}
-                        saturation={145}
-                        aberrationIntensity={2}
-                        elasticity={0.22}
-                        borderRadius={999}
-                        padding="0"
-                        style={{ position: "absolute", inset: 0 }}
-                    >
-                        <></>
-                    </LiquidGlass>
-                    <div className="relative z-10 flex items-center justify-around px-2 h-[68px]">
+                        intensity={48}
+                        blur={34}
+                        saturate={1.7}
+                        edgeHighlight={0.72}
+                        zIndex={0}
+                    />
+                    <div className="relative z-10 flex h-[68px] items-center justify-around px-2">
                     <NavItem
                         icon={Home}
                         label="首页"

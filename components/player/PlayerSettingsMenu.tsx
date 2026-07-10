@@ -16,6 +16,9 @@ import {
     Move
 } from "lucide-react"
 import { usePlayerStore, LyricDisplayStyle, SingleLineAnimation } from "@/lib/store/usePlayerStore"
+import { useFullscreenSettingsStore } from "@/lib/store/useFullscreenSettingsStore"
+import { useDesktopPlayerStore } from "@/lib/store/useDesktopPlayerStore"
+import { useLyricSettings, LyricScope } from "./LyricSettingsContext"
 import { heartModeService } from "@/lib/services/heartModeService"
 import { LYRIC_FONT_OPTIONS } from "@/lib/constants/fonts"
 import { BackgroundSettingsDialog } from "./BackgroundSettingsDialog"
@@ -37,40 +40,47 @@ import { toast } from "sonner"
 export interface PlayerSettingsMenuProps {
     triggerIcon?: React.ReactNode
     align?: "start" | "end" | "center"
+    /** 设置作用域：fullscreen=全屏播放器，desktop=桌面播放器 */
+    scope?: LyricScope
+    /** 移动端模式（隐藏部分仅桌面端可用的项） */
+    isMobile?: boolean
 }
 
-export function PlayerSettingsMenu({ triggerIcon, align = "start" }: PlayerSettingsMenuProps) {
-    const audioVisualization = usePlayerStore(s => s.audioVisualization)
-    const toggleAudioVisualization = usePlayerStore(s => s.toggleAudioVisualization)
-    const isImmersiveMode = usePlayerStore(s => s.isImmersiveMode)
-    const setIsImmersiveMode = usePlayerStore(s => s.setIsImmersiveMode)
-    const hideAlbumCover = usePlayerStore(s => s.hideAlbumCover)
-    const setHideAlbumCover = usePlayerStore(s => s.setHideAlbumCover)
-    const isLyricEditorMode = usePlayerStore(s => s.isLyricEditorMode)
-    const setIsLyricEditorMode = usePlayerStore(s => s.setIsLyricEditorMode)
+export function PlayerSettingsMenu({ triggerIcon, align = "start", scope = "fullscreen", isMobile = false }: PlayerSettingsMenuProps) {
+    // ── 作用域歌词设置（字号/字体/模糊/样式/动画/隐藏封面/翻译/律动/沉浸） ──
+    const {
+        audioVisualization, toggleAudioVisualization,
+        isImmersiveMode, setIsImmersiveMode,
+        hideAlbumCover, setHideAlbumCover,
+        lyricDisplayStyle, setLyricDisplayStyle,
+        singleLineAnimation, setSingleLineAnimation,
+        lyricFontFamily, setLyricFontFamily,
+        lyricFontSize, setLyricFontSize,
+        lyricBlurStrength, setLyricBlurStrength,
+    } = useLyricSettings()
+
+    // ── 全局共享状态（播放曲目/心动模式/浮动桌面歌词） ──
     const currentTrack = usePlayerStore(s => s.currentTrack)
     const heartMode = usePlayerStore(s => s.heartMode)
     const setHeartMode = usePlayerStore(s => s.setHeartMode)
     const sourcePlaylistId = usePlayerStore(s => s.sourcePlaylistId)
-    const lyricDisplayStyle = usePlayerStore(s => s.lyricDisplayStyle)
-    const setLyricDisplayStyle = usePlayerStore(s => s.setLyricDisplayStyle)
-    const singleLineAnimation = usePlayerStore(s => s.singleLineAnimation)
-    const setSingleLineAnimation = usePlayerStore(s => s.setSingleLineAnimation)
-    const lyricFontFamily = usePlayerStore(s => s.lyricFontFamily)
-    const setLyricFontFamily = usePlayerStore(s => s.setLyricFontFamily)
-    const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
-    const setLyricFontSize = usePlayerStore(s => s.setLyricFontSize)
-    const lyricBlurStrength = usePlayerStore(s => s.lyricBlurStrength)
-    const setLyricBlurStrength = usePlayerStore(s => s.setLyricBlurStrength)
-    const desktopLyricFontSize = usePlayerStore(s => s.desktopLyricFontSize)
-    const setDesktopLyricFontSize = usePlayerStore(s => s.setDesktopLyricFontSize)
-    const desktopLyricColor = usePlayerStore(s => s.desktopLyricColor)
-    const setDesktopLyricColor = usePlayerStore(s => s.setDesktopLyricColor)
-    const desktopLyricStrokeColor = usePlayerStore(s => s.desktopLyricStrokeColor)
-    const setDesktopLyricStrokeColor = usePlayerStore(s => s.setDesktopLyricStrokeColor)
+
+    // 浮动桌面歌词窗口设置（与 /desktop-lyric 同步）
+    const desktopLyricFontSize = useFullscreenSettingsStore(s => s.desktopLyricFontSize)
+    const setDesktopLyricFontSize = useFullscreenSettingsStore(s => s.setDesktopLyricFontSize)
+    const desktopLyricColor = useFullscreenSettingsStore(s => s.desktopLyricColor)
+    const setDesktopLyricColor = useFullscreenSettingsStore(s => s.setDesktopLyricColor)
+    const desktopLyricStrokeColor = useFullscreenSettingsStore(s => s.desktopLyricStrokeColor)
+    const setDesktopLyricStrokeColor = useFullscreenSettingsStore(s => s.setDesktopLyricStrokeColor)
+
+    // ── 桌面播放器专有：编辑模式 + 3D 效果 ──
+    const isLyricEditorMode = useDesktopPlayerStore(s => s.isLyricEditorMode)
+    const setIsLyricEditorMode = useDesktopPlayerStore(s => s.setIsLyricEditorMode)
 
     const [bgDialogOpen, setBgDialogOpen] = useState(false)
     const [effectDialogOpen, setEffectDialogOpen] = useState(false)
+
+    const isDesktop = scope === "desktop"
 
     const handleToggleHeartMode = async () => {
         if (!currentTrack || currentTrack.source !== 'netease') return
@@ -123,7 +133,9 @@ export function PlayerSettingsMenu({ triggerIcon, align = "start" }: PlayerSetti
                     onOpenAutoFocus={(e) => e.preventDefault()}
                     onCloseAutoFocus={(e) => e.preventDefault()}
                 >
-                    <DropdownMenuLabel>播放器设置</DropdownMenuLabel>
+                    <DropdownMenuLabel>
+                        {isDesktop ? "桌面播放器设置" : "播放器设置"}
+                    </DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-white/10" />
                     <DropdownMenuCheckboxItem
                         checked={audioVisualization}
@@ -149,14 +161,18 @@ export function PlayerSettingsMenu({ triggerIcon, align = "start" }: PlayerSetti
                         <ImageIcon className="mr-2 h-4 w-4" />
                         隐藏封面
                     </DropdownMenuCheckboxItem>
-                    <DropdownMenuCheckboxItem
-                        checked={isLyricEditorMode}
-                        onCheckedChange={setIsLyricEditorMode}
-                        className="focus:bg-white/10 focus:text-white data-[state=checked]:bg-white/5"
-                    >
-                        <Move className="mr-2 h-4 w-4" />
-                        编辑模式 (拖拽歌词)
-                    </DropdownMenuCheckboxItem>
+                    {/* 编辑模式：仅桌面播放器 */}
+                    {isDesktop && (
+                        <DropdownMenuCheckboxItem
+                            checked={isLyricEditorMode}
+                            onCheckedChange={setIsLyricEditorMode}
+                            className="focus:bg-white/10 focus:text-white data-[state=checked]:bg-white/5"
+                        >
+                            <Move className="mr-2 h-4 w-4" />
+                            编辑模式 (拖拽歌词)
+                        </DropdownMenuCheckboxItem>
+                    )}
+                    {/* 浮动桌面歌词窗口：两个作用域都可打开 */}
                     <DropdownMenuItem
                         onClick={openDesktopLyric}
                         className="focus:bg-white/10 focus:text-white"
@@ -164,21 +180,28 @@ export function PlayerSettingsMenu({ triggerIcon, align = "start" }: PlayerSetti
                         <Monitor className="mr-2 h-4 w-4" />
                         桌面歌词
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                        onSelect={(e) => { e.preventDefault(); setBgDialogOpen(true) }}
-                        className="focus:bg-white/10 focus:text-white"
-                    >
-                        <ImageIcon className="mr-2 h-4 w-4" />
-                        播放器背景…
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                        onSelect={(e) => { e.preventDefault(); setEffectDialogOpen(true) }}
-                        className="focus:bg-white/10 focus:text-white"
-                    >
-                        <Box className="mr-2 h-4 w-4" />
-                        桌面歌词 3D 效果…
-                    </DropdownMenuItem>
-                    {currentTrack?.source === 'netease' && (
+                    {/* 播放器背景：仅全屏播放器 */}
+                    {!isDesktop && (
+                        <DropdownMenuItem
+                            onSelect={(e) => { e.preventDefault(); setBgDialogOpen(true) }}
+                            className="focus:bg-white/10 focus:text-white"
+                        >
+                            <ImageIcon className="mr-2 h-4 w-4" />
+                            播放器背景…
+                        </DropdownMenuItem>
+                    )}
+                    {/* 3D 效果：仅桌面播放器 */}
+                    {isDesktop && (
+                        <DropdownMenuItem
+                            onSelect={(e) => { e.preventDefault(); setEffectDialogOpen(true) }}
+                            className="focus:bg-white/10 focus:text-white"
+                        >
+                            <Box className="mr-2 h-4 w-4" />
+                            桌面歌词 3D 效果…
+                        </DropdownMenuItem>
+                    )}
+                    {/* 心动模式：仅全屏播放器（依赖全局播放状态） */}
+                    {!isDesktop && currentTrack?.source === 'netease' && (
                         <DropdownMenuCheckboxItem
                             checked={heartMode}
                             onCheckedChange={() => handleToggleHeartMode()}
@@ -286,6 +309,7 @@ export function PlayerSettingsMenu({ triggerIcon, align = "start" }: PlayerSetti
                             className="w-full"
                         />
                     </div>
+                    {/* 浮动桌面歌词窗口设置：两个作用域共享 */}
                     <DropdownMenuSeparator className="bg-white/10" />
                     <div className="px-2 py-1.5">
                         <div className="flex items-center text-sm font-medium mb-2 opacity-80">
@@ -332,15 +356,19 @@ export function PlayerSettingsMenu({ triggerIcon, align = "start" }: PlayerSetti
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            <BackgroundSettingsDialog
-                open={bgDialogOpen}
-                onOpenChange={setBgDialogOpen}
-            />
+            {!isDesktop && (
+                <BackgroundSettingsDialog
+                    open={bgDialogOpen}
+                    onOpenChange={setBgDialogOpen}
+                />
+            )}
 
-            <DesktopLyricEffectDialog
-                open={effectDialogOpen}
-                onOpenChange={setEffectDialogOpen}
-            />
+            {isDesktop && (
+                <DesktopLyricEffectDialog
+                    open={effectDialogOpen}
+                    onOpenChange={setEffectDialogOpen}
+                />
+            )}
         </>
     )
 }

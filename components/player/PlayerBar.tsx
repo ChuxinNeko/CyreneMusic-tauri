@@ -278,7 +278,7 @@ export function PlayerBar() {
             </div>
 
             {/* === 移动端视图 (保留胶囊样式) === */}
-            <div className="flex md:hidden fixed bottom-[calc(76px+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 h-16 w-[92vw] sm:w-[420px] bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 border border-border/50 shadow-2xl rounded-full items-center px-1.5 z-50 transition-transform hover:scale-[1.02]">
+            <div className="flex md:hidden fixed bottom-[calc(84px+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 h-16 w-[92vw] sm:w-[420px] bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70 border border-border/50 shadow-2xl rounded-full items-center px-1.5 z-50 transition-transform hover:scale-[1.02]">
                 {/* Thin Progress Bar positioned at the bottom curve of the capsule */}
                 <div className="absolute bottom-0 left-10 right-10 h-[2px] bg-secondary/50 overflow-hidden rounded-full pointer-events-none">
                     <div

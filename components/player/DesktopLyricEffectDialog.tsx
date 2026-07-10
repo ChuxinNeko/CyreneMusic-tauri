@@ -1,5 +1,6 @@
 import React from "react"
-import { usePlayerStore } from "@/lib/store/usePlayerStore"
+import { useDesktopPlayerStore } from "@/lib/store/useDesktopPlayerStore"
+import { useFullscreenSettingsStore } from "@/lib/store/useFullscreenSettingsStore"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Slider } from "@/components/ui/slider"
 import { Box, Eye } from "lucide-react"
@@ -10,23 +11,23 @@ interface DesktopLyricEffectDialogProps {
 }
 
 export function DesktopLyricEffectDialog({ open, onOpenChange }: DesktopLyricEffectDialogProps) {
-    const desktopLyricRotationX = usePlayerStore(s => s.desktopLyricRotationX)
-    const setDesktopLyricRotationX = usePlayerStore(s => s.setDesktopLyricRotationX)
+    const desktopLyricRotationX = useDesktopPlayerStore(s => s.desktopLyricRotationX)
+    const setDesktopLyricRotationX = useDesktopPlayerStore(s => s.setDesktopLyricRotationX)
     
-    const desktopLyricRotationY = usePlayerStore(s => s.desktopLyricRotationY)
-    const setDesktopLyricRotationY = usePlayerStore(s => s.setDesktopLyricRotationY)
+    const desktopLyricRotationY = useDesktopPlayerStore(s => s.desktopLyricRotationY)
+    const setDesktopLyricRotationY = useDesktopPlayerStore(s => s.setDesktopLyricRotationY)
     
-    const desktopLyricRotationZ = usePlayerStore(s => s.desktopLyricRotationZ)
-    const setDesktopLyricRotationZ = usePlayerStore(s => s.setDesktopLyricRotationZ)
+    const desktopLyricRotationZ = useDesktopPlayerStore(s => s.desktopLyricRotationZ)
+    const setDesktopLyricRotationZ = useDesktopPlayerStore(s => s.setDesktopLyricRotationZ)
     
-    const desktopLyricPerspective = usePlayerStore(s => s.desktopLyricPerspective)
-    const setDesktopLyricPerspective = usePlayerStore(s => s.setDesktopLyricPerspective)
+    const desktopLyricPerspective = useDesktopPlayerStore(s => s.desktopLyricPerspective)
+    const setDesktopLyricPerspective = useDesktopPlayerStore(s => s.setDesktopLyricPerspective)
     
-    // Preview Styles
-    const desktopLyricFontSize = usePlayerStore(s => s.desktopLyricFontSize)
-    const desktopLyricColor = usePlayerStore(s => s.desktopLyricColor)
-    const desktopLyricStrokeColor = usePlayerStore(s => s.desktopLyricStrokeColor)
-    const lyricFontFamily = usePlayerStore(s => s.lyricFontFamily)
+    // Preview Styles — 从全屏设置 store 读取（浮动桌面歌词窗口的字号/颜色/描边/字体）
+    const desktopLyricFontSize = useFullscreenSettingsStore(s => s.desktopLyricFontSize)
+    const desktopLyricColor = useFullscreenSettingsStore(s => s.desktopLyricColor)
+    const desktopLyricStrokeColor = useFullscreenSettingsStore(s => s.desktopLyricStrokeColor)
+    const lyricFontFamily = useDesktopPlayerStore(s => s.lyricFontFamily)
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

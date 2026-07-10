@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { Track } from '../models/track'
-import { DEFAULT_LYRIC_FONT } from '../constants/fonts'
 
 export enum RepeatMode {
     Off = 'off',
@@ -48,44 +47,10 @@ interface PlayerState {
     repeatMode: RepeatMode
     // Fullscreen state
     isFullscreen: boolean
-    // Show lyric translation
-    showTranslation: boolean
-    // Audio visualization (rhythm response)
-    audioVisualization: boolean
-    // Lyric Appearance
-    lyricFontSize: number
-    lyricFontFamily: string
-    lyricBlurStrength: number
 
-    // Desktop Lyric Appearance
-    desktopLyricFontSize: number
-    desktopLyricColor: string
-    desktopLyricStrokeColor: string
-    desktopLyricRotationX: number
-    desktopLyricRotationY: number
-    desktopLyricRotationZ: number
-    desktopLyricPerspective: number
-    isLyricsFolded: boolean
-    isImmersiveMode: boolean
-    lyricDisplayStyle: LyricDisplayStyle
-    singleLineAnimation: SingleLineAnimation
-    hideAlbumCover: boolean
     playError: string | null
     isTaskbarPlayerOpen: boolean
     isDesktopPlayerOpen: boolean
-
-    // Lyric Editor Mode
-    isLyricEditorMode: boolean
-    lyricOffsetX: number
-    lyricOffsetY: number
-
-    // Custom Player Background
-    playerBgType: PlayerBgType
-    customBgPath: string | null
-    customBgBlur: number
-    customBgBrightness: number
-    customBgScale: number
-    customBgOverlay: number
 
     // Heart Mode (心动模式)
     heartMode: boolean
@@ -110,38 +75,9 @@ interface PlayerState {
     setVolume: (volume: number) => void
     setRepeatMode: (mode: RepeatMode) => void
     setIsFullscreen: (value: boolean) => void
-    toggleTranslation: () => void
-    toggleAudioVisualization: () => void
-    setLyricFontSize: (size: number) => void
-    setLyricFontFamily: (font: string) => void
-    setLyricBlurStrength: (strength: number) => void
-
-    setDesktopLyricFontSize: (size: number) => void
-    setDesktopLyricColor: (color: string) => void
-    setDesktopLyricStrokeColor: (color: string) => void
-    setDesktopLyricRotationX: (val: number) => void
-    setDesktopLyricRotationY: (val: number) => void
-    setDesktopLyricRotationZ: (val: number) => void
-    setDesktopLyricPerspective: (val: number) => void
-    setIsLyricsFolded: (folded: boolean) => void
-    setIsImmersiveMode: (isImmersiveMode: boolean) => void
-    setLyricDisplayStyle: (style: LyricDisplayStyle) => void
-    setSingleLineAnimation: (animation: SingleLineAnimation) => void
-    setHideAlbumCover: (hide: boolean) => void
     setPlayError: (error: string | null) => void
     setIsTaskbarPlayerOpen: (open: boolean) => void
     setIsDesktopPlayerOpen: (open: boolean) => void
-
-    setIsLyricEditorMode: (enabled: boolean) => void
-    setLyricOffsetX: (x: number) => void
-    setLyricOffsetY: (y: number) => void
-
-    setPlayerBgType: (type: PlayerBgType) => void
-    setCustomBgPath: (path: string | null) => void
-    setCustomBgBlur: (blur: number) => void
-    setCustomBgBrightness: (brightness: number) => void
-    setCustomBgScale: (scale: number) => void
-    setCustomBgOverlay: (overlay: number) => void
 
     setHeartMode: (enabled: boolean) => void
     setSourcePlaylistId: (id: string | null) => void
@@ -165,37 +101,9 @@ export const usePlayerStore = create<PlayerState>()(
             volume: 0.8,
             repeatMode: RepeatMode.All,
             isFullscreen: false,
-            showTranslation: true,
-            audioVisualization: true,
-            lyricFontSize: 34,
-            lyricFontFamily: DEFAULT_LYRIC_FONT,
-            lyricBlurStrength: 6,
-            desktopLyricFontSize: 40,
-            desktopLyricColor: '#ffffff',
-            desktopLyricStrokeColor: '#bababa',
-            desktopLyricRotationX: 0,
-            desktopLyricRotationY: 0,
-            desktopLyricRotationZ: 0,
-            desktopLyricPerspective: 1000,
-            isLyricsFolded: false,
-            isImmersiveMode: false,
-            lyricDisplayStyle: LyricDisplayStyle.Scroll,
-            singleLineAnimation: SingleLineAnimation.SlideUp,
-            hideAlbumCover: false,
             playError: null,
             isTaskbarPlayerOpen: true,
             isDesktopPlayerOpen: false,
-
-            isLyricEditorMode: false,
-            lyricOffsetX: 0,
-            lyricOffsetY: 0,
-
-            playerBgType: 'webgl',
-            customBgPath: null,
-            customBgBlur: 0,
-            customBgBrightness: 60,
-            customBgScale: 110,
-            customBgOverlay: 30,
 
             heartMode: false,
             sourcePlaylistId: null,
@@ -259,37 +167,9 @@ export const usePlayerStore = create<PlayerState>()(
             setVolume: (volume) => set({ volume }),
             setRepeatMode: (repeatMode) => set({ repeatMode }),
             setIsFullscreen: (isFullscreen) => set({ isFullscreen }),
-            toggleTranslation: () => set((state) => ({ showTranslation: !state.showTranslation })),
-            toggleAudioVisualization: () => set((state) => ({ audioVisualization: !state.audioVisualization })),
-            setLyricFontSize: (size) => set({ lyricFontSize: size }),
-            setLyricFontFamily: (font) => set({ lyricFontFamily: font }),
-            setLyricBlurStrength: (strength) => set({ lyricBlurStrength: strength }),
-            setDesktopLyricFontSize: (desktopLyricFontSize) => set({ desktopLyricFontSize }),
-            setDesktopLyricColor: (desktopLyricColor) => set({ desktopLyricColor }),
-            setDesktopLyricStrokeColor: (desktopLyricStrokeColor) => set({ desktopLyricStrokeColor }),
-            setDesktopLyricRotationX: (desktopLyricRotationX) => set({ desktopLyricRotationX }),
-            setDesktopLyricRotationY: (desktopLyricRotationY) => set({ desktopLyricRotationY }),
-            setDesktopLyricRotationZ: (desktopLyricRotationZ) => set({ desktopLyricRotationZ }),
-            setDesktopLyricPerspective: (desktopLyricPerspective) => set({ desktopLyricPerspective }),
-            setIsLyricsFolded: (isLyricsFolded) => set({ isLyricsFolded }),
-            setIsImmersiveMode: (isImmersiveMode) => set({ isImmersiveMode }),
-            setLyricDisplayStyle: (lyricDisplayStyle) => set({ lyricDisplayStyle }),
-            setSingleLineAnimation: (animation) => set({ singleLineAnimation: animation }),
-            setHideAlbumCover: (hideAlbumCover) => set({ hideAlbumCover }),
             setPlayError: (error) => set({ playError: error }),
             setIsTaskbarPlayerOpen: (open) => set({ isTaskbarPlayerOpen: open }),
             setIsDesktopPlayerOpen: (open) => set({ isDesktopPlayerOpen: open }),
-
-            setIsLyricEditorMode: (enabled) => set({ isLyricEditorMode: enabled }),
-            setLyricOffsetX: (x) => set({ lyricOffsetX: x }),
-            setLyricOffsetY: (y) => set({ lyricOffsetY: y }),
-
-            setPlayerBgType: (type) => set({ playerBgType: type }),
-            setCustomBgPath: (customBgPath) => set({ customBgPath }),
-            setCustomBgBlur: (customBgBlur) => set({ customBgBlur }),
-            setCustomBgBrightness: (customBgBrightness) => set({ customBgBrightness }),
-            setCustomBgScale: (customBgScale) => set({ customBgScale }),
-            setCustomBgOverlay: (customBgOverlay) => set({ customBgOverlay }),
 
             setHeartMode: (enabled) => set({ heartMode: enabled }),
             setSourcePlaylistId: (id) => set({ sourcePlaylistId: id }),
@@ -335,31 +215,7 @@ export const usePlayerStore = create<PlayerState>()(
                 currentTime: state.currentTime,
                 duration: state.duration,
                 progress: state.progress,
-                audioVisualization: state.audioVisualization,
-                lyricFontSize: state.lyricFontSize,
-                lyricFontFamily: state.lyricFontFamily,
-                lyricBlurStrength: state.lyricBlurStrength,
-                desktopLyricFontSize: state.desktopLyricFontSize,
-                desktopLyricColor: state.desktopLyricColor,
-                desktopLyricStrokeColor: state.desktopLyricStrokeColor,
-                desktopLyricRotationX: state.desktopLyricRotationX,
-                desktopLyricRotationY: state.desktopLyricRotationY,
-                desktopLyricRotationZ: state.desktopLyricRotationZ,
-                desktopLyricPerspective: state.desktopLyricPerspective,
-                isLyricsFolded: state.isLyricsFolded,
-                isImmersiveMode: state.isImmersiveMode,
-                lyricDisplayStyle: state.lyricDisplayStyle,
-                singleLineAnimation: state.singleLineAnimation,
-                hideAlbumCover: state.hideAlbumCover,
                 isTaskbarPlayerOpen: state.isTaskbarPlayerOpen,
-                lyricOffsetX: state.lyricOffsetX,
-                lyricOffsetY: state.lyricOffsetY,
-                playerBgType: state.playerBgType,
-                customBgPath: state.customBgPath,
-                customBgBlur: state.customBgBlur,
-                customBgBrightness: state.customBgBrightness,
-                customBgScale: state.customBgScale,
-                customBgOverlay: state.customBgOverlay,
             }),
         }
     )

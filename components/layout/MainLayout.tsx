@@ -157,7 +157,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
                     <div className={isPlaylistDetail ? 'hidden md:block' : 'block'}>
                         <TitleBar />
                     </div>
-                    <main className={`flex-1 overflow-auto ${currentTheme === 'fluent' ? `${isTransparent ? 'bg-card/30 dark:bg-card/20' : 'bg-card/90 dark:bg-card/60'} rounded-tl-xl border-t border-l border-border/30 shadow-sm` : ''} pb-[calc(80px+0rem)] md:pb-4 ${isPlaylistDetail ? 'pt-0' : ''}`}>
+                    <main className={`relative flex-1 overflow-auto ${currentTheme === 'fluent' ? `${isTransparent ? 'bg-card/30 dark:bg-card/20' : 'bg-card/90 dark:bg-card/60'} rounded-tl-xl border-t border-l border-border/30 shadow-sm` : ''} pb-0 md:pb-4 ${isPlaylistDetail ? 'pt-0' : ''}`}>
                         {children}
                     </main>
                 </div>

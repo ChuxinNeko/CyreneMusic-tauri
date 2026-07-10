@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState, useMemo, useCallback } from "react"
 import { usePlayerStore } from "@/lib/store/usePlayerStore"
+import { useLyricSettings } from "./LyricSettingsContext"
 import { playerService } from "@/lib/services/playerService"
 import { WordData, LyricLineData, INTRO_DELAY, parseLyrics } from "./parser"
 import { Spring } from "@/lib/utils/spring"
@@ -158,10 +159,7 @@ function InterludeDots({ interludeRef }: { interludeRef: React.RefObject<{ start
 export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'center' }: { alignPosition?: 'center' | 'top-second' }) {
     const currentTrack = usePlayerStore(s => s.currentTrack)
     const isPlaying = usePlayerStore(s => s.isPlaying)
-    const showTranslation = usePlayerStore(s => s.showTranslation)
-    const lyricFontSize = usePlayerStore(s => s.lyricFontSize)
-    const lyricFontFamily = usePlayerStore(s => s.lyricFontFamily)
-    const lyricBlurStrength = usePlayerStore(s => s.lyricBlurStrength)
+    const { showTranslation, lyricFontSize, lyricFontFamily, lyricBlurStrength } = useLyricSettings()
     const containerRef = useRef<HTMLDivElement>(null)
     const linesHelperRef = useRef<LyricLineHelper[]>([])
     const currentScrollIndexRef = useRef(-1)
@@ -328,7 +326,7 @@ export const LyricPlayer = React.memo(function LyricPlayer({ alignPosition = 'ce
             interludeContainerRef.current.style.transform = `translateY(${dotsY}px)`
         }
 
-        const currentBlurStrength = usePlayerStore.getState().lyricBlurStrength
+        const currentBlurStrength = lyricBlurStrength
         const baseAlign = activeInterlude ? activeInterlude.lineIndex + 1 : targetIndex
 
         linesHelperRef.current.forEach((l, i) => {
