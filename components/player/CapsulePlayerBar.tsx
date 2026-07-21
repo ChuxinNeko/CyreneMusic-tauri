@@ -11,13 +11,13 @@ import {
     Shuffle,
     Info,
     Volume,
-    Volume2
+    Volume2,
+    ListMusic
 } from "lucide-react"
 import { usePlayerStore, RepeatMode } from "@/lib/store/usePlayerStore"
 import { playerService } from "@/lib/services/playerService"
 import { playlistService } from "@/lib/services/playlistService"
 import { Slider } from "@/components/ui/slider"
-import { LiquidGlass } from "@/components/ui/LiquidGlass"
 import { AudioVisualizer } from "./AudioVisualizer"
 
 export interface CapsulePlayerBarProps {
@@ -39,6 +39,9 @@ export interface CapsulePlayerBarProps {
     
     // Artist click
     onArtistClick?: () => void
+
+    // Fullscreen queue view
+    onOpenPlaylist?: () => void
     
     // Standalone mode for secondary windows
     isStandalone?: boolean
@@ -57,6 +60,7 @@ export function CapsulePlayerBar({
     showTranslation = false,
     onToggleTranslation,
     onArtistClick,
+    onOpenPlaylist,
     isStandalone = false
 }: CapsulePlayerBarProps) {
     const currentTrack = usePlayerStore(s => s.currentTrack)
@@ -206,8 +210,7 @@ export function CapsulePlayerBar({
     return (
         <div className={`relative z-[120] flex justify-center items-center gap-4 transition-[filter] duration-500 ${isImmersiveMode && isLightCover ? '[&_button]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] [&_span]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] [&_img]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] [&_svg]:drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : ''}`}>
             {/* Left Capsule: Minimize + Toggle Lyrics */}
-            <div className="relative flex items-center gap-2 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-4 py-2.5 backdrop-blur-md">
-                <LiquidGlass className="bg-white/10" />
+            <div className="relative flex items-center gap-2 border border-white/20 bg-black/20 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.28),inset_0_-1px_0_rgba(0,0,0,0.16)] rounded-full px-4 py-2.5">
                 {onClose && (
                     <button
                         onClick={onClose}
@@ -215,6 +218,15 @@ export function CapsulePlayerBar({
                         title="最小化播放器"
                     >
                         <ChevronDown size={20} />
+                    </button>
+                )}
+                {onOpenPlaylist && (
+                    <button
+                        onClick={onOpenPlaylist}
+                        className="p-1.5 text-white/50 transition-colors hover:text-white"
+                        title="查看播放队列"
+                    >
+                        <ListMusic size={20} />
                     </button>
                 )}
                 {onToggleLyrics && (
@@ -260,8 +272,7 @@ export function CapsulePlayerBar({
             </div>
 
             {/* Center Capsule: Song Info + Playback + Progress */}
-            <div className="relative flex items-center gap-5 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full px-5 py-2.5 flex-1 max-w-[900px] backdrop-blur-md">
-                <LiquidGlass className="bg-white/10" />
+            <div className="relative flex items-center gap-5 border border-white/20 bg-black/20 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.28),inset_0_-1px_0_rgba(0,0,0,0.16)] rounded-full px-5 py-2.5 flex-1 max-w-[900px]">
                 {/* Mini Cover + Info */}
                 <div className="flex items-center gap-2.5 min-w-[140px] shrink-0">
                     {currentTrack?.picUrl ? (
@@ -342,8 +353,7 @@ export function CapsulePlayerBar({
             </div>
 
             {/* Right Capsule: Volume (expands left on hover) */}
-            <div className="relative group/volbtn flex items-center h-12 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)] rounded-full overflow-hidden transition-all duration-300 ease-in-out w-12 hover:w-[200px] backdrop-blur-md">
-                <LiquidGlass className="bg-white/10 group-hover/volbtn:bg-white/15 transition-colors" />
+            <div className="relative group/volbtn flex items-center h-12 border border-white/20 bg-black/20 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.28),inset_0_-1px_0_rgba(0,0,0,0.16)] rounded-full overflow-hidden transition-all duration-300 ease-in-out w-12 hover:w-[200px]">
                 {/* Slider (visible on hover) */}
                 <div className="flex items-center gap-2 pl-3.5 pr-1 opacity-0 group-hover/volbtn:opacity-100 transition-opacity duration-300 absolute left-0 top-0 bottom-0 right-12 z-10">
                     <Volume size={14} className="text-white/50 shrink-0" />

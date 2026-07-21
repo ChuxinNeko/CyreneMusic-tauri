@@ -2,6 +2,7 @@ import { Track } from "../models/track"
 import { urlService } from "./urlService"
 import { MusicSource } from "./audioSourceService"
 import type { ToplistSource, RecommendSource } from "../store/useLayoutStore"
+import { apiFetch } from "./apiClient"
 
 export interface Toplist {
     id: number
@@ -154,7 +155,7 @@ class DiscoveryService {
         const cacheKey = isQQ ? 'recommend_for_you_qq' : 'recommend_for_you'
         const fetcher = async () => {
             try {
-                const response = await fetch(`${urlService.baseUrl}${endpoint}`, {
+                const response = await apiFetch(`${urlService.baseUrl}${endpoint}`, {
                     headers: this.getHeaders(token)
                 })
                 const result = await response.json()
@@ -227,7 +228,7 @@ class DiscoveryService {
         }
 
         try {
-            const response = await fetch(`${urlService.baseUrl}/playlist?id=${id}&limit=${limit}`, {
+            const response = await apiFetch(`${urlService.baseUrl}/playlist?id=${id}&limit=${limit}`, {
                 headers: this.getHeaders(token)
             })
             const result = await response.json()

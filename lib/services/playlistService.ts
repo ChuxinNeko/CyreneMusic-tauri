@@ -2,6 +2,7 @@
 import { urlService } from "./urlService";
 import { useAuthStore } from "../store/useAuthStore";
 import { Playlist, PlaylistTrack, PlaylistSyncResult } from "../models/playlist";
+import { apiFetch } from "./apiClient";
 
 class PlaylistService {
     private static instance: PlaylistService;
@@ -25,7 +26,7 @@ class PlaylistService {
 
     public async getPlaylists(): Promise<Playlist[]> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/playlists`, {
+            const response = await apiFetch(`${urlService.baseUrl}/playlists`, {
                 headers: this.getHeaders()
             });
             if (response.ok) {
@@ -41,7 +42,7 @@ class PlaylistService {
 
     public async createPlaylist(name: string, options?: { source?: string; sourcePlaylistId?: string }): Promise<Playlist | null> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/playlists`, {
+            const response = await apiFetch(`${urlService.baseUrl}/playlists`, {
                 method: "POST",
                 headers: this.getHeaders(),
                 body: JSON.stringify({ name, ...options })
@@ -59,7 +60,7 @@ class PlaylistService {
 
     public async deletePlaylist(playlistId: string | number): Promise<boolean> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/playlists/${playlistId}/delete`, {
+            const response = await apiFetch(`${urlService.baseUrl}/playlists/${playlistId}/delete`, {
                 method: "POST",
                 headers: this.getHeaders()
             });
@@ -72,7 +73,7 @@ class PlaylistService {
 
     public async getPlaylistTracks(playlistId: string | number): Promise<PlaylistTrack[]> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/playlists/${playlistId}/tracks`, {
+            const response = await apiFetch(`${urlService.baseUrl}/playlists/${playlistId}/tracks`, {
                 headers: this.getHeaders()
             });
             if (response.ok) {
@@ -99,7 +100,7 @@ class PlaylistService {
         tracks: { trackId: string | number; name: string; artists: string; album: string; picUrl: string; source: string }[]
     ): Promise<boolean> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/playlists/${playlistId}/tracks/batch`, {
+            const response = await apiFetch(`${urlService.baseUrl}/playlists/${playlistId}/tracks/batch`, {
                 method: "POST",
                 headers: this.getHeaders(),
                 body: JSON.stringify({ 
@@ -126,7 +127,7 @@ class PlaylistService {
         source: string
     ): Promise<boolean> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/playlists/${playlistId}/tracks`, {
+            const response = await apiFetch(`${urlService.baseUrl}/playlists/${playlistId}/tracks`, {
                 method: "POST",
                 headers: this.getHeaders(),
                 body: JSON.stringify({ trackId: String(trackId), name, artists, album, picUrl, source })
@@ -144,7 +145,7 @@ class PlaylistService {
         source: string
     ): Promise<boolean> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/playlists/${playlistId}/tracks/remove`, {
+            const response = await apiFetch(`${urlService.baseUrl}/playlists/${playlistId}/tracks/remove`, {
                 method: "POST",
                 headers: this.getHeaders(),
                 body: JSON.stringify({ trackId: String(trackId), source })
@@ -161,7 +162,7 @@ class PlaylistService {
      */
     public async syncPlaylist(playlistId: string | number): Promise<PlaylistSyncResult | null> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/playlists/${playlistId}/sync`, {
+            const response = await apiFetch(`${urlService.baseUrl}/playlists/${playlistId}/sync`, {
                 method: "POST",
                 headers: this.getHeaders()
             });
@@ -181,7 +182,7 @@ class PlaylistService {
      */
     public async checkTrackInPlaylists(trackId: string | number, source: string): Promise<{ inPlaylist: boolean; playlistIds: number[]; playlistNames: string[] }> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/playlists/check-track?trackId=${String(trackId)}&source=${source}`, {
+            const response = await apiFetch(`${urlService.baseUrl}/playlists/check-track?trackId=${String(trackId)}&source=${source}`, {
                 headers: this.getHeaders()
             });
             if (response.ok) {

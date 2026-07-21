@@ -43,7 +43,7 @@ import {
 export function TitleBar() {
     const { setTheme, theme } = useTheme()
     const [isMaximized, setIsMaximized] = React.useState(false)
-    const { user, isLoggedIn, logout } = useAuthStore()
+    const { user, isLoggedIn, logout, openAuthDialog } = useAuthStore()
     const router = useRouter()
     const { material } = useWindowMaterialStore()
     const { currentTheme } = useUIThemeStore()
@@ -165,7 +165,7 @@ export function TitleBar() {
                                 variant="ghost"
                                 size="icon"
                                 className="h-9 w-9 rounded-full ring-offset-background transition-all hover:ring-2 hover:ring-primary/20 p-0 overflow-hidden bg-muted/20"
-                                onClick={() => router.push("/settings")}
+                                onClick={() => openAuthDialog()}
                             >
                                 <Avatar className="h-8 w-8 grayscale opacity-70">
                                     <AvatarFallback className="bg-transparent">

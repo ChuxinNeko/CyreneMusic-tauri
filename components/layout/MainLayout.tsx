@@ -23,6 +23,9 @@ import {
 import { LiquidGlassOverlay } from "./LiquidGlassOverlay"
 import { PlaybackImmersiveBackground } from "./PlaybackImmersiveBackground"
 import { useUIThemeStore } from "@/lib/store/useUIThemeStore"
+import { useAuthStore } from "@/lib/store/useAuthStore"
+import { authService } from "@/lib/services/authService"
+import { AuthDialog } from "@/components/auth/AuthDialog"
 
 export function MainLayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
@@ -42,11 +45,38 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
     const { material, setSystemSupport } = useWindowMaterialStore()
     const { currentTheme, setTheme, enforceTheme } = useUIThemeStore()
     const isSuperCyrenePlayerEnabled = useLayoutStore((s) => s.isSuperCyrenePlayerEnabled)
+    const hasCompletedSetup = useAuthStore((s) => s.hasCompletedSetup)
+    const isAuthDialogOpen = useAuthStore((s) => s.isAuthDialogOpen)
+    const setAuthDialogOpen = useAuthStore((s) => s.setAuthDialogOpen)
 
     // 桌面端检测
     useEffect(() => {
         setIsDesktop(window.innerWidth >= 768)
     }, [])
+
+    // 启动时校验本地 token，失效则清态并提示重新登录
+    useEffect(() => {
+        if (isTray || isDesktopLyric || isTaskbar || isTaskbarDropZone || isSongRecommend || isDesktopPlayer || isDesktopPlayerBar || isTablePlayer) {
+            return
+        }
+
+        const { isLoggedIn, token } = useAuthStore.getState()
+        if (!isLoggedIn || !token) return
+
+        let cancelled = false
+        const run = async () => {
+            // 稍晚执行，避开首屏高峰；hydrate 完成后再校验
+            await new Promise((r) => setTimeout(r, 800))
+            if (cancelled) return
+            const { isLoggedIn: stillIn, token: currentToken } = useAuthStore.getState()
+            if (!stillIn || !currentToken) return
+            await authService.validateToken(currentToken)
+        }
+        void run()
+        return () => {
+            cancelled = true
+        }
+    }, [isTray, isDesktopLyric, isTaskbar, isTaskbarDropZone, isSongRecommend, isDesktopPlayer, isDesktopPlayerBar, isTablePlayer])
 
     // 根据设备类型修正默认主题（不影响用户手动选择）
     useEffect(() => {
@@ -145,8 +175,21 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
         return <div className="h-screen w-full bg-transparent overflow-hidden">{children}</div>
     }
 
-    if (isTray || isDesktopLyric || isTaskbar || isTaskbarDropZone || isSongRecommend || isTablePlayer) {
+    if (isTaskbar || isTaskbarDropZone) {
+        return <div className="h-screen w-full bg-transparent overflow-hidden">{children}</div>
+    }
+
+    if (isTray || isDesktopLyric || isSongRecommend || isTablePlayer) {
         return <div className="h-screen w-full bg-black overflow-hidden">{children}</div>
+    }
+
+    if (!hasCompletedSetup) {
+        return (
+            <div className={`flex flex-col h-screen overflow-hidden bg-background ${isTransparent ? 'md:bg-transparent' : ''} text-foreground`}>
+                <TitleBar />
+                <SetupWizard />
+            </div>
+        )
     }
 
     return (
@@ -169,7 +212,6 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
             ) : (
                 <FullscreenPlayer />
             )}
-            <SetupWizard />
             <UpdateDialog 
                 updateInfo={updateInfo} 
                 open={showUpdateDialog} 
@@ -179,6 +221,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
             <SongRecommendPopup />
             <LiquidGlassOverlay />
             <PlaybackImmersiveBackground />
+            <AuthDialog open={isAuthDialogOpen} onOpenChange={setAuthDialogOpen} />
         </div>
     )
 }

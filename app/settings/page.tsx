@@ -10,7 +10,6 @@ import { Separator } from "@/components/ui/separator"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { urlService, BackendSourceType } from "@/lib/services/urlService"
 import { useAuthStore } from "@/lib/store/useAuthStore"
-import { AuthDialog } from "@/components/auth/AuthDialog"
 import { UserCard } from "@/components/auth/UserCard"
 import { useActiveSource } from "@/lib/store/useAudioSourceStore"
 import { AudioQuality } from "@/lib/services/audioSourceService"
@@ -62,8 +61,7 @@ function SettingsPageContent() {
 
     const [sourceType, setSourceType] = useState<BackendSourceType>(BackendSourceType.Official)
     const [customUrl, setCustomUrl] = useState("")
-    const { user, isLoggedIn, logout } = useAuthStore()
-    const [authDialogOpen, setAuthDialogOpen] = useState(false)
+    const { user, isLoggedIn, logout, openAuthDialog } = useAuthStore()
     const [qualityDialogOpen, setQualityDialogOpen] = useState(false)
     const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
     const [showUpdateDialog, setShowUpdateDialog] = useState(false)
@@ -447,7 +445,7 @@ const SettingsBreadcrumb = ({
                     <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in slide-in-from-right-4 duration-300 pb-10">
                         <section className="space-y-3">
                             <SettingsSectionHeader icon={User} title="账号" description="登录、个人资料与账户状态" />
-                            <UserCard className="rounded-xl" onLoginClick={() => setAuthDialogOpen(true)} />
+                            <UserCard className="rounded-xl" onLoginClick={() => openAuthDialog()} />
                         </section>
                         <section className="space-y-3">
                             <SettingsSectionHeader icon={KeyRound} title="音乐平台绑定" description="授权第三方平台以使用关联数据" />
@@ -982,7 +980,6 @@ const SettingsBreadcrumb = ({
                 )}
             </div>
 
-            <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
             <QualitySettingsDialog open={qualityDialogOpen} onOpenChange={setQualityDialogOpen} />
             <UpdateDialog updateInfo={updateInfo} open={showUpdateDialog} onOpenChange={setShowUpdateDialog} />
         </div>

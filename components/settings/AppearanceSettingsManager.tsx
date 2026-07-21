@@ -373,7 +373,6 @@ export function AppearanceSettingsManager() {
                         </div>
                     )}
 
-                    {/* SuperCyrene 3D 播放器 - 暂时隐藏，功能未完成，发布 release 前移除入口
                     {isDesktop && (
                         <div className="space-y-4 pt-4 border-t">
                             <div className="flex items-center justify-between">
@@ -390,7 +389,6 @@ export function AppearanceSettingsManager() {
                             </div>
                         </div>
                     )}
-                    */}
                 </CardContent>
             </Card>
         )
@@ -529,7 +527,6 @@ export function AppearanceSettingsManager() {
                 />
             )}
 
-            {/* SuperCyrene 3D 播放器 - 暂时隐藏，功能未完成，发布 release 前移除入口
             {isDesktop && (
                 <FluentHorizontalCard
                     icon={Sparkles}
@@ -545,7 +542,6 @@ export function AppearanceSettingsManager() {
                     }
                 />
             )}
-            */}
         </div>
     )
 }

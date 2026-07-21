@@ -426,17 +426,16 @@ export function ParticleAlbumCover({
       const targetAlpha = playing ? 1.0 : 0.4
       uniforms.uAlpha.value += (targetAlpha - uniforms.uAlpha.value) * 0.06
 
-      // 拖拽惯性
+      // 松手后才继续累积惯性；拖拽中旋转值已在指针事件内直接更新。
       const drag = dragRef.current
       if (!drag.isDragging) {
-        // 惯性衰减
         drag.vx *= 0.94
         drag.vy *= 0.94
         if (Math.abs(drag.vx) < 0.0001) drag.vx = 0
         if (Math.abs(drag.vy) < 0.0001) drag.vy = 0
+        drag.rotY += drag.vx
+        drag.rotX += drag.vy
       }
-      drag.rotX += drag.vy
-      drag.rotY += drag.vx
 
       // 应用旋转到粒子组
       particles.rotation.x = drag.rotX
@@ -494,23 +493,28 @@ export function ParticleAlbumCover({
   }, [coverUrl])
 
   // 鼠标/触摸拖拽
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
+  const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current
     drag.isDragging = true
     drag.lastX = e.clientX
     drag.lastY = e.clientY
     drag.vx = 0
     drag.vy = 0
-    ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+    e.currentTarget.setPointerCapture(e.pointerId)
   }, [])
 
-  const onPointerMove = useCallback((e: React.PointerEvent) => {
+  const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current
     if (!drag.isDragging) return
     const dx = e.clientX - drag.lastX
     const dy = e.clientY - drag.lastY
-    drag.vy = dx * 0.004
-    drag.vx = -dy * 0.004
+    const sensitivity = 0.006
+
+    // 水平拖动绕 Y 轴旋转，垂直拖动绕 X 轴旋转；两者均与指针方向一致。
+    drag.rotY += dx * sensitivity
+    drag.rotX += dy * sensitivity
+    drag.vx = dx * sensitivity
+    drag.vy = dy * sensitivity
     drag.lastX = e.clientX
     drag.lastY = e.clientY
   }, [])

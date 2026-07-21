@@ -2,6 +2,7 @@ import { urlService } from "./urlService";
 import { useAuthStore } from "../store/useAuthStore";
 import { MusicSource } from "./audioSourceService";
 import { Track } from "../models/track";
+import { apiFetch } from "./apiClient";
 
 export enum MusicPlatform {
     netease = "netease",
@@ -124,7 +125,7 @@ class PlaylistImportService {
         }
 
         try {
-            const response = await fetch(apiUrl, {
+            const response = await apiFetch(apiUrl, {
                 headers: token ? { "Authorization": `Bearer ${token}` } : {}
             });
             const result = await response.json();

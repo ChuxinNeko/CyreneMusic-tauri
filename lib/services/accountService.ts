@@ -1,4 +1,5 @@
 import { urlService } from "@/lib/services/urlService"
+import { apiFetch } from "@/lib/services/apiClient"
 
 export interface BindingInfo {
     bound: boolean
@@ -36,7 +37,7 @@ class AccountService {
 
     public async getBindings(token: string): Promise<AccountBindings | null> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/accounts/bindings`, {
+            const response = await apiFetch(`${urlService.baseUrl}/accounts/bindings`, {
                 headers: this.getHeaders(token)
             })
             const result = await response.json()
@@ -52,7 +53,7 @@ class AccountService {
 
     public async unbindNetease(token: string): Promise<boolean> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/accounts/netease/unbind`, {
+            const response = await apiFetch(`${urlService.baseUrl}/accounts/netease/unbind`, {
                 method: "POST",
                 headers: this.getHeaders(token),
                 body: JSON.stringify({
@@ -69,7 +70,7 @@ class AccountService {
 
     public async unbindKugou(token: string): Promise<boolean> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/accounts/kugou/unbind`, {
+            const response = await apiFetch(`${urlService.baseUrl}/accounts/kugou/unbind`, {
                 method: "POST",
                 headers: this.getHeaders(token),
                 body: JSON.stringify({
@@ -86,7 +87,7 @@ class AccountService {
 
     public async unbindQq(token: string): Promise<boolean> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/accounts/qq/unbind`, {
+            const response = await apiFetch(`${urlService.baseUrl}/accounts/qq/unbind`, {
                 method: "POST",
                 headers: this.getHeaders(token),
                 body: JSON.stringify({
@@ -103,7 +104,7 @@ class AccountService {
 
     public async getNeteaseQRKey(): Promise<string | null> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/login/qr/key`)
+            const response = await apiFetch(`${urlService.baseUrl}/login/qr/key`)
             const result = await response.json()
             return result.data?.unikey || null
         } catch (e) {
@@ -114,7 +115,7 @@ class AccountService {
 
     public async getNeteaseQRData(key: string): Promise<{ qrimg?: string; qrUrl: string } | null> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/login/qr/create?key=${key}`)
+            const response = await apiFetch(`${urlService.baseUrl}/login/qr/create?key=${key}`)
             const result = await response.json()
             return result.data || null
         } catch (e) {
@@ -125,7 +126,7 @@ class AccountService {
 
     public async checkNeteaseQR(key: string, userId: number): Promise<any> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/login/qr/check?key=${key}&userId=${userId}`)
+            const response = await apiFetch(`${urlService.baseUrl}/login/qr/check?key=${key}&userId=${userId}`)
             return await response.json()
         } catch (e) {
             console.error("[AccountService] checkNeteaseQR failed:", e)
@@ -135,7 +136,7 @@ class AccountService {
 
     public async getKugouQRData(): Promise<any> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/kugou/login/qr/create`)
+            const response = await apiFetch(`${urlService.baseUrl}/kugou/login/qr/create`)
             const result = await response.json()
             if (result.code === 200) {
                 return result.data
@@ -149,7 +150,7 @@ class AccountService {
 
     public async checkKugouQR(qrcode: string, userId: number): Promise<any> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/kugou/login/qr/check?qrcode=${qrcode}&userId=${userId}`)
+            const response = await apiFetch(`${urlService.baseUrl}/kugou/login/qr/check?qrcode=${qrcode}&userId=${userId}`)
             return await response.json()
         } catch (e) {
             console.error("[AccountService] checkKugouQR failed:", e)
@@ -159,7 +160,7 @@ class AccountService {
 
     public async getQqQRData(): Promise<any> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/qq/login/qr/create`)
+            const response = await apiFetch(`${urlService.baseUrl}/qq/login/qr/create`)
             const result = await response.json()
             if (result.code === 200) {
                 return result.data
@@ -173,7 +174,7 @@ class AccountService {
 
     public async checkQqQR(ptqrtoken: string, qrsig: string, userId: number): Promise<any> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/qq/login/qr/check?ptqrtoken=${ptqrtoken}&qrsig=${qrsig}&userId=${userId}`)
+            const response = await apiFetch(`${urlService.baseUrl}/qq/login/qr/check?ptqrtoken=${ptqrtoken}&qrsig=${qrsig}&userId=${userId}`)
             return await response.json()
         } catch (e) {
             console.error("[AccountService] checkQqQR failed:", e)
@@ -192,7 +193,7 @@ class AccountService {
 
     public async sendNeteaseCaptcha(phone: string, ctcode: string = "86"): Promise<{ code: number; message?: string }> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/captcha/sent`, {
+            const response = await apiFetch(`${urlService.baseUrl}/captcha/sent`, {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
                 body: new URLSearchParams({ phone, ctcode }).toString(),
@@ -206,7 +207,7 @@ class AccountService {
 
     public async verifyNeteaseCaptcha(phone: string, captcha: string, ctcode: string = "86"): Promise<{ code: number; message?: string }> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/captcha/verify`, {
+            const response = await apiFetch(`${urlService.baseUrl}/captcha/verify`, {
                 method: "POST",
                 headers: { "Content-Type": "application/x-www-form-urlencoded" },
                 body: new URLSearchParams({ phone, captcha, ctcode }).toString(),
@@ -225,7 +226,7 @@ class AccountService {
         ctcode: string = "86",
     ): Promise<{ code: number; message?: string }> {
         try {
-            const response = await fetch(`${urlService.baseUrl}/login/cellphone`, {
+            const response = await apiFetch(`${urlService.baseUrl}/login/cellphone`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded",

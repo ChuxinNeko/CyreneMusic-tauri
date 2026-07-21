@@ -19,7 +19,7 @@ import { ProfileHeader } from "@/components/profile/ProfileHeader"
 import { PlaylistSection } from "@/components/profile/PlaylistSection"
 
 export default function ProfilePage() {
-    const { user, isLoggedIn, token } = useAuthStore()
+    const { user, isLoggedIn, token, openAuthDialog } = useAuthStore()
     const searchParams = useSearchParams()
     const router = useRouter()
     const [playlists, setPlaylists] = useState<Playlist[]>([])
@@ -72,7 +72,7 @@ export default function ProfilePage() {
                         </p>
                     </div>
                     <div className="flex flex-col gap-3 w-full max-w-[200px]">
-                        <Button size="lg" className="rounded-full font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all" onClick={() => (window as any).showAuthDialog?.()}>
+                        <Button size="lg" className="rounded-full font-bold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all" onClick={() => openAuthDialog()}>
                             立即开启之旅
                         </Button>
                         <p className="text-[10px] text-center text-muted-foreground/60">

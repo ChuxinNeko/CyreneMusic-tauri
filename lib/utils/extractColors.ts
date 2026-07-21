@@ -9,6 +9,7 @@
 // 缓存：避免同一封面重复提取
 const colorCache = new Map<string, string[]>()
 const brightnessCache = new Map<string, number>()
+const dominantHueCache = new Map<string, number>()
 
 export async function extractColorsFromImage(
     imageUrl: string,
@@ -201,6 +202,83 @@ function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
     else h = ((r - g) / d + 4) / 6
 
     return [h * 360, s, l]
+}
+
+/**
+ * 提取图片的「主导色相」(0~360)。
+ *
+ * 与 extractColorsFromImage 的区别：
+ * - extractColorsFromImage 面向渐变背景，挑一组"最鲜艳且多样"的候选色，
+ *   其 colors[0] 是全图**饱和度最高的单个像素**——哪怕它只占极小面积。
+ * - 本函数面向"单一主色相"消费者（如星系歌词），按**面积×饱和度×明度权重**
+ *   对色相投票，选出真正主导画面的色相，效果上贴合 AMLL 背景（整图颜色分布）。
+ *
+ * 算法：色相直方图（36 桶，每桶 10°）加权投票 → 峰值桶 → 桶内圆形加权平均取精确色相。
+ */
+export async function extractDominantHueFromImage(
+    imageUrl: string,
+    fallbackHue: number = 258,
+): Promise<number> {
+    if (dominantHueCache.has(imageUrl)) {
+        return dominantHueCache.get(imageUrl)!
+    }
+    try {
+        const img = await loadImage(imageUrl)
+        const size = 64
+        const canvas = document.createElement('canvas')
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d', { willReadFrequently: true })
+        if (!ctx) return fallbackHue
+
+        ctx.drawImage(img, 0, 0, size, size)
+        const pixels = ctx.getImageData(0, 0, size, size).data
+
+        const BUCKETS = 36
+        const weights = new Float64Array(BUCKETS)
+        // 桶内累加单位向量，用于圆形加权平均（避免跨 0°/360° 边界误差）
+        const sinAcc = new Float64Array(BUCKETS)
+        const cosAcc = new Float64Array(BUCKETS)
+
+        for (let i = 0; i < pixels.length; i += 4) {
+            const r = pixels[i] / 255
+            const g = pixels[i + 1] / 255
+            const b = pixels[i + 2] / 255
+            const [h, s, l] = rgbToHsl(r, g, b)
+            // 灰/近黑/近白像素对色相无意义，跳过
+            if (s < 0.15 || l < 0.12 || l > 0.92) continue
+            // 权重：饱和度主导，明度取中间段更可信（钟形），越鲜明越有话语权
+            const lightWeight = 1 - Math.abs(l - 0.5) * 1.2
+            const w = s * s * Math.max(0.15, lightWeight)
+            const bucket = Math.min(Math.floor(h / 360 * BUCKETS), BUCKETS - 1)
+            weights[bucket] += w
+            const rad = (h * Math.PI) / 180
+            sinAcc[bucket] += Math.sin(rad) * w
+            cosAcc[bucket] += Math.cos(rad) * w
+        }
+
+        // 峰值色相桶：与相邻两桶合并计权，避免主色恰好落在桶边界被劈开
+        let bestBucket = -1
+        let bestScore = 0
+        for (let i = 0; i < BUCKETS; i++) {
+            const score = weights[i]
+                + 0.5 * weights[(i + 1) % BUCKETS]
+                + 0.5 * weights[(i + BUCKETS - 1) % BUCKETS]
+            if (score > bestScore) {
+                bestScore = score
+                bestBucket = i
+            }
+        }
+        if (bestBucket < 0 || bestScore <= 0) return fallbackHue
+
+        const sin = sinAcc[bestBucket]
+        const cos = cosAcc[bestBucket]
+        const hue = ((Math.atan2(sin, cos) * 180) / Math.PI + 360) % 360
+        dominantHueCache.set(imageUrl, hue)
+        return hue
+    } catch {
+        return fallbackHue
+    }
 }
 
 /**

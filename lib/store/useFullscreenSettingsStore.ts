@@ -11,7 +11,11 @@ import { DEFAULT_LYRIC_FONT } from '../constants/fonts'
  *
  * 持久化 key: "fullscreen-settings-storage"
  */
+/** SuperCyrene 歌词主题：默认 / 像素（移植自 folia 镜台）/ 翻牌矩阵（three.js）/ 螺旋星系（three.js） */
+export type SuperCyreneLyricsTheme = 'default' | 'pixel' | 'flip' | 'galaxy' | 'chat'
+
 export interface FullscreenSettingsState {
+    lyricsTheme: SuperCyreneLyricsTheme
     lyricFontSize: number
     lyricFontFamily: string
     lyricBlurStrength: number
@@ -33,6 +37,7 @@ export interface FullscreenSettingsState {
     customBgScale: number
     customBgOverlay: number
 
+    setLyricsTheme: (theme: SuperCyreneLyricsTheme) => void
     setLyricFontSize: (size: number) => void
     setLyricFontFamily: (font: string) => void
     setLyricBlurStrength: (strength: number) => void
@@ -58,6 +63,7 @@ export interface FullscreenSettingsState {
 export const useFullscreenSettingsStore = create<FullscreenSettingsState>()(
     persist(
         (set) => ({
+            lyricsTheme: 'default',
             lyricFontSize: 34,
             lyricFontFamily: DEFAULT_LYRIC_FONT,
             lyricBlurStrength: 6,
@@ -79,6 +85,7 @@ export const useFullscreenSettingsStore = create<FullscreenSettingsState>()(
             customBgScale: 110,
             customBgOverlay: 30,
 
+            setLyricsTheme: (lyricsTheme) => set({ lyricsTheme }),
             setLyricFontSize: (lyricFontSize) => set({ lyricFontSize }),
             setLyricFontFamily: (lyricFontFamily) => set({ lyricFontFamily }),
             setLyricBlurStrength: (lyricBlurStrength) => set({ lyricBlurStrength }),

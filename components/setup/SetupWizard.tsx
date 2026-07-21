@@ -7,6 +7,7 @@ import { useAuthStore } from "@/lib/store/useAuthStore"
 import { UserAgreementContent } from "@/components/common/UserAgreementContent"
 import { AuthForm } from "@/components/auth/AuthForm"
 import { AudioSourceManager } from "@/components/settings/AudioSourceManager"
+import { useWindowMaterialStore } from "@/lib/store/useWindowMaterialStore"
 import { Music, ChevronRight, ChevronLeft, Check, FileText, LogIn, Radio } from "lucide-react"
 import Image from "next/image"
 
@@ -21,7 +22,12 @@ export function SetupWizard() {
         completeSetup,
     } = useAuthStore()
 
-    // 确定初始步骤：如果已接受协议，从第2步开始；否则从第1步
+    const { material } = useWindowMaterialStore()
+    const hasWindowMaterial = material === "mica" || material === "acrylic"
+    const setupBackgroundClass = hasWindowMaterial
+        ? "bg-background md:bg-background/55 md:backdrop-blur-2xl"
+        : "bg-background"
+
     const getInitialStep = (): SetupStep => {
         if (hasAcceptedAgreement) return 2
         return 1
@@ -76,7 +82,7 @@ export function SetupWizard() {
     return (
         <>
             {/* 桌面端：保留标题栏，覆盖标题栏以下区域 */}
-            <div className="hidden md:flex fixed inset-0 top-[calc(env(safe-area-inset-top)+3.5rem+1px)] z-[90] bg-background flex-col">
+            <div className={`hidden md:flex fixed inset-0 top-[calc(env(safe-area-inset-top)+3.5rem+1px)] z-[90] ${setupBackgroundClass} flex-col`}>
                 <SetupContent
                     currentStep={currentStep}
                     direction={direction}
@@ -87,6 +93,7 @@ export function SetupWizard() {
                     onComplete={handleComplete}
                     onGoToStep={goToStep}
                     isLoggedIn={isLoggedIn}
+                    isWindowMaterial={hasWindowMaterial}
                 />
             </div>
 
@@ -102,6 +109,7 @@ export function SetupWizard() {
                     onComplete={handleComplete}
                     onGoToStep={goToStep}
                     isLoggedIn={isLoggedIn}
+                    isWindowMaterial={false}
                 />
             </div>
         </>
@@ -118,6 +126,7 @@ interface SetupContentProps {
     onComplete: () => void
     onGoToStep: (step: SetupStep) => void
     isLoggedIn: boolean
+    isWindowMaterial: boolean
 }
 
 function SetupContent({
@@ -130,11 +139,12 @@ function SetupContent({
     onComplete,
     onGoToStep,
     isLoggedIn,
+    isWindowMaterial,
 }: SetupContentProps) {
     return (
         <div className="flex-1 flex flex-col overflow-hidden">
             {/* 顶部步骤指示器 */}
-            <div className="flex items-center justify-center py-6 px-4 border-b bg-background/50 backdrop-blur-sm">
+            <div className={`flex items-center justify-center py-6 px-4 border-b ${isWindowMaterial ? 'bg-background/20 border-border/50 backdrop-blur-xl' : 'bg-background/50 backdrop-blur-sm'}`}>
                 <div className="flex items-center gap-2 max-w-md w-full">
                     {stepInfo.map((info, index) => {
                         const Icon = info.icon
@@ -144,14 +154,14 @@ function SetupContent({
                         return (
                             <React.Fragment key={info.step}>
                                 {index > 0 && (
-                                    <div className={`flex-1 h-0.5 rounded-full transition-colors duration-500 ${isCompleted ? 'bg-primary' : 'bg-muted'}`} />
+                                    <div className={`flex-1 h-0.5 rounded-full transition-colors duration-500 ${isCompleted ? 'bg-primary' : isWindowMaterial ? 'bg-border/70' : 'bg-muted'}`} />
                                 )}
                                 <div className="flex flex-col items-center gap-1.5">
                                     <div className={`
                                         relative flex items-center justify-center w-10 h-10 rounded-full transition-all duration-500
                                         ${isActive ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30 scale-110' :
                                             isCompleted ? 'bg-primary/20 text-primary' :
-                                                'bg-muted text-muted-foreground'}
+                                                isWindowMaterial ? 'bg-background/20 border border-border/50 text-muted-foreground backdrop-blur-md' : 'bg-muted text-muted-foreground'}
                                     `}>
                                         {isCompleted ? (
                                             <Check className="h-5 w-5" />

@@ -8,6 +8,7 @@ import { AudioSourceType } from "../models/audioSourceConfig"
 import { usePlayerStore, RepeatMode } from "../store/usePlayerStore"
 import { useAudioSourceStore } from "../store/useAudioSourceStore"
 import { useLayoutStore } from "../store/useLayoutStore"
+import { useFullscreenSettingsStore } from "../store/useFullscreenSettingsStore"
 import { Track } from "../models/track"
 import { historyService } from "./historyService"
 import { listeningStatsService } from "./listeningStatsService"
@@ -153,6 +154,7 @@ class PlayerService {
                 case 'request-sync':
                     if (typeof window !== 'undefined') {
                         const state = usePlayerStore.getState()
+                        const lyricSettings = useFullscreenSettingsStore.getState()
                         emit('player:state-change', {
                             currentTrack: state.currentTrack,
                             isPlaying: state.isPlaying,
@@ -165,9 +167,9 @@ class PlayerService {
                             duration: state.duration
                         })
                         emit('player:settings-sync', {
-                            desktopLyricFontSize: state.desktopLyricFontSize,
-                            desktopLyricColor: state.desktopLyricColor,
-                            desktopLyricStrokeColor: state.desktopLyricStrokeColor
+                            desktopLyricFontSize: lyricSettings.desktopLyricFontSize,
+                            desktopLyricColor: lyricSettings.desktopLyricColor,
+                            desktopLyricStrokeColor: lyricSettings.desktopLyricStrokeColor
                         })
                     }
                     break

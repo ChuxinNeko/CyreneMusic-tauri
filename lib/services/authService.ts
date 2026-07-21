@@ -1,4 +1,5 @@
 import { urlService } from "@/lib/services/urlService"
+import { apiFetch, isAuthFailurePayload, isAuthFailureStatus } from "@/lib/services/apiClient"
 
 export interface User {
     id: number
@@ -146,13 +147,29 @@ class AuthService {
 
     // --- User Info ---
 
+    /**
+     * 校验本地 token 是否仍有效。
+     * 使用需鉴权的轻量接口；网络错误时返回 true，避免误踢。
+     * 鉴权失败时 apiFetch 会触发 handleSessionExpired。
+     */
     public async validateToken(token: string): Promise<boolean> {
-        // The Dart code has validateToken but implementation details were not fully visible in the snippet.
-        // Usually it calls a profile endpoint.
-        // Let's assume there is an endpoint to check token or get profile.
-        // If not, we can just trust the stored token until a 401 happens.
-        // Dart code mentions `validateToken` in `loginWithToken`.
-        return true
+        if (!token) return false
+        try {
+            const response = await apiFetch(`${urlService.baseUrl}/accounts/bindings`, {
+                headers: this.getHeaders(token),
+            })
+            if (isAuthFailureStatus(response.status)) return false
+            if (!response.ok) return true // 5xx 等不强制登出
+
+            const result = await response.json().catch(() => null)
+            if (result && isAuthFailurePayload(result)) return false
+            // 正常绑定接口：code === 200 或有 data
+            if (result && (result.code === 200 || result.data != null)) return true
+            // 无明确成功字段时，HTTP 成功且未命中鉴权失败规则 → 视为有效
+            return true
+        } catch {
+            return true
+        }
     }
 }
 

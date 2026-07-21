@@ -64,36 +64,56 @@ export default function DesktopLyricPage() {
             parent = parent.parentElement
         }
 
-        // Listen for current track changes
-        const unlistenState = listen('player:state-change', (event: any) => {
-            const payload = event.payload
-            setCurrentTrack(payload.currentTrack)
-            setIsPlaying(payload.isPlaying)
-        })
+        let disposed = false
+        let unlistenState: (() => void) | null = null
+        let unlistenTime: (() => void) | null = null
+        let unlistenSettings: (() => void) | null = null
 
-        // Listen for fast time ticks
-        const unlistenTime = listen<{ time: number, timestamp: number, isPlaying: boolean }>('player:time-sync', (event) => {
-            lastSyncRef.current = {
-                time: event.payload.time,
-                timestamp: event.payload.timestamp
+        const setupSync = async () => {
+            const [stopState, stopTime, stopSettings] = await Promise.all([
+                listen('player:state-change', (event: any) => {
+                    const payload = event.payload
+                    setCurrentTrack(payload.currentTrack)
+                    setIsPlaying(payload.isPlaying)
+                }),
+                listen<{ time: number, timestamp: number, isPlaying: boolean }>('player:time-sync', (event) => {
+                    lastSyncRef.current = {
+                        time: event.payload.time,
+                        timestamp: event.payload.timestamp
+                    }
+                    setIsPlaying(event.payload.isPlaying)
+                }),
+                listen<{ desktopLyricFontSize?: number, desktopLyricColor?: string, desktopLyricStrokeColor?: string }>('player:settings-sync', (event) => {
+                    const { desktopLyricFontSize, desktopLyricColor, desktopLyricStrokeColor } = event.payload
+                    if (typeof desktopLyricFontSize === "number" && Number.isFinite(desktopLyricFontSize) && desktopLyricFontSize > 0) {
+                        setLyricFontSize(desktopLyricFontSize)
+                    }
+                    if (typeof desktopLyricColor === "string" && desktopLyricColor.trim()) {
+                        setLyricColor(desktopLyricColor)
+                    }
+                    if (typeof desktopLyricStrokeColor === "string" && desktopLyricStrokeColor.trim()) {
+                        setLyricStrokeColor(desktopLyricStrokeColor)
+                    }
+                }),
+            ])
+
+            if (disposed) {
+                stopState()
+                stopTime()
+                stopSettings()
+                return
             }
-            setIsPlaying(event.payload.isPlaying)
-        })
 
-        // Listen for custom styling values
-        const unlistenSettings = listen<{ desktopLyricFontSize: number, desktopLyricColor: string, desktopLyricStrokeColor: string }>('player:settings-sync', (event) => {
-            setLyricFontSize(event.payload.desktopLyricFontSize)
-            setLyricColor(event.payload.desktopLyricColor)
-            setLyricStrokeColor(event.payload.desktopLyricStrokeColor)
-        })
+            unlistenState = stopState
+            unlistenTime = stopTime
+            unlistenSettings = stopSettings
+            emit('player:command', 'request-sync')
+        }
 
-        // On first load, manually fetch store state (in case we booted up after)
-        // Wait, store might be empty if this window is independent, but tauri store is synced manually or via event?
-        // Actually usePlayerStore uses zustand which is restricted to the current javascript context.
-        // We will only get the state when the main window emits. But let's trigger an update request.
-        emit('player:command', 'request-sync')
+        void setupSync()
 
         return () => {
+            disposed = true
             html.style.background = previousHtmlBackground
             html.style.backgroundColor = previousHtmlBackgroundColor
             body.style.background = previousBodyBackground
@@ -104,9 +124,9 @@ export default function DesktopLyricPage() {
                 element.style.background = background
                 element.style.backgroundColor = backgroundColor
             })
-            unlistenState.then(f => f())
-            unlistenTime.then(f => f())
-            unlistenSettings.then(f => f())
+            unlistenState?.()
+            unlistenTime?.()
+            unlistenSettings?.()
         }
     }, [])
 
@@ -178,6 +198,31 @@ export default function DesktopLyricPage() {
     const mainLineHeight = Math.max(lyricFontSize * 1.35, lyricFontSize + 18)
     const translationFontSize = Math.max(14, lyricFontSize * 0.55)
     const translationLineHeight = Math.max(translationFontSize * 1.35, translationFontSize + 10)
+    const lyricWindowHeight = currentLine?.translation
+        ? Math.ceil(mainLineHeight + lyricFontSize * 0.46 + translationLineHeight + translationFontSize * 0.3 + 64)
+        : Math.ceil(mainLineHeight + lyricFontSize * 0.46 + 56)
+
+    useEffect(() => {
+        const resizeToFitLyrics = async () => {
+            try {
+                const lyricWindow = getCurrentWindow()
+                const [size, scaleFactor] = await Promise.all([
+                    lyricWindow.innerSize(),
+                    lyricWindow.scaleFactor(),
+                ])
+
+                await lyricWindow.setSize({
+                    type: "Logical",
+                    width: size.width / scaleFactor,
+                    height: lyricWindowHeight,
+                })
+            } catch (error) {
+                console.error("Failed to resize desktop lyric window:", error)
+            }
+        }
+
+        void resizeToFitLyrics()
+    }, [lyricWindowHeight])
 
     return (
         <div

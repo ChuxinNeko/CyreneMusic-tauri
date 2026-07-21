@@ -1,6 +1,7 @@
 import { useAuthStore } from "../store/useAuthStore";
 import { urlService } from "./urlService";
 import { Track } from "../models/track";
+import { apiFetch, isAuthFailureStatus } from "./apiClient";
 
 class ListeningStatsService {
     private static instance: ListeningStatsService;
@@ -55,7 +56,7 @@ class ListeningStatsService {
         console.log(`📤 [ListeningStatsService] 准备同步听歌时长: ${secondsToSync}秒`);
 
         try {
-            const response = await fetch(`${urlService.baseUrl}/stats/listening-time`, {
+            const response = await apiFetch(`${urlService.baseUrl}/stats/listening-time`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -69,7 +70,10 @@ class ListeningStatsService {
                 console.log(`✅ [ListeningStatsService] 听歌时长已同步: +${secondsToSync}秒，当前总计: ${result.data?.totalListeningTime || '未知'}秒`);
             } else {
                 console.error(`❌ [ListeningStatsService] 同步失败: ${response.status} ${response.statusText}`);
-                this.pendingSeconds += secondsToSync; // 失败则把秒数加回去
+                // 鉴权失败时已由 apiClient 清登录态，无需把秒数加回以免反复触发
+                if (!isAuthFailureStatus(response.status)) {
+                    this.pendingSeconds += secondsToSync;
+                }
             }
         } catch (error) {
             console.error("❌ [ListeningStatsService] 同步异常:", error);
@@ -100,7 +104,7 @@ class ListeningStatsService {
         console.log(`📤 [ListeningStatsService] 正在记录播放次数:`, payload);
 
         try {
-            const response = await fetch(`${urlService.baseUrl}/stats/play-count`, {
+            const response = await apiFetch(`${urlService.baseUrl}/stats/play-count`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -147,7 +151,7 @@ class ListeningStatsService {
         }
 
         try {
-            const response = await fetch(`${urlService.baseUrl}/history/record`, {
+            const response = await apiFetch(`${urlService.baseUrl}/history/record`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -174,7 +178,7 @@ class ListeningStatsService {
         }
 
         try {
-            const response = await fetch(`${urlService.baseUrl}/history`, {
+            const response = await apiFetch(`${urlService.baseUrl}/history`, {
                 method: "DELETE",
                 headers: {
                     "Authorization": `Bearer ${token}`
@@ -206,7 +210,7 @@ class ListeningStatsService {
         }
 
         try {
-            const response = await fetch(`${urlService.baseUrl}/stats`, {
+            const response = await apiFetch(`${urlService.baseUrl}/stats`, {
                 headers: {
                     "Authorization": `Bearer ${token}`
                 }
@@ -235,7 +239,7 @@ class ListeningStatsService {
         }
 
         try {
-            const response = await fetch(`${urlService.baseUrl}/history/weekly`, {
+            const response = await apiFetch(`${urlService.baseUrl}/history/weekly`, {
                 headers: {
                     "Authorization": `Bearer ${token}`
                 }
@@ -270,7 +274,7 @@ class ListeningStatsService {
             if (options.startDate) params.set('startDate', options.startDate);
             if (options.endDate) params.set('endDate', options.endDate);
 
-            const response = await fetch(`${urlService.baseUrl}/history?${params.toString()}`, {
+            const response = await apiFetch(`${urlService.baseUrl}/history?${params.toString()}`, {
                 headers: { "Authorization": `Bearer ${token}` }
             });
 
@@ -298,7 +302,7 @@ class ListeningStatsService {
 
         try {
             const url = `${urlService.baseUrl}/stats/song-memory?trackId=${encodeURIComponent(trackId)}&source=${encodeURIComponent(source)}`;
-            const response = await fetch(url, {
+            const response = await apiFetch(url, {
                 headers: {
                     "Authorization": `Bearer ${token}`
                 }
@@ -330,7 +334,7 @@ class ListeningStatsService {
         }
 
         try {
-            const response = await fetch(`${urlService.baseUrl}/stats/languages`, {
+            const response = await apiFetch(`${urlService.baseUrl}/stats/languages`, {
                 headers: {
                     "Authorization": `Bearer ${token}`
                 }

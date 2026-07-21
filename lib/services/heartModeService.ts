@@ -2,6 +2,7 @@ import { Track } from '../models/track'
 import { MusicSource } from './audioSourceService'
 import { urlService } from './urlService'
 import { useAuthStore } from '../store/useAuthStore'
+import { apiFetch } from './apiClient'
 
 class HeartModeService {
     private queue: Track[] = []
@@ -20,7 +21,7 @@ class HeartModeService {
         const token = useAuthStore.getState().token
         if (!token) throw new Error('请先登录后再使用心动模式')
 
-        const response = await fetch(`${urlService.baseUrl}/netease/user/playlists?limit=1`, {
+        const response = await apiFetch(`${urlService.baseUrl}/netease/user/playlists?limit=1`, {
             headers: { 'Authorization': `Bearer ${token}` },
         })
         if (!response.ok) throw new Error('获取用户歌单失败')
@@ -50,7 +51,7 @@ class HeartModeService {
             params.set('sid', String(startMusicId))
         }
 
-        const response = await fetch(`${urlService.baseUrl}/playmode/intelligence/list?${params}`, {
+        const response = await apiFetch(`${urlService.baseUrl}/playmode/intelligence/list?${params}`, {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,

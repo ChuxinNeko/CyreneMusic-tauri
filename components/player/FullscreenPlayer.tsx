@@ -60,6 +60,7 @@ import { AudioQuality } from "@/lib/services/audioSourceService"
 import { lxMusicRuntimeService } from "@/lib/services/lxMusicRuntimeService"
 import { AudioSourceType } from "@/lib/models/audioSourceConfig"
 import { CapsulePlayerBar } from "./CapsulePlayerBar"
+import { FullscreenPlaylistView } from "./FullscreenPlaylistView"
 import { extractColorsFromImage, extractBrightnessFromImage } from "@/lib/utils/extractColors"
 import {
     DropdownMenu,
@@ -150,6 +151,10 @@ export function FullscreenPlayer() {
     const [isAnimatingOut, setIsAnimatingOut] = React.useState(false)
     const [isMaximized, setIsMaximized] = React.useState(false)
     const [rightPanelMode, setRightPanelMode] = React.useState<'lyrics' | 'info' | 'eq'>('lyrics')
+    const [fullscreenView, setFullscreenView] = React.useState<'player' | 'playlist'>('player')
+    React.useEffect(() => {
+        if (!isFullscreen) setFullscreenView('player')
+    }, [isFullscreen])
     const [dynamicCoverUrl, setDynamicCoverUrl] = React.useState<string | null>(null)
     const [isVideoLoaded, setIsVideoLoaded] = React.useState(false)
     const [isInPlaylist, setIsInPlaylist] = React.useState(false)
@@ -169,6 +174,7 @@ export function FullscreenPlayer() {
 
     // 关闭全屏播放器：overlay 模式下直接隐藏
     const handleClose = React.useCallback(() => {
+        setFullscreenView('player')
         setIsFullscreen(false)
     }, [setIsFullscreen])
     const [showArtistPicker, setShowArtistPicker] = React.useState(false)
@@ -673,8 +679,11 @@ export function FullscreenPlayer() {
                     style={{ opacity: playerBgType === 'image' && customBgPath ? customBgOverlay / 100 : playerBgType === 'wallpaper' ? 0.1 : 0.2 }}
                 />
             </div>
-
-
+            {fullscreenView === 'playlist' && (
+                <div className="absolute inset-0 z-[130]">
+                    <FullscreenPlaylistView onBack={() => setFullscreenView('player')} />
+                </div>
+            )}
 
             {/* Top Bar / Close Button */}
             <div data-tauri-drag-region className={`relative z-[110] flex justify-between items-center px-6 pb-4 lg:px-8 lg:pb-4 pt-14 lg:pt-4 transition-all duration-300 overflow-hidden ${isImmersiveMode ? 'bg-gradient-to-b from-black/30 to-transparent' : ''} ${isMobile ? (showMobileLyrics ? 'max-h-0 !pt-0 !pb-0 opacity-0 pointer-events-none' : 'max-h-40') : ''}`} style={isMobile ? { paddingTop: 'calc(env(safe-area-inset-top, 40px) + 24px)' } : {}}>
@@ -735,15 +744,15 @@ export function FullscreenPlayer() {
             </div>
 
             {/* Main Content Layout (45/55 Grid for Desktop, Single Col for Mobile) */}
-            <div className={`relative z-10 grid flex-1 min-h-0 w-full max-w-[1700px] mx-auto overflow-hidden transition-all duration-700 ease-in-out ${isLyricsFolded ? 'grid-cols-1 max-w-[800px]' : ((lyricDisplayStyle === LyricDisplayStyle.SingleLine || hideAlbumCover) && !isMobile ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[45%_55%]')}`}>
+            <div className={`relative z-10 grid flex-1 min-h-0 w-full max-w-[1700px] mx-auto ${isMobile ? 'overflow-hidden' : 'overflow-visible'} transition-all duration-700 ease-in-out ${isLyricsFolded ? 'grid-cols-1 max-w-[800px]' : ((lyricDisplayStyle === LyricDisplayStyle.SingleLine || hideAlbumCover) && !isMobile ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[45%_55%]')}`}>
 
                 {/* Left Column (Desktop & Mobile) */}
-                <div className={`flex flex-col items-center h-full min-h-0 overflow-hidden w-full transition-all duration-700 ease-in-out ${isLyricsFolded ? 'px-4' : 'px-[2vw] lg:px-[4vw]'} ${!isMobile && (lyricDisplayStyle === LyricDisplayStyle.SingleLine || hideAlbumCover) ? 'hidden' : ''}`}>
+                <div className={`flex flex-col items-center h-full min-h-0 w-full transition-all duration-700 ease-in-out ${isMobile ? 'overflow-hidden' : 'overflow-visible'} ${isLyricsFolded ? 'px-4' : 'px-[2vw] lg:px-[4vw]'} ${!isMobile && (lyricDisplayStyle === LyricDisplayStyle.SingleLine || hideAlbumCover) ? 'hidden' : ''}`}>
                     {/* Top flexible spacer to balance vertical position */}
                     {!isMobile && <div className="flex-[0.8] min-h-[2vh] shrink-0" />}
 
                     {/* Content Section: Cover/Info (+ Slides into Lyrics on Mobile) */}
-                    <div className={`relative w-full min-h-0 overflow-hidden ${isMobile ? 'flex-[2.5] [container-type:size]' : 'flex-none'}`}>
+                    <div className={`relative w-full min-h-0 ${isMobile ? 'overflow-hidden flex-[2.5] [container-type:size]' : 'overflow-visible flex-none'}`}>
                         <div className={`relative min-h-0 ${isMobile ? 'flex h-full w-[200%] transition-transform duration-700 ease-in-out' : 'w-full'} ${isMobile && showMobileLyrics ? '-translate-x-1/2' : 'translate-x-0'}`}>
                         {/* Part 1: Album Art & Info */}
                         <div className={`flex flex-col items-center shrink-0 ${isMobile ? 'w-1/2 overflow-hidden' : 'w-full'} ${!isMobile ? 'justify-start' : (isImmersiveMode ? 'justify-end pb-4' : 'justify-center')}`}>
@@ -764,10 +773,23 @@ export function FullscreenPlayer() {
                                         // 从顶部旋转：封面倾斜时上边缘固定不动，不会翘出容器被裁剪
                                         transformOrigin: 'center top',
                                     }}
-                                    className={isImmersiveMode ? "relative w-full h-full overflow-hidden" : "relative w-full h-full rounded-[20px] overflow-hidden transition-transform duration-500 bg-white/5 border border-white/10"}
+                                    className="relative w-full h-full rounded-full transition-transform duration-500 bg-[#101010]/95 border border-white/15 shadow-[0_24px_55px_rgba(0,0,0,0.5),inset_0_0_0_3px_rgba(255,255,255,0.04),inset_0_0_30px_rgba(0,0,0,0.8)]"
                                 >
-                                    {currentTrack?.picUrl ? (
-                                        <img src={currentTrack.picUrl} alt={currentTrack.name} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${dynamicCoverUrl && isVideoLoaded ? 'opacity-0' : 'opacity-100'}`} />
+                                    <div
+                                        className="absolute inset-0 rounded-full animate-[spin_18s_linear_infinite]"
+                                        style={{ animationPlayState: isPlaying ? "running" : "paused" }}
+                                    >
+                                    <div
+                                        className="absolute inset-[3%] rounded-full opacity-75"
+                                        style={{
+                                            background: "repeating-radial-gradient(circle at center, transparent 0 5%, rgba(255, 255, 255, 0.08) 5.3% 5.5%, transparent 5.8% 8%)",
+                                        }}
+                                    />
+                                    <div className="absolute inset-[7%] rounded-full border border-white/10 shadow-[inset_0_0_16px_rgba(0,0,0,0.7)]" />
+                                    <div className="absolute inset-[17%] overflow-hidden rounded-full border border-white/20 bg-black shadow-[0_0_0_3px_rgba(0,0,0,0.25)]">
+                                        <div className="relative h-full w-full">
+                                            {currentTrack?.picUrl ? (
+                                                <img src={currentTrack.picUrl} alt={currentTrack.name} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${dynamicCoverUrl && isVideoLoaded ? 'opacity-0' : 'opacity-100'}`} />
                                     ) : (
                                         <div className="absolute inset-0 w-full h-full flex items-center justify-center text-white/10 text-4xl font-bold">CYRENE</div>
                                     )}
@@ -811,6 +833,22 @@ export function FullscreenPlayer() {
                                             />
                                         </>
                                     )}
+                                        </div>
+                                    </div>
+                                    <div className="absolute left-1/2 top-1/2 z-10 h-[9%] w-[9%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/30 bg-gradient-to-br from-white/65 via-white/20 to-black/50 shadow-[0_1px_5px_rgba(0,0,0,0.85)]" />
+                                    </div>
+                                    <div
+                                        className={`absolute right-[-2%] top-[-3%] z-20 h-[53%] w-[25%] origin-[85%_12%] transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${isPlaying ? 'rotate-[24deg]' : 'rotate-[4deg]'}`}
+                                        aria-hidden="true"
+                                    >
+                                        <div className="absolute right-[-4%] top-[3%] h-[18%] aspect-square rounded-full bg-white shadow-[0_3px_12px_rgba(0,0,0,0.35)]" />
+                                        <div className="absolute right-[6.5%] top-[8%] h-[8%] aspect-square rounded-full bg-zinc-300" />
+                                        <div className="absolute right-[9.5%] top-[12%] h-[72%] w-[11%] rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.35)]">
+                                            <div className="absolute bottom-[-7%] left-1/2 h-[20%] w-[260%] -translate-x-1/2 rounded-sm bg-white shadow-[0_2px_6px_rgba(0,0,0,0.3)]">
+                                                <div className="absolute bottom-[-18%] left-[18%] h-[22%] w-[64%] rounded-sm bg-zinc-900" />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             {/* Desktop Non-Immersive Audio Visualizer Capsule */}
@@ -1126,20 +1164,23 @@ export function FullscreenPlayer() {
 
             {/* Desktop Bottom Capsule Bar */}
             {!isMobile && (
-                <CapsulePlayerBar 
-                    isImmersiveMode={isImmersiveMode}
-                    isLightCover={isLightCover}
-                    coverColors={coverColors}
-                    onClose={handleClose}
-                    isLyricsFolded={isLyricsFolded}
-                    onToggleLyrics={() => setIsLyricsFolded(!isLyricsFolded)}
-                    rightPanelMode={rightPanelMode}
-                    onChangeRightPanelMode={setRightPanelMode}
-                    hasTranslation={hasTranslation}
-                    showTranslation={showTranslation}
-                    onToggleTranslation={toggleTranslation}
-                    onArtistClick={handleArtistClick}
-                />
+                <div className="pb-5">
+                    <CapsulePlayerBar 
+                        isImmersiveMode={isImmersiveMode}
+                        isLightCover={isLightCover}
+                        coverColors={coverColors}
+                        onClose={handleClose}
+                        isLyricsFolded={isLyricsFolded}
+                        onToggleLyrics={() => setIsLyricsFolded(!isLyricsFolded)}
+                        rightPanelMode={rightPanelMode}
+                        onChangeRightPanelMode={setRightPanelMode}
+                        hasTranslation={hasTranslation}
+                        showTranslation={showTranslation}
+                        onToggleTranslation={toggleTranslation}
+                        onArtistClick={handleArtistClick}
+                        onOpenPlaylist={() => setFullscreenView('playlist')}
+                    />
+                </div>
             )}
 
             <Dialog open={showArtistPicker} onOpenChange={setShowArtistPicker}>
