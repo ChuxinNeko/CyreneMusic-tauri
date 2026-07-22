@@ -714,15 +714,23 @@ const PixelScene: React.FC<PixelSceneProps> = ({
       if (!mesh || !mat || !raster) return
       const worldWidth = raster.advancePx * (LINE_FONT_SIZE / raster.fontPx)
       const fit = resolveFrameFitScale(worldWidth, DIORAMA_HERO_DISTANCE, fov, aspect) * placement.scale * lyricsFontScale
-      mesh.scale.setScalar(fit)
+      // Only update mesh.scale when fit actually changes — avoids marking
+      // the mesh as needing a matrix update for static neighbor lines.
+      if (mesh.scale.x !== fit) mesh.scale.setScalar(fit)
       const life = resolveTextLife(mesh.position.distanceTo(camPos))
+      // Skip material color/opacity writes when the line is fully invisible
+      // — life === 0 means the text is dissolved, so no visual change.
+      if (life <= 0 && mat.opacity <= 0) return
       if (isOutgoing) {
-        mat.opacity = resolveOutgoingLineOpacity(index - (transitionOutgoingIndex ?? index)) * life
+        const targetOpacity = resolveOutgoingLineOpacity(index - (transitionOutgoingIndex ?? index)) * life
+        if (mat.opacity !== targetOpacity) mat.opacity = targetOpacity
         mat.color.copy(damped.primary)
       } else {
         const offset = index - globalIndex
-        mat.opacity = resolveNeighborLineOpacity(offset) * life
-        mat.color.copy(offset < 0 ? damped.primary : damped.secondary)
+        const targetOpacity = resolveNeighborLineOpacity(offset) * life
+        if (mat.opacity !== targetOpacity) mat.opacity = targetOpacity
+        const targetColor = offset < 0 ? damped.primary : damped.secondary
+        mat.color.copy(targetColor)
       }
     })
 
@@ -796,11 +804,17 @@ const PixelScene: React.FC<PixelSceneProps> = ({
         const glowLevel = lightVals[i] * life * breath * (0.6 + 0.4 * powerEnv) * glowStrength
         const glowMat = unitGlowMatRefs.current[i]
         const glowMesh = unitGlowMeshRefs.current[i]
-        if (glowMat) {
-          glowMat.opacity = Math.min(1, UNIT_GLOW_MAX_OPACITY * glowLevel)
-          glowMat.color.copy(baseMat.color)
+        // Skip glow material writes when glowLevel is effectively zero —
+        // avoids 2x Material.opacity + Material.color.copy per idle unit.
+        if (glowLevel > 0.012) {
+          if (glowMat) {
+            glowMat.opacity = Math.min(1, UNIT_GLOW_MAX_OPACITY * glowLevel)
+            glowMat.color.copy(baseMat.color)
+          }
+          if (glowMesh) glowMesh.visible = true
+        } else {
+          if (glowMesh && glowMesh.visible) glowMesh.visible = false
         }
-        if (glowMesh) glowMesh.visible = glowLevel > 0.012
 
         soulVals[i] = stepEnvelope(soulVals[i], isCurrent ? 1 : 0, 12, 2.2, delta)
         const soulMat = unitSoulMatRefs.current[i]

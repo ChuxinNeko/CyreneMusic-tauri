@@ -97,6 +97,9 @@ const VisualizerDefault: React.FC<VisualizerProps> = (props) => {
         focusScale: 1,
     });
     const staticBlockSnapshotCacheRef = useRef<Map<string, StaticBlockSnapshot>>(new Map());
+    // Reusable Map for activeColor pre-computation — avoids allocating a new
+    // Map per block per frame (GC pressure during lyric-heavy passages).
+    const activeColorMapRef = useRef<Map<number, string>>(new Map());
     const layoutBuildVersionRef = useRef(0);
     const hasResolvedArticleRef = useRef(false);
     const [viewport, setViewport] = useState<ViewportSize>({ width: 0, height: 0 });
@@ -418,7 +421,12 @@ const VisualizerDefault: React.FC<VisualizerProps> = (props) => {
                 setHasPrintedContent(true);
             }
 
-            const focusBlock = resolveFocusBlock(article, findTimelineLine(lines, time), time);
+            // Cache findTimelineLine result for this frame — it's used below
+            // for focusBlock resolution. The function does a linear scan over
+            // all lines, so calling it once per frame instead of redundantly
+            // saves O(n) per frame.
+            const focusLineIndex = findTimelineLine(lines, time);
+            const focusBlock = resolveFocusBlock(article, focusLineIndex, time);
             const shouldShowOverview = overviewCamera !== null && time >= overviewStartTime;
             let targetCameraX = article.width * 0.5;
             let targetCameraY = article.height * 0.5;
@@ -978,7 +986,9 @@ const VisualizerDefault: React.FC<VisualizerProps> = (props) => {
 
                 // Pre-compute activeColor per color range index to avoid repeated getActiveColor
                 // calls in the per-grapheme loop (same word range → same color).
-                const activeColorMap = new Map<number, string>();
+                // Reuse the same Map across blocks/frames to avoid GC pressure.
+                const activeColorMap = activeColorMapRef.current;
+                activeColorMap.clear();
                 for (const wr of block.wordRanges) {
                     const ci = block.colorRangeIndexByOffset[wr.start] ?? -1;
                     const cr = ci >= 0 ? block.wordRanges[ci]! : wr;
@@ -1154,34 +1164,39 @@ const VisualizerDefault: React.FC<VisualizerProps> = (props) => {
                                             const underlineHeight = Math.max(2, block.fontPx * 0.06);
                                             const underlineAlpha = blockPulse * 0.75;
 
-                                            // Gradient underline glow — fading at edges
-                                            const grad = context.createLinearGradient(
-                                                underlineX - underlineWidth * 0.3, 0,
-                                                underlineX + underlineWidth * 1.3, 0,
-                                            );
-                                            grad.addColorStop(0, colorWithAlpha(activeColor, 0));
-                                            grad.addColorStop(0.15, colorWithAlpha(activeColor, underlineAlpha * 0.6));
-                                            grad.addColorStop(0.5, colorWithAlpha(activeColor, underlineAlpha));
-                                            grad.addColorStop(0.85, colorWithAlpha(activeColor, underlineAlpha * 0.6));
-                                            grad.addColorStop(1, colorWithAlpha(activeColor, 0));
+                                            // Skip gradient + glow rendering when alpha is negligible
+                                            // — avoids createLinearGradient + 5x colorWithAlpha + 2x fillRect
+                                            // for graphemes that are effectively invisible.
+                                            if (underlineAlpha > 0.01) {
+                                                // Gradient underline glow — fading at edges
+                                                const grad = context.createLinearGradient(
+                                                    underlineX - underlineWidth * 0.3, 0,
+                                                    underlineX + underlineWidth * 1.3, 0,
+                                                );
+                                                grad.addColorStop(0, colorWithAlpha(activeColor, 0));
+                                                grad.addColorStop(0.15, colorWithAlpha(activeColor, underlineAlpha * 0.6));
+                                                grad.addColorStop(0.5, colorWithAlpha(activeColor, underlineAlpha));
+                                                grad.addColorStop(0.85, colorWithAlpha(activeColor, underlineAlpha * 0.6));
+                                                grad.addColorStop(1, colorWithAlpha(activeColor, 0));
 
-                                            // Soft glow layer (wider, more transparent)
-                                            context.fillStyle = colorWithAlpha(activeColor, underlineAlpha * 0.25);
-                                            context.fillRect(
-                                                underlineX - underlineWidth * 0.2,
-                                                underlineY - 3,
-                                                underlineWidth * 1.4,
-                                                underlineHeight + 6,
-                                            );
+                                                // Soft glow layer (wider, more transparent)
+                                                context.fillStyle = colorWithAlpha(activeColor, underlineAlpha * 0.25);
+                                                context.fillRect(
+                                                    underlineX - underlineWidth * 0.2,
+                                                    underlineY - 3,
+                                                    underlineWidth * 1.4,
+                                                    underlineHeight + 6,
+                                                );
 
-                                            // Main underline
-                                            context.fillStyle = grad;
-                                            context.fillRect(
-                                                underlineX - underlineWidth * 0.15,
-                                                underlineY,
-                                                underlineWidth * 1.3,
+                                                // Main underline
+                                                context.fillStyle = grad;
+                                                context.fillRect(
+                                                    underlineX - underlineWidth * 0.15,
+                                                    underlineY,
+                                                    underlineWidth * 1.3,
                                                 underlineHeight,
                                             );
+                                            } // end underlineAlpha > 0.01 guard
                                         }
                                     }
                                 }

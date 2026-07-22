@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useEffect, useMemo, useRef, useState } from "react"
-import { AnimatePresence, motion, useMotionValueEvent, type MotionValue } from "framer-motion"
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { AnimatePresence, motion, useMotionValueEvent, useSpring, useTransform, type MotionValue } from "framer-motion"
 import { layoutWithLines, prepareWithSegments, type PrepareOptions } from "@chenglou/pretext"
 import {
   DEFAULT_CHAT_TUNING,
@@ -29,6 +29,9 @@ import {
 } from "./chat-core/chat-messageSenders"
 import { builtinEmoImages } from "./chat-core/chat-emoImages"
 
+// SSR 环境下 useLayoutEffect 会告警；客户端用 layout 版以在绘制前生效。
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect
+
 /**
  * 对话可视化器 —— 聊天气泡式歌词。
  *
@@ -52,6 +55,8 @@ interface ChatVisualizerProps {
   chatCustomEmojiImages?: ChatEmojiImage[]
   chatCustomAvatarImages?: ChatAvatarImage[]
   isPreviewMode?: boolean
+  /** 是否正在播放；用于 CSS 逐字揭示动画的 play-state，暂停/跳转时保持与播放时钟一致 */
+  isPlaying?: boolean
   /** 右侧发言人头像（登录用户头像）；提供时右侧气泡固定使用它，未登录/无头像时回退到原逻辑 */
   rightAvatarUrl?: string | null
 }
@@ -994,64 +999,93 @@ const AnimatedBubbleFrame: React.FC<{
   floatingAdornment?: React.ReactNode
   targetSize?: { width: number; height: number }
   style: React.CSSProperties
-}> = ({ children, className, floatingAdornment, targetSize, style }) => {
+  // 文字排版宽度：与 measureBubbleText 的换行宽度一致。文字在此固定宽度内排版，
+  // 不随气泡外框宽度动画而 reflow，避免临界换行时单字符先掉到第二行行首（左下角）
+  // 再瞬移回正确位置。气泡外框照常平滑动画，靠 overflow:hidden 裁切逐渐揭示文字。
+  textLayoutWidth?: number
+  // 激活歌词气泡的宽高改由 MotionValue 直接驱动（framer 直接写 DOM，零 React 重渲染，
+  // 也不会每字符重启 width/height 补间）。提供时优先于 targetSize / animate。
+  motionWidth?: MotionValue<number>
+  motionHeight?: MotionValue<number>
+}> = ({ children, className, floatingAdornment, targetSize, style, textLayoutWidth, motionWidth, motionHeight }) => {
+  const useMotionSize = motionWidth != null && motionHeight != null
+  const hasExplicitSize = useMotionSize || targetSize != null
   return (
     <motion.div
       className="relative shrink-0"
-      animate={{
-        ...(targetSize ? { width: targetSize.width, height: targetSize.height } : {}),
-      }}
+      animate={useMotionSize
+        ? undefined
+        : (targetSize ? { width: targetSize.width, height: targetSize.height } : undefined)}
       transition={{
         scale: { type: "spring", stiffness: 200, damping: 32, mass: 0.86 },
-        ...(targetSize ? {
+        ...(!useMotionSize && targetSize ? {
           width: { duration: 0.2, ease: "easeOut" as const },
           height: { duration: 0.2, ease: "easeOut" as const },
         } : {}),
       }}
       style={{
-        width: targetSize ? targetSize.width : "fit-content",
-        height: targetSize ? targetSize.height : "auto",
+        width: useMotionSize ? motionWidth : (targetSize ? targetSize.width : "fit-content"),
+        height: useMotionSize ? motionHeight : (targetSize ? targetSize.height : "auto"),
       }}
     >
       <div
         className={className}
         style={{
           ...style,
-          height: targetSize ? "100%" : "auto",
+          height: hasExplicitSize ? "100%" : "auto",
           overflow: "hidden",
           whiteSpace: "pre-wrap",
           overflowWrap: "anywhere",
         }}
       >
-        {children}
+        {textLayoutWidth != null ? (
+          <div style={{ width: textLayoutWidth, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+            {children}
+          </div>
+        ) : children}
       </div>
       {floatingAdornment}
     </motion.div>
   )
 }
 
+// 逐字揭示：一次性渲染整行字符，通过 CSS animation-delay 交给浏览器合成器按时间揭示，
+// 播放期间不再产生任何 per-character 的 React 重渲染（快歌词的卡顿主因）。
+// anchorTime 为「行激活/跳转」时的播放时间，delay = 该字符的揭示时间 - anchorTime；
+// isPlaying 映射到 animationPlayState，保证暂停/跳转时 CSS 时钟与播放时钟一致。
 const ActiveChatText: React.FC<{
   line: Line
-  visibleCharacterCount: number
-}> = ({ line, visibleCharacterCount }) => {
+  anchorTime: number
+  isPlaying: boolean
+}> = ({ line, anchorTime, isPlaying }) => {
   const revealPlan = useMemo(() => getCharacterRevealPlan(line), [line])
-  const visibleCharacters = revealPlan.characters.slice(0, Math.max(0, visibleCharacterCount))
-  const visibleFadeDurations = revealPlan.fadeDurationsMs.slice(0, Math.max(0, visibleCharacterCount))
+  const revealTimes = useMemo(
+    () => buildCharacterRevealTimes(line, revealPlan.characters),
+    [line, revealPlan],
+  )
+  const playState = isPlaying ? "running" : "paused"
 
   return (
     <span>
-      {visibleCharacters.map((character, index) => (
-        <span
-          key={`${index}-${character}`}
-          style={{
-            animationName: "chat-char-fade",
-            animationDuration: `${visibleFadeDurations[index] ?? DEFAULT_CHAR_FADE_MS}ms`,
-            animationTimingFunction: "ease-out",
-          }}
-        >
-          {character}
-        </span>
-      ))}
+      {revealPlan.characters.map((character, index) => {
+        const revealTime = revealTimes[index]
+        const delaySeconds = Number.isFinite(revealTime) ? revealTime - anchorTime : 0
+        return (
+          <span
+            key={index}
+            style={{
+              animationName: "chat-char-fade",
+              animationDuration: `${revealPlan.fadeDurationsMs[index] ?? DEFAULT_CHAR_FADE_MS}ms`,
+              animationTimingFunction: "ease-out",
+              animationFillMode: "both",
+              animationDelay: `${delaySeconds}s`,
+              animationPlayState: playState,
+            }}
+          >
+            {character}
+          </span>
+        )
+      })}
     </span>
   )
 }
@@ -1125,6 +1159,7 @@ interface ChatMessageRowProps {
   intensityConfig: ChatIntensityConfig
   customAvatarImages?: ChatAvatarImage[]
   rightAvatarUrl?: string | null
+  isPlaying: boolean
 }
 
 const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
@@ -1141,6 +1176,7 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
   intensityConfig,
   customAvatarImages,
   rightAvatarUrl,
+  isPlaying,
 }, ref) => {
   const isRight = message.side === "right"
   const timedData: ChatTimedMessage | null = isTimedMessage(message) ? message : null
@@ -1188,19 +1224,65 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [bubbleFontSize, bubblePaddingX, bubblePaddingY, isActiveMessage, lineHeightPx, maxTextWidth, message, metricsCache, theme],
   )
-  const [visibleCharacterCount, setVisibleCharacterCount] = useState(() => (
-    preparedMetrics ? getCharacterCountAtTime(preparedMetrics.revealTimes, currentTime.get()) : 0
-  ))
-  const [targetCharacterCount, setTargetCharacterCount] = useState(() => (
-    preparedMetrics ? getBubbleTargetCharacterCount(preparedMetrics, currentTime.get()) : 0
-  ))
-  const [isTimestampVisible, setIsTimestampVisible] = useState(() => (
-    timedData !== null && (
-      timedData.kind === "emo"
-        ? currentTime.get() >= timedData.activationEndTime
-        : isPassedMessage || currentTime.get() >= getTimestampReadyTime(preparedMetrics, timedData.line)
-    )
-  ))
+  const isActiveLyric = isActiveMessage && message.kind === "lyric"
+  // 激活歌词的度量放进 ref，供 useTransform 的转换函数读取最新值，避免闭包过期。
+  const metricsRef = useRef<PreparedBubbleMetrics | null>(null)
+  metricsRef.current = preparedMetrics
+
+  // 气泡宽高：由 currentTime 派生的 MotionValue 平滑驱动（弹簧），
+  // framer 直接写入 DOM，播放期间不产生 React 重渲染，也不会每字符重启补间。
+  const rawBubbleWidth = useTransform(currentTime, (t) => {
+    const m = metricsRef.current
+    if (!m || m.sizes.length === 0) return 0
+    const count = getBubbleTargetCharacterCount(m, t)
+    const clamped = Math.max(0, Math.min(count, m.sizes.length - 1))
+    return m.sizes[clamped].width
+  })
+  const rawBubbleHeight = useTransform(currentTime, (t) => {
+    const m = metricsRef.current
+    if (!m || m.sizes.length === 0) return 0
+    const count = getBubbleTargetCharacterCount(m, t)
+    const clamped = Math.max(0, Math.min(count, m.sizes.length - 1))
+    return m.sizes[clamped].height
+  })
+  const bubbleWidthSpring = useSpring(rawBubbleWidth, { stiffness: 260, damping: 34, mass: 0.8 })
+  const bubbleHeightSpring = useSpring(rawBubbleHeight, { stiffness: 260, damping: 34, mass: 0.8 })
+
+  // 逐字揭示锚点：行激活或跳转(seek)时在 render 内同步重置，供 CSS animation-delay 使用。
+  // 用 ref 保证首帧即可揭示（无一帧全量文字闪烁）；seek 时另用 state 触发一次重渲染。
+  const revealAnchorRef = useRef<{ epoch: number; time: number }>({ epoch: 0, time: 0 })
+  const activeLyricKeyRef = useRef<string | null>(null)
+  const [, forceRevealTick] = useState(0)
+  const activeLyricKey = isActiveLyric ? message.id : null
+  if (activeLyricKey) {
+    if (activeLyricKeyRef.current !== activeLyricKey) {
+      activeLyricKeyRef.current = activeLyricKey
+      revealAnchorRef.current = { epoch: revealAnchorRef.current.epoch + 1, time: currentTime.get() }
+    }
+  } else {
+    activeLyricKeyRef.current = null
+  }
+
+  // 激活瞬间把气泡尺寸弹簧跳到当前目标尺寸，避免从 0（非激活时的静息值）弹出。
+  // 用 layout effect 在绘制前完成，无可见的从 0 展开帧。
+  useIsoLayoutEffect(() => {
+    if (!isActiveLyric) return
+    const m = metricsRef.current
+    if (!m || m.sizes.length === 0) return
+    const count = getBubbleTargetCharacterCount(m, currentTime.get())
+    const clamped = Math.max(0, Math.min(count, m.sizes.length - 1))
+    bubbleWidthSpring.jump(m.sizes[clamped].width)
+    bubbleHeightSpring.jump(m.sizes[clamped].height)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActiveLyric, message])
+
+  // 时间戳可见性在 render 中直接计算，切换时即时生效；仅在其翻转时触发一次重渲染。
+  const latestTime = currentTime.get()
+  const isTimestampVisible = timedData !== null && (
+    timedData.kind === "emo"
+      ? latestTime >= timedData.activationEndTime
+      : isPassedMessage || latestTime >= getTimestampReadyTime(preparedMetrics, timedData.line)
+  )
   const emoImageSize = isActiveMessage ? motionConfig.emoActiveSize : motionConfig.emoInactiveSize
   const targetSize = useMemo(() => {
     if (isEmoMessage) {
@@ -1209,18 +1291,9 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
     if (message.kind !== "lyric") {
       return null
     }
+    // 激活歌词由 MotionValue 驱动尺寸，这里不再返回静态尺寸。
     if (isActiveMessage) {
-      const prepared = preparedMetrics ?? getOrBuildBubbleMetrics(metricsCache.current, {
-        line: message.line,
-        theme,
-        fontSize: bubbleFontSize,
-        lineHeightPx,
-        maxTextWidth,
-        paddingX: bubblePaddingX,
-        paddingY: bubblePaddingY,
-      })
-      const clampedTargetCount = Math.max(0, Math.min(targetCharacterCount, prepared.sizes.length - 1))
-      return prepared.sizes[clampedTargetCount]
+      return null
     }
     return measureBubbleText({
       text: message.line.fullText,
@@ -1241,10 +1314,7 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
     lineHeightPx,
     maxTextWidth,
     message,
-    metricsCache,
-    preparedMetrics,
     theme,
-    targetCharacterCount,
   ])
   const scaleOverflow = isActiveMessage && motionConfig.activeScale > 1
     ? Math.ceil(
@@ -1258,42 +1328,25 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
       ) * (motionConfig.activeScale - 1),
     )
     : 0
-  useEffect(() => {
-    if (message.kind !== "lyric" && message.kind !== "emo") {
+
+  const lastChangeTimeRef = useRef(latestTime)
+  useMotionValueEvent(currentTime, "change", (latest) => {
+    // 跳转(seek)检测：时间发生大跨度突变时重设揭示锚点并重渲染一次。
+    const prevTime = lastChangeTimeRef.current
+    lastChangeTimeRef.current = latest
+    if (isActiveLyric && Math.abs(latest - prevTime) > 0.4) {
+      revealAnchorRef.current = { epoch: revealAnchorRef.current.epoch + 1, time: latest }
+      forceRevealTick((t) => t + 1)
       return
     }
-    const latest = currentTime.get()
-    const nextVisibleCount = message.kind === "lyric" && preparedMetrics
-      ? getCharacterCountAtTime(preparedMetrics.revealTimes, latest)
-      : 0
-    const nextTargetCount = message.kind === "lyric" && preparedMetrics
-      ? getBubbleTargetCharacterCount(preparedMetrics, latest)
-      : 0
-    setVisibleCharacterCount((current) => current === nextVisibleCount ? current : nextVisibleCount)
-    setTargetCharacterCount((current) => current === nextTargetCount ? current : nextTargetCount)
-    const nextTimestampVisible = message.kind === "emo"
-      ? latest >= message.activationEndTime
-      : isPassedMessage || latest >= getTimestampReadyTime(preparedMetrics, message.line)
-    setIsTimestampVisible(nextTimestampVisible)
-  }, [currentTime, isActiveMessage, isPassedMessage, message, preparedMetrics])
-
-  useMotionValueEvent(currentTime, "change", (latest) => {
-    if (message.kind === "lyric" || message.kind === "emo") {
-      const nextTimestampVisible = message.kind === "emo"
-        ? latest >= message.activationEndTime
-        : isPassedMessage || latest >= getTimestampReadyTime(preparedMetrics, message.line)
-      setIsTimestampVisible((current) => current === nextTimestampVisible ? current : nextTimestampVisible)
-    }
-
-    if (isActiveMessage) {
-      const nextVisibleCount = message.kind === "lyric" && preparedMetrics
-        ? getCharacterCountAtTime(preparedMetrics.revealTimes, latest)
-        : 0
-      const nextTargetCount = message.kind === "lyric" && preparedMetrics
-        ? getBubbleTargetCharacterCount(preparedMetrics, latest)
-        : 0
-      setVisibleCharacterCount((current) => current === nextVisibleCount ? current : nextVisibleCount)
-      setTargetCharacterCount((current) => current === nextTargetCount ? current : nextTargetCount)
+    // 时间戳可见性翻转时才重渲染（每行至多一次，代价极低）。
+    if (timedData) {
+      const nextTimestampVisible = timedData.kind === "emo"
+        ? latest >= timedData.activationEndTime
+        : isPassedMessage || latest >= getTimestampReadyTime(preparedMetrics, timedData.line)
+      if (nextTimestampVisible !== isTimestampVisible) {
+        forceRevealTick((t) => t + 1)
+      }
     }
   })
 
@@ -1383,6 +1436,9 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
                 />
               ) : undefined}
               targetSize={targetSize ?? undefined}
+              textLayoutWidth={maxTextWidth}
+              motionWidth={isActiveLyric ? bubbleWidthSpring : undefined}
+              motionHeight={isActiveLyric ? bubbleHeightSpring : undefined}
               style={{
                 backgroundColor: bubbleColors.backgroundColor,
                 border: `1px solid ${bubbleColors.borderColor}`,
@@ -1410,7 +1466,12 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
               <span className="relative z-10">
                 {message.kind === "lyric" && isActiveMessage && preparedMetrics
                   ? (
-                    <ActiveChatText line={message.line} visibleCharacterCount={visibleCharacterCount} />
+                    <ActiveChatText
+                      key={revealAnchorRef.current.epoch}
+                      line={message.line}
+                      anchorTime={revealAnchorRef.current.time}
+                      isPlaying={isPlaying}
+                    />
                   )
                   : (
                     <ChatText message={message} />
@@ -1440,6 +1501,7 @@ const ChatVisualizer: React.FC<ChatVisualizerProps> = (props) => {
     chatCustomEmojiImages = [],
     chatCustomAvatarImages = [],
     isPreviewMode = false,
+    isPlaying = true,
     rightAvatarUrl,
   } = props
 
@@ -1562,6 +1624,7 @@ const ChatVisualizer: React.FC<ChatVisualizerProps> = (props) => {
                 intensityConfig={intensityConfig}
                 customAvatarImages={customAvatarImages}
                 rightAvatarUrl={rightAvatarUrl}
+                isPlaying={isPlaying}
               />
             )
           ))}

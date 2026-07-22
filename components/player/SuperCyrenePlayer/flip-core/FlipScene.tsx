@@ -219,31 +219,43 @@ const FlipScene: React.FC<FlipSceneProps> = ({
         group.rotation.x = rotation
 
         const isFrontFacing = Math.abs(rotation) < Math.PI * 0.5
+        const isBackFacing = !isFrontFacing && Math.abs(rotation) > Math.PI * 0.5
         const sung = now >= unit.endTime
         const isCurrent = now >= unit.startTime && now < unit.endTime
         const sungMix = sung ? 1 : isCurrent
           ? clamp01((now - unit.startTime) / Math.max(unit.endTime - unit.startTime, 0.001))
           : 0
 
-        const frontMat = frontMatRefs.current.get(key)
-        if (frontMat) {
-          frontMat.opacity = baseOpacity * (0.5 + 0.5 * sungMix) * (isFrontFacing ? 1 : 0)
-          frontMat.color.copy(lineColor)
-        }
+        // Skip material updates for back-facing cards that are not the active
+        // line — they're invisible anyway. This avoids 3x Map.get + 3x
+        // color.copy + 3x opacity write per invisible card per frame.
+        const needsMaterialUpdate = isActive || (isFrontFacing && baseOpacity > 0.01)
 
-        const backMat = backMatRefs.current.get(key)
-        if (backMat) {
-          backMat.opacity = baseOpacity * 0.12
-          backMat.color.copy(damped.secondary)
-        }
+        if (needsMaterialUpdate) {
+          const frontMat = frontMatRefs.current.get(key)
+          if (frontMat) {
+            const targetFrontOpacity = baseOpacity * (0.5 + 0.5 * sungMix) * (isFrontFacing ? 1 : 0)
+            if (frontMat.opacity !== targetFrontOpacity) frontMat.opacity = targetFrontOpacity
+            frontMat.color.copy(lineColor)
+          }
 
-        const glowMat = glowMatRefs.current.get(key)
-        if (glowMat) {
-          const glowLevel = isActive && isCurrent
-            ? breath * (0.6 + 0.4 * powerEnvRef.current) * tuning.glowIntensity
-            : 0
-          glowMat.opacity = Math.min(1, 0.9 * glowLevel)
-          glowMat.color.copy(damped.accent)
+          const backMat = backMatRefs.current.get(key)
+          if (backMat && backMat.opacity !== baseOpacity * 0.12) {
+            backMat.opacity = baseOpacity * 0.12
+            backMat.color.copy(damped.secondary)
+          }
+
+          const glowMat = glowMatRefs.current.get(key)
+          if (glowMat) {
+            const glowLevel = isActive && isCurrent
+              ? breath * (0.6 + 0.4 * powerEnvRef.current) * tuning.glowIntensity
+              : 0
+            const targetGlowOpacity = Math.min(1, 0.9 * glowLevel)
+            if (glowMat.opacity !== targetGlowOpacity) {
+              glowMat.opacity = targetGlowOpacity
+              glowMat.color.copy(damped.accent)
+            }
+          }
         }
       })
     })

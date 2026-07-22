@@ -37,6 +37,7 @@ import { emit } from "@tauri-apps/api/event"
 import { convertFileSrc } from "@tauri-apps/api/core"
 import { usePlayerStore, RepeatMode, LyricDisplayStyle } from "@/lib/store/usePlayerStore"
 import { useFullscreenSettingsStore } from "@/lib/store/useFullscreenSettingsStore"
+import { useLayoutStore } from "@/lib/store/useLayoutStore"
 import { playerService } from "@/lib/services/playerService"
 import { audioAnalyser } from "@/lib/services/audioAnalyser"
 import { urlService } from "@/lib/services/urlService"
@@ -171,6 +172,13 @@ export function FullscreenPlayer() {
     const { quality, setQuality } = useAudioSourceStore()
     const activeSource = useActiveSource()
     const router = useRouter()
+
+    // 切换到 SuperCyrene 播放器（仅桌面端生效；移动端始终使用经典播放器）。
+    // 切换后保持 isFullscreen，MainLayout 会无缝换挂 SuperCyreneFullscreen。
+    const setSuperCyrenePlayerEnabled = useLayoutStore(s => s.setSuperCyrenePlayerEnabled)
+    const switchToSuperCyrene = React.useCallback(() => {
+        setSuperCyrenePlayerEnabled(true)
+    }, [setSuperCyrenePlayerEnabled])
 
     // 关闭全屏播放器：overlay 模式下直接隐藏
     const handleClose = React.useCallback(() => {
@@ -704,6 +712,13 @@ export function FullscreenPlayer() {
                     {!isMobile && (
                         <>
                             <div className="flex items-center gap-2 ml-4 text-white/50">
+                                <button
+                                    onClick={switchToSuperCyrene}
+                                    className="p-2 rounded-full transition-colors hover:text-white hover:bg-white/10"
+                                    title="切换到 SuperCyrene 播放器"
+                                >
+                                    <Sparkles size={20} />
+                                </button>
                                 <button
                                     onClick={async () => {
                                         if (isTaskbarPlayerOpen) {

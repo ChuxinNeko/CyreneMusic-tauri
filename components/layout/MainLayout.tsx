@@ -41,18 +41,12 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
 
     const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
     const [showUpdateDialog, setShowUpdateDialog] = useState(false)
-    const [isDesktop, setIsDesktop] = useState(false)
     const { material, setSystemSupport } = useWindowMaterialStore()
     const { currentTheme, setTheme, enforceTheme } = useUIThemeStore()
     const isSuperCyrenePlayerEnabled = useLayoutStore((s) => s.isSuperCyrenePlayerEnabled)
     const hasCompletedSetup = useAuthStore((s) => s.hasCompletedSetup)
     const isAuthDialogOpen = useAuthStore((s) => s.isAuthDialogOpen)
     const setAuthDialogOpen = useAuthStore((s) => s.setAuthDialogOpen)
-
-    // 桌面端检测
-    useEffect(() => {
-        setIsDesktop(window.innerWidth >= 768)
-    }, [])
 
     // 启动时校验本地 token，失效则清态并提示重新登录
     useEffect(() => {
@@ -207,7 +201,7 @@ export function MainLayoutContent({ children }: { children: React.ReactNode }) {
             </div>
             <PlayerBar />
             <MobileNav />
-            {isSuperCyrenePlayerEnabled && isDesktop ? (
+            {isSuperCyrenePlayerEnabled ? (
                 <SuperCyreneFullscreen />
             ) : (
                 <FullscreenPlayer />

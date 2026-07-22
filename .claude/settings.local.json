@@ -23,7 +23,9 @@
       "Bash(grep -cE \"\\\\.\\(get|post|put|delete\\)\\\\\\(\\\\s*[\\\\\"'\\\\`]\" routes/netease.ts)",
       "Bash(grep -A2 '^name = \"tauri\"$' src-tauri/Cargo.lock)",
       "Bash(grep -A2 '^name = \"wry\"$' src-tauri/Cargo.lock)",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(xargs grep -l \"useMotionValueEvent\")",
+      "Bash(git stash *)"
     ]
   }
 }

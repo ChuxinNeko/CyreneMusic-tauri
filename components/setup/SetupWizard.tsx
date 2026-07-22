@@ -29,8 +29,8 @@ export function SetupWizard() {
         : "bg-background"
 
     const getInitialStep = (): SetupStep => {
-        if (hasAcceptedAgreement) return 2
-        return 1
+        if (!hasAcceptedAgreement) return 1
+        return isLoggedIn ? 3 : 2
     }
 
     const [currentStep, setCurrentStep] = useState<SetupStep>(getInitialStep)

@@ -86,6 +86,7 @@ export function ChatLyrics() {
       songTitle={currentTrack?.name}
       coverUrl={currentTrack?.picUrl}
       seed={currentTrack?.id}
+      isPlaying={isPlaying}
       rightAvatarUrl={userAvatarUrl}
     />
   )

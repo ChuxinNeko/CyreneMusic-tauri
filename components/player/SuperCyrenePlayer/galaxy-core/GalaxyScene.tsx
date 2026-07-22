@@ -390,21 +390,30 @@ const GalaxyScene: React.FC<GalaxySceneProps> = ({
         }
 
         // 阻尼追踪目标位置（同时柔化行切换时的跳变）
-        group.position.x += (tx - group.position.x) * posK
-        group.position.y += (ty - group.position.y) * posK
-        group.position.z += (tz - group.position.z) * posK
-        group.quaternion.copy(billboardQ)
-        group.scale.setScalar(Math.max(0.01, scale * lineScale))
+        // Skip position/quaternion/scale updates when the unit is effectively
+        // invisible — saves 3x position lerp + quaternion copy + scale set
+        // per invisible unit per frame.
+        const isEffectivelyInvisible = opacity < 0.003 && glowOpacity < 0.003
+        if (!isEffectivelyInvisible) {
+          group.position.x += (tx - group.position.x) * posK
+          group.position.y += (ty - group.position.y) * posK
+          group.position.z += (tz - group.position.z) * posK
+          group.quaternion.copy(billboardQ)
+          group.scale.setScalar(Math.max(0.01, scale * lineScale))
+        }
 
         if (mainMat) {
-          mainMat.opacity = opacity
+          // Only write opacity/color when the value actually changes —
+          // avoids triggering three.js's material.needsUpdate path.
+          if (mainMat.opacity !== opacity) mainMat.opacity = opacity
           // 基色（未唱/已唱/过去行）→ 高亮色按包络平滑插值，颜色随虚影一起渐变
           const baseColor = offset < 0 && offset !== -1 ? pal.textPast : pal.textNormal
           mainMat.color.copy(baseColor)
           if (accentAmount > 0) mainMat.color.lerp(pal.textActive, accentAmount)
         }
         if (glowMat) {
-          glowMat.opacity = Math.min(1, glowOpacity)
+          const clampedGlow = Math.min(1, glowOpacity)
+          if (glowMat.opacity !== clampedGlow) glowMat.opacity = clampedGlow
           glowMat.color.copy(pal.textGlow)
         }
       })

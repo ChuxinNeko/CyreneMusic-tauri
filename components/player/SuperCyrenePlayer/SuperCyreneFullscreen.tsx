@@ -4,8 +4,9 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import { usePlayerStore, RepeatMode } from "@/lib/store/usePlayerStore"
 import { useFullscreenSettingsStore } from "@/lib/store/useFullscreenSettingsStore"
 import { playerService } from "@/lib/services/playerService"
-import { Minimize2, Play, Pause, SkipBack, SkipForward, Repeat, Repeat1, Shuffle, Volume2, VolumeX, Heart, Music2, X, Minus, Square, ListMusic } from "lucide-react"
+import { Minimize2, Play, Pause, SkipBack, SkipForward, Repeat, Repeat1, Shuffle, Volume2, VolumeX, Heart, Music2, X, Minus, Square, ListMusic, Disc3 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useLayoutStore } from "@/lib/store/useLayoutStore"
 import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { INTRO_DELAY, parseLyrics } from "@/components/player/parser"
@@ -35,6 +36,8 @@ export function SuperCyreneFullscreen() {
   const repeatMode = usePlayerStore((s) => s.repeatMode)
   const setRepeatMode = usePlayerStore((s) => s.setRepeatMode)
   const heartMode = usePlayerStore((s) => s.heartMode)
+  // 切回经典播放器：仅需关闭 SuperCyrene 开关，MainLayout 会无缝换挂 FullscreenPlayer。
+  const setSuperCyrenePlayerEnabled = useLayoutStore((s) => s.setSuperCyrenePlayerEnabled)
   const lyricLines = useMemo(() => parseLyrics(currentTrack), [currentTrack])
   const currentLyricTranslation = useMemo(() => {
     const lyricTime = currentTime * 1000 + INTRO_DELAY
@@ -197,6 +200,14 @@ export function SuperCyreneFullscreen() {
 
           {/* 窗口控制按钮 — 幽灵风格，融入背景 */}
           <div className="flex items-center gap-1">
+            <button
+              onClick={() => setSuperCyrenePlayerEnabled(false)}
+              className="w-7 h-7 flex items-center justify-center rounded-full text-white/25 hover:text-white/80 hover:bg-white/10 transition-all duration-200"
+              title="切换到经典播放器"
+            >
+              <Disc3 className="w-3.5 h-3.5" />
+            </button>
+            <div className="w-px h-3 bg-white/10 mx-0.5" />
             <button
               onClick={handleClose}
               className="w-7 h-7 flex items-center justify-center rounded-full text-white/25 hover:text-white/80 hover:bg-white/10 transition-all duration-200"
