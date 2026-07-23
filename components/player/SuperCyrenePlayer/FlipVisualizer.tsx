@@ -9,6 +9,7 @@ import { DEFAULT_FLIP_TUNING } from "./flip-core/flip-types"
 import type { FlipTuning } from "./flip-core/flip-types"
 import FlipCameraRig from "./flip-core/FlipCameraRig"
 import FlipScene from "./flip-core/FlipScene"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface FlipVisualizerProps {
   currentTime: MotionValue<number>
@@ -36,6 +37,9 @@ const FlipVisualizer: React.FC<FlipVisualizerProps> = (props) => {
     lyricsFontScale = 1, tuning,
   } = props
 
+  const isMobile = useIsMobile()
+  const canvasDpr = isMobile ? [1, 1] as [number, number] : [1, 1.5] as [number, number]
+
   const flipTuning = tuning ?? DEFAULT_FLIP_TUNING
 
   return (
@@ -43,8 +47,8 @@ const FlipVisualizer: React.FC<FlipVisualizerProps> = (props) => {
       <div className="absolute inset-0 z-0">
         <Canvas
           camera={{ position: [0, 0, flipTuning.cameraDistance], fov: 55 }}
-          dpr={[1, 1.5]}
-          gl={{ alpha: true, antialias: true, powerPreference: "high-performance" }}
+          dpr={canvasDpr}
+          gl={{ alpha: true, antialias: !isMobile, powerPreference: "high-performance" }}
           style={{ background: "transparent" }}
         >
           <FlipCameraRig

@@ -22,6 +22,7 @@ import {
 import { pickTransitionOffset, TRANSITION_DURATION } from "./pixel-core/pixel-transition"
 import PixelCameraRig from "./pixel-core/PixelCameraRig"
 import PixelScene from "./pixel-core/PixelScene"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface PixelVisualizerProps {
   currentTime: MotionValue<number>
@@ -72,6 +73,9 @@ const PixelVisualizer: React.FC<PixelVisualizerProps> = (props) => {
     audioPower, audioBands, showText = true,
     seed, lyricsFontScale = 1, dioramaTuning,
   } = props
+
+  const isMobile = useIsMobile()
+  const canvasDpr = isMobile ? [1, 1] as [number, number] : [1, 1.5] as [number, number]
 
   const activeLineWidthRef = useRef(0)
 
@@ -229,7 +233,7 @@ const PixelVisualizer: React.FC<PixelVisualizerProps> = (props) => {
       <div className="absolute inset-0 z-0">
         <Canvas
           camera={{ position: [0, 0.6, 9], fov: 55 }}
-          dpr={[1, 1.5]}
+          dpr={canvasDpr}
           gl={{ alpha: true, antialias: false, powerPreference: "high-performance" }}
           style={{ background: "transparent" }}
         >

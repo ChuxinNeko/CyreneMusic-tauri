@@ -20,6 +20,8 @@ import { GlassProgressBar } from "./GlassProgressBar"
 import { convertFileSrc } from "@tauri-apps/api/core"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import dynamic from "next/dynamic"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { useThrottledTime } from "@/hooks/use-throttled-time"
 
 const AMLLBackground = dynamic(() => import("../AMLLBackground").then(m => m.AMLLBackground), { ssr: false })
 const WallpaperBackground = dynamic(() => import("../WallpaperBackground").then(m => m.WallpaperBackground), { ssr: false })
@@ -38,15 +40,35 @@ export function SuperCyreneFullscreen() {
   const heartMode = usePlayerStore((s) => s.heartMode)
   // 切回经典播放器：仅需关闭 SuperCyrene 开关，MainLayout 会无缝换挂 FullscreenPlayer。
   const setSuperCyrenePlayerEnabled = useLayoutStore((s) => s.setSuperCyrenePlayerEnabled)
+
+  // ── 移动端性能优化 ──
+  const isMobile = useIsMobile()
+  // 移动端竖屏检测：竖屏下动态背景使用静态模式以降低 GPU 占用
+  const [isPortrait, setIsPortrait] = useState(false)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return
+    const mql = window.matchMedia('(orientation: portrait)')
+    const onChange = () => setIsPortrait(mql.matches)
+    mql.addEventListener('change', onChange)
+    setIsPortrait(mql.matches)
+    return () => mql.removeEventListener('change', onChange)
+  }, [])
+  const isMobileStaticBg = isMobile && isPortrait
+
+  // 移动端节流：进度条/翻译等 UI 元素无需 60fps 更新，4fps 足够流畅
+  // 歌词组件各自通过 MotionValue 独立驱动，不受此节流影响
+  const throttledTime = useThrottledTime(currentTime, isMobile ? 250 : 0)
+  const uiTime = isMobile ? throttledTime : currentTime
+
   const lyricLines = useMemo(() => parseLyrics(currentTrack), [currentTrack])
   const currentLyricTranslation = useMemo(() => {
-    const lyricTime = currentTime * 1000 + INTRO_DELAY
+    const lyricTime = uiTime * 1000 + INTRO_DELAY
     for (let index = lyricLines.length - 1; index >= 0; index -= 1) {
       const line = lyricLines[index]
       if (line.startTime <= lyricTime) return line.translation?.trim() || null
     }
     return null
-  }, [currentTime, lyricLines])
+  }, [uiTime, lyricLines])
 
   // 背景设置：与 FullscreenPlayer 保持一致
   const playerBgType = useFullscreenSettingsStore(s => s.playerBgType)
@@ -60,7 +82,7 @@ export function SuperCyreneFullscreen() {
   const lyricsTheme = useFullscreenSettingsStore(s => s.lyricsTheme)
   const setLyricsTheme = useFullscreenSettingsStore(s => s.setLyricsTheme)
 
-  const backgroundStatic = lyricsTheme === 'pixel' || lyricsTheme === 'flip' || lyricsTheme === 'galaxy'
+  const backgroundStatic = lyricsTheme === 'pixel' || lyricsTheme === 'flip' || lyricsTheme === 'galaxy' || isMobileStaticBg
   const [isVisible, setIsVisible] = useState(false)
   const [isControlPanelOpen, setIsControlPanelOpen] = useState(false)
   const [showPlaylist, setShowPlaylist] = useState(false)
@@ -83,6 +105,10 @@ export function SuperCyreneFullscreen() {
     const appWindow = getCurrentWindow()
     await appWindow.close()
   }, [])
+
+  // 稳定回调引用，使 React.memo 子组件（Capsule / GlassProgressBar）跳过无效重渲染
+  const handleSeek = useCallback((time: number) => playerService.seek(time), [])
+  const handleTogglePlay = useCallback(() => playerService.togglePlay(), [])
 
   // 全屏状态同步：overlay 模式入场动画
   useEffect(() => {
@@ -263,10 +289,11 @@ export function SuperCyreneFullscreen() {
             <AMLLBackground
               album={currentTrack?.picUrl}
               playing={isPlaying}
-              fps={30}
-              renderScale={0.2}
-              flowSpeed={0.15}
+              fps={isMobile ? 20 : 30}
+              renderScale={isMobile ? 0.1 : 0.2}
+              flowSpeed={isMobile ? 0.1 : 0.15}
               staticMode={backgroundStatic}
+              isMobile={isMobile}
               className="absolute inset-0 w-full h-full opacity-80"
             />
           )}
@@ -294,12 +321,12 @@ export function SuperCyreneFullscreen() {
           </p>
         )}
         <SuperCyrenePlaybackCapsule
-          currentTime={currentTime}
+          currentTime={uiTime}
           duration={duration}
           isPlaying={isPlaying}
           title={currentTrack?.name}
-          onSeek={(time) => playerService.seek(time)}
-          onTogglePlay={() => playerService.togglePlay()}
+          onSeek={handleSeek}
+          onTogglePlay={handleTogglePlay}
         />
       </div>
 
@@ -396,9 +423,9 @@ export function SuperCyreneFullscreen() {
             {/* 进度条 — 与底部中间胶囊共用 GlassProgressBar，样式一致 */}
             <div className="px-3 pb-1">
               <GlassProgressBar
-                currentTime={currentTime}
+                currentTime={uiTime}
                 duration={duration}
-                onSeek={(time) => playerService.seek(time)}
+                onSeek={handleSeek}
                 labelClassName="text-[9px] text-white/30"
               />
             </div>

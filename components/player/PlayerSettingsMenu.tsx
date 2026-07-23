@@ -13,17 +13,26 @@ import {
     MoreHorizontal,
     Box,
     Image as ImageIcon,
-    Move
+    Move,
+    Check
 } from "lucide-react"
 import { usePlayerStore, LyricDisplayStyle, SingleLineAnimation } from "@/lib/store/usePlayerStore"
 import { useFullscreenSettingsStore } from "@/lib/store/useFullscreenSettingsStore"
 import { useDesktopPlayerStore } from "@/lib/store/useDesktopPlayerStore"
+import { useLayoutStore } from "@/lib/store/useLayoutStore"
 import { useLyricSettings, LyricScope } from "./LyricSettingsContext"
 import { heartModeService } from "@/lib/services/heartModeService"
 import { LYRIC_FONT_OPTIONS } from "@/lib/constants/fonts"
 import { BackgroundSettingsDialog } from "./BackgroundSettingsDialog"
 import { DesktopLyricEffectDialog } from "./DesktopLyricEffectDialog"
 import { Slider } from "@/components/ui/slider"
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet"
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -77,8 +86,13 @@ export function PlayerSettingsMenu({ triggerIcon, align = "start", scope = "full
     const isLyricEditorMode = useDesktopPlayerStore(s => s.isLyricEditorMode)
     const setIsLyricEditorMode = useDesktopPlayerStore(s => s.setIsLyricEditorMode)
 
+    // ── 播放器样式切换（经典 / SuperCyrene） ──
+    const isSuperCyrenePlayerEnabled = useLayoutStore(s => s.isSuperCyrenePlayerEnabled)
+    const setSuperCyrenePlayerEnabled = useLayoutStore(s => s.setSuperCyrenePlayerEnabled)
+
     const [bgDialogOpen, setBgDialogOpen] = useState(false)
     const [effectDialogOpen, setEffectDialogOpen] = useState(false)
+    const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false)
 
     const isDesktop = scope === "desktop"
 
@@ -119,6 +133,206 @@ export function PlayerSettingsMenu({ triggerIcon, align = "start", scope = "full
         })
     }
 
+    if (isMobile) {
+        const mobileToggleClass = (enabled: boolean) => `flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition-colors ${enabled ? 'bg-white/12 text-white' : 'bg-white/5 text-white/75 active:bg-white/10'}`
+
+        return (
+            <>
+                <Sheet open={isMobileSettingsOpen} onOpenChange={setIsMobileSettingsOpen}>
+                    <SheetTrigger asChild>
+                        <button
+                            type="button"
+                            aria-label="播放器设置"
+                            className="text-white/30 hover:text-white/80 transition-colors p-2 hover:bg-white/5 rounded-full z-10 ml-1"
+                        >
+                            {triggerIcon || <MoreHorizontal size={22} />}
+                        </button>
+                    </SheetTrigger>
+                    <SheetContent
+                        side="bottom"
+                        showCloseButton={false}
+                        className="max-h-[78dvh] rounded-t-[20px] border-white/20 bg-black/45 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-2 text-white shadow-[0_-16px_48px_rgba(0,0,0,0.28)] backdrop-blur-2xl"
+                    >
+                        <div className="mx-auto h-1.5 w-12 shrink-0 rounded-full bg-white/25" />
+                        <SheetHeader className="px-1 pb-3 pt-2 text-left">
+                            <SheetTitle className="text-white">播放器设置</SheetTitle>
+                        </SheetHeader>
+                        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pr-1">
+                            <div className="space-y-2 pb-2">
+                                <button type="button" aria-pressed={audioVisualization} onClick={toggleAudioVisualization} className={mobileToggleClass(audioVisualization)}>
+                                    <span className="flex items-center gap-3"><Activity className="h-5 w-5" />音频律动</span>
+                                    {audioVisualization && <Check className="h-5 w-5 text-primary" />}
+                                </button>
+                                <button type="button" aria-pressed={isImmersiveMode} onClick={() => setIsImmersiveMode(!isImmersiveMode)} className={mobileToggleClass(isImmersiveMode)}>
+                                    <span className="flex items-center gap-3"><Monitor className="h-5 w-5" />沉浸模式</span>
+                                    {isImmersiveMode && <Check className="h-5 w-5 text-primary" />}
+                                </button>
+                                <button type="button" aria-pressed={hideAlbumCover} onClick={() => setHideAlbumCover(!hideAlbumCover)} className={mobileToggleClass(hideAlbumCover)}>
+                                    <span className="flex items-center gap-3"><ImageIcon className="h-5 w-5" />隐藏封面</span>
+                                    {hideAlbumCover && <Check className="h-5 w-5 text-primary" />}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={openDesktopLyric}
+                                    className="flex w-full items-center gap-3 rounded-xl bg-white/5 px-3 py-3 text-left text-white/75 transition-colors active:bg-white/10"
+                                >
+                                    <Monitor className="h-5 w-5" />桌面歌词
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsMobileSettingsOpen(false)
+                                        setBgDialogOpen(true)
+                                    }}
+                                    className="flex w-full items-center gap-3 rounded-xl bg-white/5 px-3 py-3 text-left text-white/75 transition-colors active:bg-white/10"
+                                >
+                                    <ImageIcon className="h-5 w-5" />播放器背景
+                                </button>
+                                {currentTrack?.source === 'netease' && (
+                                    <button type="button" aria-pressed={heartMode} onClick={handleToggleHeartMode} className={mobileToggleClass(heartMode)}>
+                                        <span className="flex items-center gap-3"><Sparkles className="h-5 w-5" />心动模式</span>
+                                        {heartMode && <Check className="h-5 w-5 text-primary" />}
+                                    </button>
+                                )}
+                            </div>
+
+                            <section className="mt-4 border-t border-white/10 pt-4">
+                                <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white/80">
+                                    <Sparkles className="h-4 w-4" />播放器样式
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSuperCyrenePlayerEnabled(false)}
+                                        className={`rounded-lg px-2 py-2 text-sm transition-colors ${!isSuperCyrenePlayerEnabled ? 'bg-white text-black' : 'bg-white/10 text-white/70 active:bg-white/20'}`}
+                                    >
+                                        经典
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSuperCyrenePlayerEnabled(true)}
+                                        className={`rounded-lg px-2 py-2 text-sm transition-colors ${isSuperCyrenePlayerEnabled ? 'bg-white text-black' : 'bg-white/10 text-white/70 active:bg-white/20'}`}
+                                    >
+                                        SuperCyrene
+                                    </button>
+                                </div>
+                            </section>
+
+                            <section className="mt-4 border-t border-white/10 pt-4">
+                                <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white/80">
+                                    <Disc className="h-4 w-4" />歌词样式
+                                </div>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {[
+                                        [LyricDisplayStyle.Scroll, '滚动'],
+                                        [LyricDisplayStyle.Roulette, '轮盘'],
+                                        [LyricDisplayStyle.SingleLine, '单行'],
+                                    ].map(([style, label]) => (
+                                        <button
+                                            key={style}
+                                            type="button"
+                                            onClick={() => setLyricDisplayStyle(style as LyricDisplayStyle)}
+                                            className={`rounded-lg px-2 py-2 text-sm transition-colors ${lyricDisplayStyle === style ? 'bg-white text-black' : 'bg-white/10 text-white/70 active:bg-white/20'}`}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                                {lyricDisplayStyle === LyricDisplayStyle.SingleLine && (
+                                    <div className="mt-2 grid grid-cols-4 gap-2">
+                                        {[
+                                            [SingleLineAnimation.SlideUp, '上推'],
+                                            [SingleLineAnimation.Fade, '渐变'],
+                                            [SingleLineAnimation.Zoom, '缩放'],
+                                            [SingleLineAnimation.Blur, '模糊'],
+                                        ].map(([animation, label]) => (
+                                            <button
+                                                key={animation}
+                                                type="button"
+                                                onClick={() => setSingleLineAnimation(animation as SingleLineAnimation)}
+                                                className={`rounded-lg px-1 py-2 text-xs transition-colors ${singleLineAnimation === animation ? 'bg-white text-black' : 'bg-white/10 text-white/70 active:bg-white/20'}`}
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
+
+                            <section className="mt-4 border-t border-white/10 pt-4">
+                                <label className="mb-2 flex items-center gap-2 text-sm font-medium text-white/80">
+                                    <Type className="h-4 w-4" />歌词字体
+                                </label>
+                                <select
+                                    value={lyricFontFamily}
+                                    onChange={(event) => setLyricFontFamily(event.target.value)}
+                                    className="w-full rounded-lg bg-white/10 px-3 py-2.5 text-sm text-white outline-none [&>option]:text-black"
+                                >
+                                    {LYRIC_FONT_OPTIONS.map((font) => (
+                                        <option key={font.value} value={font.value} style={{ fontFamily: font.value }}>
+                                            {font.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </section>
+
+                            <section className="mt-4 space-y-4 border-t border-white/10 pt-4">
+                                <div>
+                                    <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white/80"><Type className="h-4 w-4" />歌词字号</div>
+                                    <Slider value={[lyricFontSize]} max={60} min={20} step={1} onValueChange={(value) => setLyricFontSize(value[0])} />
+                                </div>
+                                <div>
+                                    <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white/80"><Droplets className="h-4 w-4" />背景模糊</div>
+                                    <Slider value={[lyricBlurStrength]} max={20} min={0} step={1} onValueChange={(value) => setLyricBlurStrength(value[0])} />
+                                </div>
+                                <div className="border-t border-white/10 pt-4">
+                                    <div className="mb-3 flex items-center gap-2 text-sm font-medium text-white/80"><Monitor className="h-4 w-4" />桌面歌词字号</div>
+                                    <Slider
+                                        value={[desktopLyricFontSize]}
+                                        max={80}
+                                        min={20}
+                                        step={1}
+                                        onValueChange={(value) => {
+                                            setDesktopLyricFontSize(value[0])
+                                            syncDesktopSettings({ desktopLyricFontSize: value[0] })
+                                        }}
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-3 border-t border-white/10 pt-4 pb-2">
+                                    <label className="flex items-center justify-between text-sm text-white/80">
+                                        <span className="flex items-center gap-2"><Baseline className="h-4 w-4" />桌面歌词颜色</span>
+                                        <input
+                                            type="color"
+                                            value={desktopLyricColor}
+                                            className="h-7 w-8 rounded border-0 bg-transparent p-0"
+                                            onChange={(event) => {
+                                                setDesktopLyricColor(event.target.value)
+                                                syncDesktopSettings({ desktopLyricColor: event.target.value })
+                                            }}
+                                        />
+                                    </label>
+                                    <label className="flex items-center justify-between text-sm text-white/80">
+                                        <span className="flex items-center gap-2"><Palette className="h-4 w-4" />桌面歌词描边</span>
+                                        <input
+                                            type="color"
+                                            value={desktopLyricStrokeColor}
+                                            className="h-7 w-8 rounded border-0 bg-transparent p-0"
+                                            onChange={(event) => {
+                                                setDesktopLyricStrokeColor(event.target.value)
+                                                syncDesktopSettings({ desktopLyricStrokeColor: event.target.value })
+                                            }}
+                                        />
+                                    </label>
+                                </div>
+                            </section>
+                        </div>
+                    </SheetContent>
+                </Sheet>
+                <BackgroundSettingsDialog open={bgDialogOpen} onOpenChange={setBgDialogOpen} />
+            </>
+        )
+    }
+
     return (
         <>
             <DropdownMenu modal={false}>
@@ -130,7 +344,6 @@ export function PlayerSettingsMenu({ triggerIcon, align = "start", scope = "full
                 <DropdownMenuContent 
                     align={align} 
                     className="w-48 bg-black/80 backdrop-blur-xl border-white/10 text-white"
-                    onOpenAutoFocus={(e) => e.preventDefault()}
                     onCloseAutoFocus={(e) => e.preventDefault()}
                 >
                     <DropdownMenuLabel>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import React, { useEffect, useRef, useState, useCallback } from "react"
 import { motion } from "framer-motion"
 import { Pause, Play } from "lucide-react"
 import { GlassProgressBar } from "./GlassProgressBar"
@@ -18,7 +18,7 @@ interface SuperCyrenePlaybackCapsuleProps {
   onTogglePlay: () => void
 }
 
-export function SuperCyrenePlaybackCapsule({
+export const SuperCyrenePlaybackCapsule = React.memo(function SuperCyrenePlaybackCapsule({
   currentTime,
   duration,
   isPlaying,
@@ -35,7 +35,7 @@ export function SuperCyrenePlaybackCapsule({
     if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current)
   }, [])
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter = useCallback(() => {
     if (collapseTimerRef.current) {
       clearTimeout(collapseTimerRef.current)
       collapseTimerRef.current = null
@@ -45,9 +45,9 @@ export function SuperCyrenePlaybackCapsule({
       setIsExpanded(true)
       expandTimerRef.current = null
     }, EXPAND_DELAY_MS)
-  }
+  }, [isExpanded])
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = useCallback(() => {
     if (expandTimerRef.current) {
       clearTimeout(expandTimerRef.current)
       expandTimerRef.current = null
@@ -57,7 +57,7 @@ export function SuperCyrenePlaybackCapsule({
       setIsExpanded(false)
       collapseTimerRef.current = null
     }, COLLAPSE_DELAY_MS)
-  }
+  }, [isExpanded])
 
   return (
     <div
@@ -108,4 +108,4 @@ export function SuperCyrenePlaybackCapsule({
       </motion.section>
     </div>
   )
-}
+})

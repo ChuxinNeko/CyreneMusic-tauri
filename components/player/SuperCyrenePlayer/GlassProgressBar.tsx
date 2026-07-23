@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useState, useCallback } from "react"
 import { cn } from "@/lib/utils"
 
 /**
@@ -9,6 +9,9 @@ import { cn } from "@/lib/utils"
  * 结构：左时间标签 · 轨道(bg-white/15) + 填充(bg-white/75) + 透明 range 交互 · 右时间标签。
  * 无可见滑块圆点，纯轨道+填充。scrub 状态内聚在组件内部，
  * 底部胶囊与左下角控制面板复用同一实现，保证样式与交互完全一致。
+ *
+ * 性能优化：React.memo 包裹 + 移除冗余 useEffect 同步，
+ * 仅在 props 实际变化时重渲染。
  */
 
 const formatTime = (seconds: number): string => {
@@ -33,7 +36,7 @@ interface GlassProgressBarProps {
   labelClassName?: string
 }
 
-export function GlassProgressBar({
+export const GlassProgressBar = React.memo(function GlassProgressBar({
   currentTime,
   duration,
   onSeek,
@@ -42,29 +45,31 @@ export function GlassProgressBar({
   labelClassName,
 }: GlassProgressBarProps) {
   const [isScrubbing, setIsScrubbing] = useState(false)
-  const [scrubTime, setScrubTime] = useState(currentTime)
+  const [scrubTime, setScrubTime] = useState(0)
 
+  // 非 scrub 时直接用 currentTime，无需额外 state 同步（消除冗余 useEffect 重渲染）
   const displayedTime = isScrubbing ? scrubTime : currentTime
   const progress = duration > 0 ? (clampTime(displayedTime, duration) / duration) * 100 : 0
 
-  useEffect(() => {
-    if (!isScrubbing) setScrubTime(currentTime)
-  }, [currentTime, isScrubbing])
-
-  const updateScrubTime = (value: number) => setScrubTime(clampTime(value, duration))
-
-  const handleSeekStart = (event: React.PointerEvent<HTMLInputElement>) => {
+  const handleSeekStart = useCallback((event: React.PointerEvent<HTMLInputElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId)
     setIsScrubbing(true)
-    updateScrubTime(Number(event.currentTarget.value))
-  }
+    setScrubTime(clampTime(Number(event.currentTarget.value), duration))
+  }, [duration])
 
-  const handleSeekEnd = (event: React.PointerEvent<HTMLInputElement>) => {
+  const handleSeekEnd = useCallback((event: React.PointerEvent<HTMLInputElement>) => {
     const nextTime = clampTime(Number(event.currentTarget.value), duration)
     setIsScrubbing(false)
-    setScrubTime(nextTime)
     onSeek(nextTime)
-  }
+  }, [duration, onSeek])
+
+  const handleInput = useCallback((event: React.FormEvent<HTMLInputElement>) => {
+    setScrubTime(clampTime(Number(event.currentTarget.value), duration))
+  }, [duration])
+
+  const handlePointerCancel = useCallback(() => {
+    setIsScrubbing(false)
+  }, [])
 
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
@@ -84,9 +89,9 @@ export function GlassProgressBar({
           step={0.1}
           value={clampTime(displayedTime, duration)}
           onPointerDown={handleSeekStart}
-          onInput={(event) => updateScrubTime(Number(event.currentTarget.value))}
+          onInput={handleInput}
           onPointerUp={handleSeekEnd}
-          onPointerCancel={() => setIsScrubbing(false)}
+          onPointerCancel={handlePointerCancel}
           onChange={() => undefined}
           className="absolute -inset-y-3 inset-x-0 h-7 w-full cursor-pointer opacity-0"
         />
@@ -96,4 +101,4 @@ export function GlassProgressBar({
       </span>
     </div>
   )
-}
+})

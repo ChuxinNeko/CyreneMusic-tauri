@@ -3,6 +3,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { AnimatePresence, motion, useMotionValueEvent, useSpring, useTransform, type MotionValue } from "framer-motion"
 import { layoutWithLines, prepareWithSegments, type PrepareOptions } from "@chenglou/pretext"
+import { useIsMobile } from "@/hooks/use-mobile"
 import {
   DEFAULT_CHAT_TUNING,
   type ChatAvatarImage,
@@ -109,7 +110,8 @@ const isTimedMessage = (m: ChatMessage): m is ChatTimedMessage =>
   m.kind === "lyric" || m.kind === "emo"
 
 const SHORT_LINE_CHAR_LIMIT = 12
-const MAX_VISIBLE_MESSAGES = 20
+const MAX_VISIBLE_MESSAGES_DESKTOP = 20
+const MAX_VISIBLE_MESSAGES_MOBILE = 8
 const AVATAR_GRID_SIZE = 3
 // cozy 版收敛为 2 个左侧发言人，弱化「群聊」感，偏向「双人对话」。
 const LEFT_AVATAR_INDICES = [0, 4]
@@ -722,6 +724,7 @@ const getVisibleMessages = (
   currentLineIndex: number,
   currentTime: number,
   motionConfig: ChatIntensityConfig["motion"],
+  maxVisible: number,
 ) => {
   const visible = messages.filter((message) => {
     if (message.kind === "title") {
@@ -750,7 +753,7 @@ const getVisibleMessages = (
     accumulatedHeight += estHeight
     result.unshift(message)
 
-    if (result.length >= MAX_VISIBLE_MESSAGES) {
+    if (result.length >= maxVisible) {
       break
     }
   }
@@ -1094,13 +1097,28 @@ const ChatBubbleGlow: React.FC<{
   isActive: boolean
   isRight: boolean
   motionConfig: ChatIntensityConfig["motion"]
-}> = ({ isActive, isRight, motionConfig }) => {
+  isMobile?: boolean
+}> = ({ isActive, isRight, motionConfig, isMobile = false }) => {
   if (!isActive) {
     return null
   }
 
   const glowAlpha = isRight ? motionConfig.glowRightAlpha : motionConfig.glowLeftAlpha
   const glowColor = `rgba(255,255,255,${glowAlpha})`
+
+  // 移动端：扫光动画直接跳过（GPU 图层开销大），只保留静态渐变
+  if (isMobile) {
+    return (
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0"
+        style={{
+          width: "100%",
+          opacity: motionConfig.glowOpacity * 0.5,
+          background: `linear-gradient(105deg, transparent 0%, ${glowColor} 30%, transparent 50%, ${glowColor} 70%, transparent 100%)`,
+        }}
+      />
+    )
+  }
 
   return (
     <div
@@ -1117,13 +1135,13 @@ const ChatBubbleGlow: React.FC<{
 }
 
 // 间奏时间分割线：居中的暖色细线夹一枚时间标签，像翻聊天记录里的日期条。
-const ChatDivider: React.FC<{ label: string; theme: Theme }> = ({ label, theme }) => {
+const ChatDivider: React.FC<{ label: string; theme: Theme; isMobile?: boolean }> = ({ label, theme, isMobile = false }) => {
   const lineColor = mixColors(theme.secondaryColor, theme.primaryColor, 0.5, 0.24)
   const textColor = mixColors(theme.primaryColor, theme.secondaryColor, 0.4, 0.7)
 
   return (
     <motion.div
-      layout="position"
+      layout={isMobile ? false : "position"}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, transition: { duration: 0.3, ease: "easeIn" } }}
@@ -1160,6 +1178,7 @@ interface ChatMessageRowProps {
   customAvatarImages?: ChatAvatarImage[]
   rightAvatarUrl?: string | null
   isPlaying: boolean
+  isMobile: boolean
 }
 
 const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
@@ -1177,6 +1196,7 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
   customAvatarImages,
   rightAvatarUrl,
   isPlaying,
+  isMobile,
 }, ref) => {
   const isRight = message.side === "right"
   const timedData: ChatTimedMessage | null = isTimedMessage(message) ? message : null
@@ -1210,7 +1230,7 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
   const useAvatarGridCrop = !useRightUserAvatar && chatTuning.avatarSource === "cover" && Boolean(coverUrl)
   const lineHeightPx = bubbleFontSize * 1.45
   const preparedMetrics = useMemo(
-    () => message.kind === "lyric" && isActiveMessage
+    () => isActiveLyric
       ? getOrBuildBubbleMetrics(metricsCache.current, {
         line: message.line,
         theme,
@@ -1222,15 +1242,17 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
       })
       : null,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [bubbleFontSize, bubblePaddingX, bubblePaddingY, isActiveMessage, lineHeightPx, maxTextWidth, message, metricsCache, theme],
+    [bubbleFontSize, bubblePaddingX, bubblePaddingY, isActiveLyric, lineHeightPx, maxTextWidth, message, metricsCache, theme],
   )
   const isActiveLyric = isActiveMessage && message.kind === "lyric"
   // 激活歌词的度量放进 ref，供 useTransform 的转换函数读取最新值，避免闭包过期。
   const metricsRef = useRef<PreparedBubbleMetrics | null>(null)
   metricsRef.current = preparedMetrics
 
-  // 气泡宽高：由 currentTime 派生的 MotionValue 平滑驱动（弹簧），
+  // 气泡宽高：由 currentTime 派生的 MotionValue 平滑驱动，
   // framer 直接写入 DOM，播放期间不产生 React 重渲染，也不会每字符重启补间。
+  // 移动端跳过 useSpring 弹簧（每帧 rAF 物理求解开销大），直接用 useTransform 原始值驱动；
+  // 桌面端保持弹簧平滑。
   const rawBubbleWidth = useTransform(currentTime, (t) => {
     const m = metricsRef.current
     if (!m || m.sizes.length === 0) return 0
@@ -1247,6 +1269,9 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
   })
   const bubbleWidthSpring = useSpring(rawBubbleWidth, { stiffness: 260, damping: 34, mass: 0.8 })
   const bubbleHeightSpring = useSpring(rawBubbleHeight, { stiffness: 260, damping: 34, mass: 0.8 })
+  // 移动端直接用 raw 值（无弹簧），桌面端用弹簧平滑
+  const bubbleWidth = isMobile ? rawBubbleWidth : bubbleWidthSpring
+  const bubbleHeight = isMobile ? rawBubbleHeight : bubbleHeightSpring
 
   // 逐字揭示锚点：行激活或跳转(seek)时在 render 内同步重置，供 CSS animation-delay 使用。
   // 用 ref 保证首帧即可揭示（无一帧全量文字闪烁）；seek 时另用 state 触发一次重渲染。
@@ -1271,8 +1296,11 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
     if (!m || m.sizes.length === 0) return
     const count = getBubbleTargetCharacterCount(m, currentTime.get())
     const clamped = Math.max(0, Math.min(count, m.sizes.length - 1))
-    bubbleWidthSpring.jump(m.sizes[clamped].width)
-    bubbleHeightSpring.jump(m.sizes[clamped].height)
+    // 移动端无弹簧，无需 jump
+    if (!isMobile) {
+      bubbleWidthSpring.jump(m.sizes[clamped].width)
+      bubbleHeightSpring.jump(m.sizes[clamped].height)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActiveLyric, message])
 
@@ -1331,6 +1359,8 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
 
   const lastChangeTimeRef = useRef(latestTime)
   useMotionValueEvent(currentTime, "change", (latest) => {
+    // 非活跃行提前返回：不执行 seek 检测 / 时间戳比较，省掉每帧的闭包计算
+    if (!isActiveLyric && !timedData) return
     // 跳转(seek)检测：时间发生大跨度突变时重设揭示锚点并重渲染一次。
     const prevTime = lastChangeTimeRef.current
     lastChangeTimeRef.current = latest
@@ -1350,10 +1380,13 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
     }
   })
 
+  // 移动端关闭 layout="position"（FLIP 布局测量开销大），改用纯 CSS transition
+  const layoutProp = isMobile ? false : "position"
+
   return (
     <motion.div
       ref={ref}
-      layout="position"
+      layout={layoutProp}
       initial={{ opacity: 0, y: motionConfig.rowEnterY, scale: motionConfig.rowEnterScale }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{
@@ -1426,7 +1459,7 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
           )
           : (
             <AnimatedBubbleFrame
-              className={`relative rounded-3xl shadow-lg transition-[min-height,box-shadow,background-color] duration-200 ease-out ${isRight ? "rounded-br-md" : "rounded-bl-md"}`}
+              className={`relative rounded-3xl ${isMobile ? "" : "shadow-lg"} transition-[min-height,box-shadow,background-color] duration-200 ease-out ${isRight ? "rounded-br-md" : "rounded-bl-md"}`}
               floatingAdornment={timedData ? (
                 <ChatTimestamp
                   line={timedData.line}
@@ -1437,8 +1470,8 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
               ) : undefined}
               targetSize={targetSize ?? undefined}
               textLayoutWidth={maxTextWidth}
-              motionWidth={isActiveLyric ? bubbleWidthSpring : undefined}
-              motionHeight={isActiveLyric ? bubbleHeightSpring : undefined}
+              motionWidth={isActiveLyric ? bubbleWidth : undefined}
+              motionHeight={isActiveLyric ? bubbleHeight : undefined}
               style={{
                 backgroundColor: bubbleColors.backgroundColor,
                 border: `1px solid ${bubbleColors.borderColor}`,
@@ -1453,7 +1486,7 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
                 ),
                 minWidth: isActiveMessage ? 72 : undefined,
                 padding: `${bubblePaddingY}px ${bubblePaddingX}px`,
-                boxShadow: isActiveMessage
+                boxShadow: isActiveMessage && !isMobile
                   ? `0 18px 48px ${mixColors(theme.backgroundColor, theme.accentColor, 0.2, motionConfig.activeShadowAlpha)}`
                   : undefined,
                 whiteSpace: "pre-wrap",
@@ -1461,7 +1494,7 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
               }}
             >
               <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
-                <ChatBubbleGlow isActive={isActiveMessage} isRight={isRight} motionConfig={motionConfig} />
+                <ChatBubbleGlow isActive={isActiveMessage} isRight={isRight} motionConfig={motionConfig} isMobile={isMobile} />
               </div>
               <span className="relative z-10">
                 {message.kind === "lyric" && isActiveMessage && preparedMetrics
@@ -1504,6 +1537,9 @@ const ChatVisualizer: React.FC<ChatVisualizerProps> = (props) => {
     isPlaying = true,
     rightAvatarUrl,
   } = props
+
+  const isMobile = useIsMobile()
+  const maxVisibleMessages = isMobile ? MAX_VISIBLE_MESSAGES_MOBILE : MAX_VISIBLE_MESSAGES_DESKTOP
 
   const [viewportSize, setViewportSize] = useState(() => (
     typeof window === "undefined"
@@ -1551,8 +1587,9 @@ const ChatVisualizer: React.FC<ChatVisualizerProps> = (props) => {
       currentLineIndex,
       currentTime.get(),
       intensityConfig.motion,
+      maxVisibleMessages,
     ),
-    [currentLineIndex, currentTime, intensityConfig.motion, messages, viewportSize.height, visibleLineIndex],
+    [currentLineIndex, currentTime, intensityConfig.motion, messages, viewportSize.height, visibleLineIndex, maxVisibleMessages],
   )
   const baseFontSize = Math.max(15, Math.min(26, 18 * lyricsFontScale))
   const maxPanelWidth = Math.min(Math.max(viewportSize.width - 32, 1), 896)
@@ -1604,10 +1641,10 @@ const ChatVisualizer: React.FC<ChatVisualizerProps> = (props) => {
   return (
     <div className="relative z-10 flex h-full w-full items-start justify-center overflow-visible px-4 pb-36 pt-12 sm:px-8 sm:pb-40 sm:pt-16 lg:px-14 lg:pt-20">
       <div className="relative flex w-full max-w-4xl flex-col justify-start gap-3 overflow-visible">
-        <AnimatePresence initial={false} mode="popLayout">
+        <AnimatePresence initial={false} mode={isMobile ? "wait" : "popLayout"}>
           {visibleMessages.map((message) => (
             message.kind === "divider" ? (
-              <ChatDivider key={message.id} label={message.label} theme={theme} />
+              <ChatDivider key={message.id} label={message.label} theme={theme} isMobile={isMobile} />
             ) : (
               <ChatMessageRow
                 key={message.id}
@@ -1625,6 +1662,7 @@ const ChatVisualizer: React.FC<ChatVisualizerProps> = (props) => {
                 customAvatarImages={customAvatarImages}
                 rightAvatarUrl={rightAvatarUrl}
                 isPlaying={isPlaying}
+                isMobile={isMobile}
               />
             )
           ))}

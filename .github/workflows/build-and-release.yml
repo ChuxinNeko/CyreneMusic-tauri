@@ -103,6 +103,11 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # tauri-action 默认设置 TAURI_BUNDLER_DMG_IGNORE_CI=true，
+          # 这会导致 bundle_dmg.sh 不带 --skip-jenkins 参数运行，
+          # 在 GitHub Actions macOS runner 上 Finder 的 AppleScript 调用超时失败。
+          # 设为 false 让 bundler 正确检测 CI 环境并跳过 Finder 美化步骤。
+          TAURI_BUNDLER_DMG_IGNORE_CI: 'false'
         with:
           tauriScript: bun run tauri
           args: --target ${{ matrix.target }}

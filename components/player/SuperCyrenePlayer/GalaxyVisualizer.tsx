@@ -9,6 +9,7 @@ import { DEFAULT_GALAXY_TUNING } from "./galaxy-core/galaxy-types"
 import type { GalaxyTuning } from "./galaxy-core/galaxy-types"
 import GalaxyCameraRig from "./galaxy-core/GalaxyCameraRig"
 import GalaxyScene from "./galaxy-core/GalaxyScene"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface GalaxyVisualizerProps {
   currentTime: MotionValue<number>
@@ -38,6 +39,9 @@ const GalaxyVisualizer: React.FC<GalaxyVisualizerProps> = (props) => {
     seed, lyricsFontScale = 1, tuning, hue = 258,
   } = props
 
+  const isMobile = useIsMobile()
+  const canvasDpr = isMobile ? [1, 1] as [number, number] : [1, 1.5] as [number, number]
+
   const galaxyTuning = tuning ?? DEFAULT_GALAXY_TUNING
 
   return (
@@ -45,8 +49,8 @@ const GalaxyVisualizer: React.FC<GalaxyVisualizerProps> = (props) => {
       <div className="absolute inset-0 z-0">
         <Canvas
           camera={{ position: [0, galaxyTuning.cameraDistance * 0.42, galaxyTuning.cameraDistance * 0.9], fov: 55 }}
-          dpr={[1, 1.5]}
-          gl={{ alpha: true, antialias: true, powerPreference: "high-performance" }}
+          dpr={canvasDpr}
+          gl={{ alpha: true, antialias: !isMobile, powerPreference: "high-performance" }}
           style={{ background: "transparent" }}
         >
           <GalaxyCameraRig

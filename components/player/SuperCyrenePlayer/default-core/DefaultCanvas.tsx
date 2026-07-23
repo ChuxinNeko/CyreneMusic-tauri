@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, MotionValue } from 'framer-motion';
 import { Hourglass } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { AudioBands, DEFAULT_DEFAULT_TUNING, DefaultTuning, Line, Theme } from './default-types';
 import { getLineRenderEndTime } from './renderHints';
 import { colorWithAlpha, mixColors, clearColorCache } from './colorMix';
@@ -69,6 +70,9 @@ const VisualizerDefault: React.FC<VisualizerProps> = (props) => {
         showSubtitleTranslation = true,
         paused = false,
     } = props;
+    const isMobile = useIsMobile();
+    // 移动端限制 DPR 上限为 1，桌面端保持原始 devicePixelRatio
+    const dprCap = isMobile ? 1 : 2;
     const viewportRef = useRef<HTMLDivElement | null>(null);
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const cameraInitializedRef = useRef(false);
@@ -299,7 +303,7 @@ const VisualizerDefault: React.FC<VisualizerProps> = (props) => {
 
         const width = Math.max(Math.floor(viewport.width), 1);
         const height = Math.max(Math.floor(viewport.height), 1);
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = Math.min(window.devicePixelRatio || 1, dprCap);
 
         if (canvas.width !== Math.floor(width * dpr) || canvas.height !== Math.floor(height * dpr)) {
             canvas.width = Math.floor(width * dpr);
@@ -346,7 +350,7 @@ const VisualizerDefault: React.FC<VisualizerProps> = (props) => {
         const bgAudioLevels: DefaultBackgroundAudioLevels = {};
 
         const syncCanvasSize = () => {
-            const dpr = window.devicePixelRatio || 1;
+            const dpr = Math.min(window.devicePixelRatio || 1, dprCap);
             const w = Math.max(Math.floor(viewport.width), 1);
             const h = Math.max(Math.floor(viewport.height), 1);
             const cw = Math.floor(w * dpr);
@@ -825,7 +829,7 @@ const VisualizerDefault: React.FC<VisualizerProps> = (props) => {
                         : null;
 
                 if (staticState) {
-                    const snapshotScale = clamp(window.devicePixelRatio || 1, 1, 2);
+                    const snapshotScale = clamp(window.devicePixelRatio || 1, 1, dprCap);
                     const cacheStyleKey = staticState === 'passed' ? effectiveTextHoldStyle : 'base';
                     // Include distance tier in cache key for graduated opacity layers
                     const distanceTier = Math.min(distanceFromFocus, 6);
@@ -1254,6 +1258,7 @@ const VisualizerDefault: React.FC<VisualizerProps> = (props) => {
         backgroundObjectOpacity,
         cameraSpeed,
         currentTime,
+        dprCap,
         glowIntensity,
         passedFadeDuration,
         showPrintStamp,

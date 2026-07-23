@@ -775,96 +775,150 @@ export function FullscreenPlayer() {
                             <div className={
                                 isImmersiveMode || hideAlbumCover
                                     ? 'hidden'
-                                    : `relative z-[1] aspect-square w-full ${isMobile ? 'max-w-[min(90%,36vh,90cqh)]' : 'max-w-[min(100%,40vh)]'} lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink transition-all duration-700`
+                                    : `relative z-[1] aspect-square w-full ${isMobile ? 'max-w-[min(88%,38vh,88cqh)]' : 'max-w-[min(100%,40vh)]'} lg:max-w-[min(100%,45vh)] 2xl:max-w-[min(100%,50vh)] shrink transition-all duration-700`
                             }
                             >
-                                <div
-                                    ref={coverTiltRef}
-                                    onMouseMove={!isMobile ? handleCoverMouseMove : undefined}
-                                    onMouseEnter={!isMobile ? handleCoverMouseEnter : undefined}
-                                    onMouseLeave={!isMobile ? handleCoverMouseLeave : undefined}
-                                    style={{
-                                        transformStyle: 'preserve-3d',
-                                        // 从顶部旋转：封面倾斜时上边缘固定不动，不会翘出容器被裁剪
-                                        transformOrigin: 'center top',
-                                    }}
-                                    className="relative w-full h-full rounded-full transition-transform duration-500 bg-[#101010]/95 border border-white/15 shadow-[0_24px_55px_rgba(0,0,0,0.5),inset_0_0_0_3px_rgba(255,255,255,0.04),inset_0_0_30px_rgba(0,0,0,0.8)]"
-                                >
+                                {isMobile ? (
+                                    /* ── Mobile: Apple Music 风格大封面 ── */
                                     <div
-                                        className="absolute inset-0 rounded-full animate-[spin_18s_linear_infinite]"
-                                        style={{ animationPlayState: isPlaying ? "running" : "paused" }}
+                                        className="relative w-full h-full rounded-[14px] overflow-hidden transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] shadow-[0_20px_60px_rgba(0,0,0,0.6),0_8px_20px_rgba(0,0,0,0.4)]"
+                                        style={{ transform: isPlaying ? 'scale(1)' : 'scale(0.92)' }}
                                     >
+                                        {currentTrack?.picUrl ? (
+                                            <img src={currentTrack.picUrl} alt={currentTrack.name} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${dynamicCoverUrl && isVideoLoaded ? 'opacity-0' : 'opacity-100'}`} />
+                                        ) : (
+                                            <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-[#1a1a1a] text-white/10 text-4xl font-bold">CYRENE</div>
+                                        )}
+                                        {dynamicCoverUrl && (
+                                            <>
+                                                <video
+                                                    ref={video0Ref}
+                                                    src={dynamicCoverUrl}
+                                                    autoPlay={activeVideo === 0}
+                                                    muted
+                                                    playsInline
+                                                    onLoadedData={() => { if (activeVideo === 0) setIsVideoLoaded(true); }}
+                                                    onTimeUpdate={() => {
+                                                        if (activeVideoRef.current !== 0 || !video0Ref.current || !video1Ref.current) return;
+                                                        const v0 = video0Ref.current;
+                                                        if (v0.duration - v0.currentTime <= crossfadeDuration) {
+                                                            activeVideoRef.current = 1;
+                                                            video1Ref.current.currentTime = 0;
+                                                            video1Ref.current.play();
+                                                            setActiveVideo(1);
+                                                        }
+                                                    }}
+                                                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded && activeVideo === 0 ? 'opacity-100' : 'opacity-0'}`}
+                                                />
+                                                <video
+                                                    ref={video1Ref}
+                                                    src={dynamicCoverUrl}
+                                                    muted
+                                                    playsInline
+                                                    onTimeUpdate={() => {
+                                                        if (activeVideoRef.current !== 1 || !video1Ref.current || !video0Ref.current) return;
+                                                        const v1 = video1Ref.current;
+                                                        if (v1.duration - v1.currentTime <= crossfadeDuration) {
+                                                            activeVideoRef.current = 0;
+                                                            video0Ref.current.currentTime = 0;
+                                                            video0Ref.current.play();
+                                                            setActiveVideo(0);
+                                                        }
+                                                    }}
+                                                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded && activeVideo === 1 ? 'opacity-100' : 'opacity-0'}`}
+                                                />
+                                            </>
+                                        )}
+                                    </div>
+                                ) : (
+                                    /* ── Desktop: 旋转黑胶唱片 ── */
                                     <div
-                                        className="absolute inset-[3%] rounded-full opacity-75"
+                                        ref={coverTiltRef}
+                                        onMouseMove={handleCoverMouseMove}
+                                        onMouseEnter={handleCoverMouseEnter}
+                                        onMouseLeave={handleCoverMouseLeave}
                                         style={{
-                                            background: "repeating-radial-gradient(circle at center, transparent 0 5%, rgba(255, 255, 255, 0.08) 5.3% 5.5%, transparent 5.8% 8%)",
+                                            transformStyle: 'preserve-3d',
+                                            transformOrigin: 'center top',
                                         }}
-                                    />
-                                    <div className="absolute inset-[7%] rounded-full border border-white/10 shadow-[inset_0_0_16px_rgba(0,0,0,0.7)]" />
-                                    <div className="absolute inset-[17%] overflow-hidden rounded-full border border-white/20 bg-black shadow-[0_0_0_3px_rgba(0,0,0,0.25)]">
-                                        <div className="relative h-full w-full">
-                                            {currentTrack?.picUrl ? (
-                                                <img src={currentTrack.picUrl} alt={currentTrack.name} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${dynamicCoverUrl && isVideoLoaded ? 'opacity-0' : 'opacity-100'}`} />
-                                    ) : (
-                                        <div className="absolute inset-0 w-full h-full flex items-center justify-center text-white/10 text-4xl font-bold">CYRENE</div>
-                                    )}
-                                    {dynamicCoverUrl && (
-                                        <>
-                                            <video
-                                                ref={video0Ref}
-                                                src={dynamicCoverUrl}
-                                                autoPlay={activeVideo === 0}
-                                                muted
-                                                playsInline
-                                                onLoadedData={() => { if (activeVideo === 0) setIsVideoLoaded(true); }}
-                                                onTimeUpdate={() => {
-                                                    if (activeVideoRef.current !== 0 || !video0Ref.current || !video1Ref.current) return;
-                                                    const v0 = video0Ref.current;
-                                                    if (v0.duration - v0.currentTime <= crossfadeDuration) {
-                                                        activeVideoRef.current = 1;
-                                                        video1Ref.current.currentTime = 0;
-                                                        video1Ref.current.play();
-                                                        setActiveVideo(1);
-                                                    }
-                                                }}
-                                                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded && activeVideo === 0 ? 'opacity-100' : 'opacity-0'}`}
-                                            />
-                                            <video
-                                                ref={video1Ref}
-                                                src={dynamicCoverUrl}
-                                                muted
-                                                playsInline
-                                                onTimeUpdate={() => {
-                                                    if (activeVideoRef.current !== 1 || !video1Ref.current || !video0Ref.current) return;
-                                                    const v1 = video1Ref.current;
-                                                    if (v1.duration - v1.currentTime <= crossfadeDuration) {
-                                                        activeVideoRef.current = 0;
-                                                        video0Ref.current.currentTime = 0;
-                                                        video0Ref.current.play();
-                                                        setActiveVideo(0);
-                                                    }
-                                                }}
-                                                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded && activeVideo === 1 ? 'opacity-100' : 'opacity-0'}`}
-                                            />
-                                        </>
-                                    )}
-                                        </div>
-                                    </div>
-                                    <div className="absolute left-1/2 top-1/2 z-10 h-[9%] w-[9%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/30 bg-gradient-to-br from-white/65 via-white/20 to-black/50 shadow-[0_1px_5px_rgba(0,0,0,0.85)]" />
-                                    </div>
-                                    <div
-                                        className={`absolute right-[-2%] top-[-3%] z-20 h-[53%] w-[25%] origin-[85%_12%] transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${isPlaying ? 'rotate-[24deg]' : 'rotate-[4deg]'}`}
-                                        aria-hidden="true"
+                                        className="relative w-full h-full rounded-full transition-transform duration-500 bg-[#101010]/95 border border-white/15 shadow-[0_24px_55px_rgba(0,0,0,0.5),inset_0_0_0_3px_rgba(255,255,255,0.04),inset_0_0_30px_rgba(0,0,0,0.8)]"
                                     >
-                                        <div className="absolute right-[-4%] top-[3%] h-[18%] aspect-square rounded-full bg-white shadow-[0_3px_12px_rgba(0,0,0,0.35)]" />
-                                        <div className="absolute right-[6.5%] top-[8%] h-[8%] aspect-square rounded-full bg-zinc-300" />
-                                        <div className="absolute right-[9.5%] top-[12%] h-[72%] w-[11%] rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.35)]">
-                                            <div className="absolute bottom-[-7%] left-1/2 h-[20%] w-[260%] -translate-x-1/2 rounded-sm bg-white shadow-[0_2px_6px_rgba(0,0,0,0.3)]">
-                                                <div className="absolute bottom-[-18%] left-[18%] h-[22%] w-[64%] rounded-sm bg-zinc-900" />
+                                        <div
+                                            className="absolute inset-0 rounded-full animate-[spin_18s_linear_infinite]"
+                                            style={{ animationPlayState: isPlaying ? "running" : "paused" }}
+                                        >
+                                        <div
+                                            className="absolute inset-[3%] rounded-full opacity-75"
+                                            style={{
+                                                background: "repeating-radial-gradient(circle at center, transparent 0 5%, rgba(255, 255, 255, 0.08) 5.3% 5.5%, transparent 5.8% 8%)",
+                                            }}
+                                        />
+                                        <div className="absolute inset-[7%] rounded-full border border-white/10 shadow-[inset_0_0_16px_rgba(0,0,0,0.7)]" />
+                                        <div className="absolute inset-[17%] overflow-hidden rounded-full border border-white/20 bg-black shadow-[0_0_0_3px_rgba(0,0,0,0.25)]">
+                                            <div className="relative h-full w-full">
+                                                {currentTrack?.picUrl ? (
+                                                    <img src={currentTrack.picUrl} alt={currentTrack.name} className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${dynamicCoverUrl && isVideoLoaded ? 'opacity-0' : 'opacity-100'}`} />
+                                                ) : (
+                                                    <div className="absolute inset-0 w-full h-full flex items-center justify-center text-white/10 text-4xl font-bold">CYRENE</div>
+                                                )}
+                                                {dynamicCoverUrl && (
+                                                    <>
+                                                        <video
+                                                            ref={video0Ref}
+                                                            src={dynamicCoverUrl}
+                                                            autoPlay={activeVideo === 0}
+                                                            muted
+                                                            playsInline
+                                                            onLoadedData={() => { if (activeVideo === 0) setIsVideoLoaded(true); }}
+                                                            onTimeUpdate={() => {
+                                                                if (activeVideoRef.current !== 0 || !video0Ref.current || !video1Ref.current) return;
+                                                                const v0 = video0Ref.current;
+                                                                if (v0.duration - v0.currentTime <= crossfadeDuration) {
+                                                                    activeVideoRef.current = 1;
+                                                                    video1Ref.current.currentTime = 0;
+                                                                    video1Ref.current.play();
+                                                                    setActiveVideo(1);
+                                                                }
+                                                            }}
+                                                            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded && activeVideo === 0 ? 'opacity-100' : 'opacity-0'}`}
+                                                        />
+                                                        <video
+                                                            ref={video1Ref}
+                                                            src={dynamicCoverUrl}
+                                                            muted
+                                                            playsInline
+                                                            onTimeUpdate={() => {
+                                                                if (activeVideoRef.current !== 1 || !video1Ref.current || !video0Ref.current) return;
+                                                                const v1 = video1Ref.current;
+                                                                if (v1.duration - v1.currentTime <= crossfadeDuration) {
+                                                                    activeVideoRef.current = 0;
+                                                                    video0Ref.current.currentTime = 0;
+                                                                    video0Ref.current.play();
+                                                                    setActiveVideo(0);
+                                                                }
+                                                            }}
+                                                            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVideoLoaded && activeVideo === 1 ? 'opacity-100' : 'opacity-0'}`}
+                                                        />
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="absolute left-1/2 top-1/2 z-10 h-[9%] w-[9%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/30 bg-gradient-to-br from-white/65 via-white/20 to-black/50 shadow-[0_1px_5px_rgba(0,0,0,0.85)]" />
+                                        </div>
+                                        <div
+                                            className={`absolute right-[-2%] top-[-3%] z-20 h-[53%] w-[25%] origin-[85%_12%] transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${isPlaying ? 'rotate-[24deg]' : 'rotate-[4deg]'}`}
+                                            aria-hidden="true"
+                                        >
+                                            <div className="absolute right-[-4%] top-[3%] h-[18%] aspect-square rounded-full bg-white shadow-[0_3px_12px_rgba(0,0,0,0.35)]" />
+                                            <div className="absolute right-[6.5%] top-[8%] h-[8%] aspect-square rounded-full bg-zinc-300" />
+                                            <div className="absolute right-[9.5%] top-[12%] h-[72%] w-[11%] rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.35)]">
+                                                <div className="absolute bottom-[-7%] left-1/2 h-[20%] w-[260%] -translate-x-1/2 rounded-sm bg-white shadow-[0_2px_6px_rgba(0,0,0,0.3)]">
+                                                    <div className="absolute bottom-[-18%] left-[18%] h-[22%] w-[64%] rounded-sm bg-zinc-900" />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                             {/* Desktop Non-Immersive Audio Visualizer Capsule */}
                             {!isMobile && !isImmersiveMode && (
@@ -932,51 +986,7 @@ export function FullscreenPlayer() {
                                                     {currentTrack?.artists || '未知歌手'}
                                                 </div>
                                             </div>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <button className="text-white/50 hover:text-white/80 transition-colors p-2 hover:bg-white/10 rounded-full">
-                                                        <MoreHorizontal size={18} />
-                                                    </button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-56 bg-black/90 backdrop-blur-xl border-white/10 text-white">
-                                                    <DropdownMenuItem onClick={handleHeartClick} className="focus:bg-white/10 focus:text-white">
-                                                        <Heart className={`mr-2 h-4 w-4 ${isInPlaylist ? 'text-red-500' : ''}`} fill={isInPlaylist ? "currentColor" : "none"} />
-                                                        {isInPlaylist ? '取消收藏' : '收藏'}
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => { setShowAddToPlaylistMode('add'); setShowAddToPlaylist(true) }} className="focus:bg-white/10 focus:text-white">
-                                                        <ListMusic className="mr-2 h-4 w-4" />
-                                                        添加到歌单
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleArtistClick()} className="focus:bg-white/10 focus:text-white">
-                                                        <Disc className="mr-2 h-4 w-4" />
-                                                        查看歌手
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator className="bg-white/10" />
-                                                    <div className="px-2 py-1.5">
-                                                        <div className="text-xs font-medium mb-2 opacity-60">歌词样式</div>
-                                                        <div className="flex gap-1">
-                                                            <button
-                                                                onClick={() => setLyricDisplayStyle(LyricDisplayStyle.Scroll)}
-                                                                className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.Scroll ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                                                            >
-                                                                滚动
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setLyricDisplayStyle(LyricDisplayStyle.Roulette)}
-                                                                className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.Roulette ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                                                            >
-                                                                轮盘
-                                                            </button>
-                                                            <button
-                                                                onClick={() => setLyricDisplayStyle(LyricDisplayStyle.SingleLine)}
-                                                                className={`flex-1 text-xs py-1 px-2 rounded transition-colors ${lyricDisplayStyle === LyricDisplayStyle.SingleLine ? 'bg-white/20 text-white' : 'bg-white/5 text-white/60 hover:bg-white/10'}`}
-                                                            >
-                                                                单行
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
+                                            <PlayerSettingsMenu align="end" isMobile={true} />
                                         </div>
                                     )}
                                     <div className="flex-1 min-h-0" onClick={isMobileLyricsControlsHidden ? undefined : e => e.stopPropagation()}>
@@ -1227,6 +1237,7 @@ export function FullscreenPlayer() {
                 onStatusChange={checkPlaylistStatus}
                 mode={showAddToPlaylistMode}
             />
+
         </div>
       </LyricSettingsProvider>
     )
