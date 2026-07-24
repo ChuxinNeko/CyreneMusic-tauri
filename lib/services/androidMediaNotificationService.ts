@@ -2,6 +2,7 @@
 
 import { invoke } from "@tauri-apps/api/core"
 import { Track } from "@/lib/models/track"
+import { isAndroidTauriRuntime } from "@/lib/utils/platform"
 
 type AndroidMediaNotificationPayload = {
   title: string
@@ -11,10 +12,6 @@ type AndroidMediaNotificationPayload = {
   isPlaying: boolean
   durationMs: number
   positionMs: number
-}
-
-function isAndroidTauriRuntime() {
-  return typeof window !== "undefined" && /Android/i.test(window.navigator.userAgent)
 }
 
 class AndroidMediaNotificationService {
@@ -65,4 +62,3 @@ class AndroidMediaNotificationService {
 }
 
 export const androidMediaNotificationService = new AndroidMediaNotificationService()
-export { isAndroidTauriRuntime }

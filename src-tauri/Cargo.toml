@@ -34,10 +34,6 @@ tauri-plugin-fs = "2"
 walkdir = "2"
 tokio = { version = "1", features = ["rt", "net", "io-util"] }
 
-[target.'cfg(target_os = "android")'.dependencies]
-ndk-context = "0.1.1"
-jni = "0.21.1"
-
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 window-vibrancy = "0.7.1"
 

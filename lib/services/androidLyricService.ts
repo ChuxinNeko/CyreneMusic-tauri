@@ -1,7 +1,7 @@
 import { usePlayerStore } from '../store/usePlayerStore'
 import { parseLyrics } from '../../components/player/parser/lyricParser'
 import { invoke } from '@tauri-apps/api/core'
-import { isAndroidTauriRuntime } from './androidMediaNotificationService'
+import { isAndroidTauriRuntime } from '../utils/platform'
 import { LyricLineData } from '../../components/player/parser/types'
 
 class AndroidLyricService {

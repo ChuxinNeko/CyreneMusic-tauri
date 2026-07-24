@@ -3,12 +3,13 @@
 import * as React from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 import { invoke } from "@tauri-apps/api/core"
+import { isAndroidTauriRuntime } from "@/lib/utils/platform"
 
 function StatusBarThemer() {
     const { resolvedTheme } = useTheme()
 
     React.useEffect(() => {
-        if (resolvedTheme) {
+        if (resolvedTheme && isAndroidTauriRuntime()) {
             // is_dark_text should be true when the theme is 'light'
             const isDarkText = resolvedTheme === "light"
             invoke("set_status_bar_style", { isDarkText })

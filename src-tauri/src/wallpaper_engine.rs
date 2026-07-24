@@ -26,8 +26,8 @@ pub fn get_wallpaper_engine_background() -> Result<WallpaperInfo, String> {
         return Err(format!("Config not found: {}", config_path.display()));
     }
 
-    let config_content = fs::read_to_string(&config_path)
-        .map_err(|e| format!("Failed to read config: {}", e))?;
+    let config_content =
+        fs::read_to_string(&config_path).map_err(|e| format!("Failed to read config: {}", e))?;
     let config: serde_json::Value = serde_json::from_str(&config_content)
         .map_err(|e| format!("Failed to parse config JSON: {}", e))?;
 
@@ -36,18 +36,27 @@ pub fn get_wallpaper_engine_background() -> Result<WallpaperInfo, String> {
     let wallpaper_file_path = find_active_wallpaper_path(&config)?;
 
     // 4. 将路径中的正斜杠转换为系统分隔符
-    let wallpaper_file_path = PathBuf::from(wallpaper_file_path.replace('/', std::path::MAIN_SEPARATOR_STR));
+    let wallpaper_file_path =
+        PathBuf::from(wallpaper_file_path.replace('/', std::path::MAIN_SEPARATOR_STR));
 
     if !wallpaper_file_path.exists() {
-        return Err(format!("Wallpaper file not found: {}", wallpaper_file_path.display()));
+        return Err(format!(
+            "Wallpaper file not found: {}",
+            wallpaper_file_path.display()
+        ));
     }
 
     // 5. 在壁纸文件所在目录查找 project.json
-    let wallpaper_dir = wallpaper_file_path.parent().ok_or("Invalid wallpaper path")?;
+    let wallpaper_dir = wallpaper_file_path
+        .parent()
+        .ok_or("Invalid wallpaper path")?;
     let project_json_path = wallpaper_dir.join("project.json");
 
     if !project_json_path.exists() {
-        return Err(format!("project.json not found in {}", wallpaper_dir.display()));
+        return Err(format!(
+            "project.json not found in {}",
+            wallpaper_dir.display()
+        ));
     }
 
     parse_project_and_find_entry(&project_json_path, &wallpaper_file_path)
@@ -78,8 +87,7 @@ fn get_we_install_dir() -> Result<PathBuf, String> {
 /// 配置结构: { "<steam_user_id>": { "general": { "wallpaperconfig": { "selectedwallpapers": { "Monitor0": { "file": "..." } } } } } }
 fn find_active_wallpaper_path(config: &serde_json::Value) -> Result<String, String> {
     // 遍历所有用户 ID
-    let obj = config.as_object()
-        .ok_or("Config is not an object")?;
+    let obj = config.as_object().ok_or("Config is not an object")?;
 
     for (_user_id, user_config) in obj {
         // 获取 general.wallpaperconfig.selectedwallpapers
@@ -159,8 +167,8 @@ fn parse_project_and_find_entry(
 
 /// 读取 HTML 壁纸文件并注入 WE API shim
 pub fn get_html_with_shim(html_path: &Path) -> Result<String, String> {
-    let content = fs::read_to_string(html_path)
-        .map_err(|e| format!("Failed to read HTML file: {}", e))?;
+    let content =
+        fs::read_to_string(html_path).map_err(|e| format!("Failed to read HTML file: {}", e))?;
 
     // WE API shim 脚本 - mock Wallpaper Engine 专有 API
     let shim_script = r#"

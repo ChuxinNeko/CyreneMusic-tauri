@@ -43,9 +43,7 @@ fn extract_metadata(path: &Path) -> Option<LocalTrackMetadata> {
         let album_name = tag.album().map(|s| s.to_string()).unwrap_or_default();
 
         // Extract embedded lyrics (USLT for ID3, LYRICS for Vorbis)
-        let lyrics = tag
-            .get_string(&ItemKey::Lyrics)
-            .map(|s| s.to_string());
+        let lyrics = tag.get_string(&ItemKey::Lyrics).map(|s| s.to_string());
 
         // Extract cover art
         let cover = tag.pictures().first().map(|pic| {
@@ -77,8 +75,16 @@ fn extract_metadata(path: &Path) -> Option<LocalTrackMetadata> {
     Some(LocalTrackMetadata {
         file_path: path.to_string_lossy().to_string(),
         name: final_name,
-        artists: if artists.is_empty() { "未知歌手".to_string() } else { artists },
-        album: if album.is_empty() { "未知专辑".to_string() } else { album },
+        artists: if artists.is_empty() {
+            "未知歌手".to_string()
+        } else {
+            artists
+        },
+        album: if album.is_empty() {
+            "未知专辑".to_string()
+        } else {
+            album
+        },
         duration: duration_secs,
         cover_data_url,
         lyric,
@@ -149,12 +155,10 @@ pub async fn save_mobile_local_music(
         .map_err(|e| format!("无法获取 App 数据目录: {}", e))?
         .join("local_music");
 
-    std::fs::create_dir_all(&base_dir)
-        .map_err(|e| format!("创建 local_music 目录失败: {}", e))?;
+    std::fs::create_dir_all(&base_dir).map_err(|e| format!("创建 local_music 目录失败: {}", e))?;
 
     let dest_path = base_dir.join(&file_name);
-    std::fs::write(&dest_path, data)
-        .map_err(|e| format!("写入音乐文件失败: {}", e))?;
+    std::fs::write(&dest_path, data).map_err(|e| format!("写入音乐文件失败: {}", e))?;
 
     Ok(dest_path.to_string_lossy().to_string())
 }

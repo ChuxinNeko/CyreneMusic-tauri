@@ -10,7 +10,7 @@ import { useCacheStore } from "@/lib/store/useCacheStore"
 import { cacheService } from "@/lib/services/cacheService"
 import { open } from "@tauri-apps/plugin-dialog"
 import { toast } from "sonner"
-import { isAndroidTauriRuntime } from "@/lib/services/androidMediaNotificationService"
+import { isAndroidTauriRuntime } from "@/lib/utils/platform"
 
 export function CacheSettingsManager() {
     const { isCacheEnabled, setIsCacheEnabled, cacheDirectory, setCacheDirectory } = useCacheStore()

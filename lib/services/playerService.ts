@@ -14,7 +14,8 @@ import { historyService } from "./historyService"
 import { listeningStatsService } from "./listeningStatsService"
 import { neteaseSongWikiService } from "./neteaseSongWikiService"
 import { lxMusicRuntimeService } from "./lxMusicRuntimeService"
-import { androidMediaNotificationService, isAndroidTauriRuntime } from './androidMediaNotificationService'
+import { androidMediaNotificationService } from './androidMediaNotificationService'
+import { isAndroidTauriRuntime, isWindowsTauriRuntime } from '../utils/platform'
 import { androidLyricService } from './androidLyricService'
 import { cacheService } from './cacheService'
 import { useCacheStore } from '../store/useCacheStore'
@@ -106,7 +107,7 @@ class PlayerService {
             // 确保实例化歌词推送服务
             androidLyricService;
 
-            if (typeof window !== "undefined" && (window as any).__TAURI_INTERNALS__) {
+            if (isWindowsTauriRuntime()) {
                 const store = usePlayerStore.getState();
                 const layoutStore = useLayoutStore.getState();
                 
@@ -174,13 +175,13 @@ class PlayerService {
                     }
                     break
                 case 'open-taskbar-player':
-                    if (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) {
+                    if (isWindowsTauriRuntime()) {
                         const store = useLayoutStore.getState()
                         invoke('open_taskbar_player', { position: store.taskbarPlayerPosition }).catch(console.error)
                     }
                     break
                 case 'close-taskbar-player':
-                    if (typeof window !== 'undefined' && (window as any).__TAURI_INTERNALS__) {
+                    if (isWindowsTauriRuntime()) {
                         invoke('close_taskbar_player').catch(console.error)
                     }
                     break

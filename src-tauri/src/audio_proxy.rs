@@ -228,7 +228,9 @@ async fn write_error(
          Content-Length: {}\r\n\
          Access-Control-Allow-Origin: *\r\n\
          Connection: close\r\n\r\n",
-        code, msg, body.len()
+        code,
+        msg,
+        body.len()
     );
     stream.write_all(resp.as_bytes()).await?;
     stream.write_all(body).await

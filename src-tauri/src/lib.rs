@@ -12,11 +12,12 @@ use tauri::{Emitter, Manager};
 #[cfg(target_os = "windows")]
 mod thumbbar;
 
-mod local_music;
+mod android_bridge;
 mod audio_proxy;
+mod desktop_player;
+mod local_music;
 mod taskbar_player;
 mod wallpaper_engine;
-mod desktop_player;
 
 lazy_static::lazy_static! {
     static ref SYS: Mutex<System> = Mutex::new(System::new_all());
@@ -108,12 +109,15 @@ async fn download_update(
         .map_err(|e| format!("Download request failed: {}", e))?;
 
     if !response.status().is_success() {
-        return Err(format!("Download request failed with status {}", response.status()));
+        return Err(format!(
+            "Download request failed with status {}",
+            response.status()
+        ));
     }
 
     let total = response.content_length();
-    let mut file = File::create(&partial_path)
-        .map_err(|e| format!("Create download file failed: {}", e))?;
+    let mut file =
+        File::create(&partial_path).map_err(|e| format!("Create download file failed: {}", e))?;
     let mut downloaded = 0_u64;
 
     while let Some(chunk) = response
@@ -301,17 +305,13 @@ async fn open_table_player(app: tauri::AppHandle) -> Result<(), String> {
         let pos = main_win.inner_position().unwrap_or_default();
         let size = main_win.inner_size().unwrap_or_default();
         let scale = main_win.scale_factor().unwrap_or(1.0);
-        
+
         let origin_x = pos.x as f64 / scale;
         let origin_y = pos.y as f64 / scale;
         let work_w = size.width as f64 / scale;
         let work_h = size.height as f64 / scale;
 
-        (
-            origin_x + work_w + margin,
-            origin_y,
-            work_h
-        )
+        (origin_x + work_w + margin, origin_y, work_h)
     } else {
         (1200.0, 100.0, 800.0)
     };
@@ -375,7 +375,11 @@ fn get_table_player_pin_state() -> Result<bool, String> {
 
 #[cfg(desktop)]
 #[tauri::command]
-fn update_window_material(window: tauri::Window, material: String, is_dark: bool) -> Result<(), String> {
+fn update_window_material(
+    window: tauri::Window,
+    material: String,
+    is_dark: bool,
+) -> Result<(), String> {
     match material.as_str() {
         "mica" => {
             let _ = window_vibrancy::apply_mica(&window, Some(is_dark));
@@ -500,96 +504,40 @@ struct AndroidLyricNotificationPayload {
 }
 
 #[cfg(target_os = "android")]
-fn with_android_activity<F>(mut callback: F) -> Result<(), String>
-where
-    F: FnMut(&mut jni::JNIEnv, jni::objects::JObject) -> Result<(), String>,
-{
-    let ctx = ndk_context::android_context();
-    let vm = unsafe { jni::JavaVM::from_raw(ctx.vm() as *mut _) }
-        .map_err(|e| format!("Get JVM fail: {}", e))?;
-    let mut env_guard = vm
-        .attach_current_thread()
-        .map_err(|e| format!("Attach thread fail: {}", e))?;
-    let env = &mut *env_guard;
-    let activity = unsafe { jni::objects::JObject::from_raw(ctx.context() as *mut _) };
-    callback(env, activity)
-}
-
-#[cfg(target_os = "android")]
 #[tauri::command]
 fn android_media_notification_update(
+    bridge: tauri::State<'_, android_bridge::AndroidBridge<tauri::Wry>>,
     payload: AndroidMediaNotificationPayload,
 ) -> Result<(), String> {
-    let payload_json = serde_json::to_string(&payload)
-        .map_err(|e| format!("Serialize notification payload fail: {}", e))?;
-
-    with_android_activity(|env, activity| {
-        let payload_arg = env
-            .new_string(&payload_json)
-            .map_err(|e| format!("Create payload string fail: {}", e))?;
-        let payload_obj = jni::objects::JObject::from(payload_arg);
-
-        env.call_method(
-            &activity,
-            "updateMediaNotification",
-            "(Ljava/lang/String;)V",
-            &[jni::objects::JValue::Object(&payload_obj)],
-        )
-        .map_err(|e| format!("Call updateMediaNotification fail: {:?}", e))?;
-
-        Ok(())
-    })
+    bridge.update_media_notification(&payload)
 }
 
 #[cfg(target_os = "android")]
 #[tauri::command]
-fn android_media_notification_hide() -> Result<(), String> {
-    with_android_activity(|env, activity| {
-        env.call_method(&activity, "hideMediaNotification", "()V", &[])
-            .map_err(|e| format!("Call hideMediaNotification fail: {:?}", e))?;
-
-        Ok(())
-    })
+fn android_media_notification_hide(
+    bridge: tauri::State<'_, android_bridge::AndroidBridge<tauri::Wry>>,
+) -> Result<(), String> {
+    bridge.hide_media_notification()
 }
 
 #[cfg(target_os = "android")]
 #[tauri::command]
 fn android_lyric_notification_update(
+    bridge: tauri::State<'_, android_bridge::AndroidBridge<tauri::Wry>>,
     payload: AndroidLyricNotificationPayload,
 ) -> Result<(), String> {
-    let payload_json = serde_json::to_string(&payload)
-        .map_err(|e| format!("Serialize lyric notification payload fail: {}", e))?;
-
-    with_android_activity(|env, activity| {
-        let payload_arg = env
-            .new_string(&payload_json)
-            .map_err(|e| format!("Create payload string fail: {}", e))?;
-        let payload_obj = jni::objects::JObject::from(payload_arg);
-
-        env.call_method(
-            &activity,
-            "updateLyricNotification",
-            "(Ljava/lang/String;)V",
-            &[jni::objects::JValue::Object(&payload_obj)],
-        )
-        .map_err(|e| format!("Call updateLyricNotification fail: {:?}", e))?;
-
-        Ok(())
-    })
+    bridge.update_lyric_notification(&payload)
 }
 
 #[cfg(target_os = "android")]
 #[tauri::command]
-fn android_lyric_notification_hide() -> Result<(), String> {
-    with_android_activity(|env, activity| {
-        env.call_method(&activity, "hideLyricNotification", "()V", &[])
-            .map_err(|e| format!("Call hideLyricNotification fail: {:?}", e))?;
-
-        Ok(())
-    })
+fn android_lyric_notification_hide(
+    bridge: tauri::State<'_, android_bridge::AndroidBridge<tauri::Wry>>,
+) -> Result<(), String> {
+    bridge.hide_lyric_notification()
 }
 
-#[derive(serde::Serialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct AndroidInstallResult {
     success: bool,
@@ -600,61 +548,11 @@ struct AndroidInstallResult {
 
 #[cfg(target_os = "android")]
 #[tauri::command]
-fn android_install_apk(file_path: String) -> Result<AndroidInstallResult, String> {
-    use jni::objects::JValue;
-
-    let ctx = ndk_context::android_context();
-    let vm = unsafe { jni::JavaVM::from_raw(ctx.vm() as *mut _) }
-        .map_err(|e| format!("Get JVM fail: {}", e))?;
-    let mut env_guard = vm
-        .attach_current_thread()
-        .map_err(|e| format!("Attach thread fail: {}", e))?;
-    let env = &mut *env_guard;
-    let activity = unsafe { jni::objects::JObject::from_raw(ctx.context() as *mut _) };
-
-    let path_arg = env
-        .new_string(&file_path)
-        .map_err(|e| format!("Create path string fail: {}", e))?;
-    let path_obj = jni::objects::JObject::from(path_arg);
-
-    let result = env
-        .call_method(
-            &activity,
-            "installApkSync",
-            "(Ljava/lang/String;)Ljava/lang/String;",
-            &[JValue::Object(&path_obj)],
-        )
-        .map_err(|e| format!("Call installApkSync fail: {:?}", e))?;
-
-    let jstr: jni::objects::JString = result
-        .l()
-        .map_err(|e| format!("Extract result object fail: {:?}", e))?
-        .into();
-    let result_str: String = env
-        .get_string(&jstr)
-        .map_err(|e| format!("Get result string fail: {:?}", e))?
-        .into();
-
-    let parsed: serde_json::Value = serde_json::from_str(&result_str)
-        .map_err(|e| format!("Parse install result JSON fail: {}", e))?;
-
-    Ok(AndroidInstallResult {
-        success: parsed.get("success").and_then(|v| v.as_bool()).unwrap_or(false),
-        error_code: parsed
-            .get("errorCode")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
-        message: parsed
-            .get("message")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string(),
-        needs_permission: parsed
-            .get("needsPermission")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false),
-    })
+fn android_install_apk(
+    bridge: tauri::State<'_, android_bridge::AndroidBridge<tauri::Wry>>,
+    file_path: String,
+) -> Result<AndroidInstallResult, String> {
+    bridge.install_apk(&file_path)
 }
 
 #[cfg(not(target_os = "android"))]
@@ -798,25 +696,18 @@ fn get_process_info() -> ProcessInfo {
     }
 }
 
+#[cfg(target_os = "android")]
+#[tauri::command]
+fn set_status_bar_style(
+    bridge: tauri::State<'_, android_bridge::AndroidBridge<tauri::Wry>>,
+    is_dark_text: bool,
+) -> Result<(), String> {
+    bridge.set_status_bar_style(is_dark_text)
+}
+
+#[cfg(not(target_os = "android"))]
 #[tauri::command]
 fn set_status_bar_style(_is_dark_text: bool) -> Result<(), String> {
-    #[cfg(target_os = "android")]
-    {
-        use jni::objects::JValue;
-
-        with_android_activity(|env, activity| {
-            env.call_method(
-                &activity,
-                "setStatusBarDarkText",
-                "(Z)V",
-                &[JValue::Bool(_is_dark_text as jni::sys::jboolean)],
-            )
-            .map_err(|e| format!("call_method fail: {:?}", e))?;
-
-            Ok(())
-        })?;
-    }
-
     Ok(())
 }
 
@@ -862,12 +753,10 @@ fn get_wallpaper_html_with_shim(html_path: String) -> Result<String, String> {
 fn is_wallpaper_engine_running() -> bool {
     let mut sys = sysinfo::System::new_all();
     sys.refresh_processes();
-    sys.processes()
-        .iter()
-        .any(|(_, p)| {
-            let name = p.name().to_string().to_lowercase();
-            name == "wallpaper64.exe" || name == "wallpaper32.exe"
-        })
+    sys.processes().iter().any(|(_, p)| {
+        let name = p.name().to_string().to_lowercase();
+        name == "wallpaper64.exe" || name == "wallpaper32.exe"
+    })
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -891,6 +780,7 @@ fn is_wallpaper_engine_running() -> bool {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(android_bridge::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
@@ -1041,39 +931,45 @@ pub fn run() {
                 if let Some(main_window) = app.get_webview_window("main") {
                     let app_handle = app.handle().clone();
                     let main_window_clone = main_window.clone();
-                    
+
                     main_window.on_window_event(move |event| {
                         match event {
                             tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) => {
                                 // 如果 table-player 已置顶，跳过位置跟随和最小化隐藏
-                                let is_pinned = TABLE_PLAYER_PINNED
-                                    .lock()
-                                    .map(|v| *v)
-                                    .unwrap_or(false);
+                                let is_pinned =
+                                    TABLE_PLAYER_PINNED.lock().map(|v| *v).unwrap_or(false);
                                 if is_pinned {
                                     return;
                                 }
 
-                                if let Some(table_player) = app_handle.get_webview_window("table-player") {
+                                if let Some(table_player) =
+                                    app_handle.get_webview_window("table-player")
+                                {
                                     if main_window_clone.is_minimized().unwrap_or(false) {
                                         let _ = table_player.hide();
                                     } else {
                                         if !table_player.is_visible().unwrap_or(true) {
                                             let _ = table_player.show();
                                         }
-                                        if let (Ok(pos), Ok(size)) = (main_window_clone.inner_position(), main_window_clone.inner_size()) {
+                                        if let (Ok(pos), Ok(size)) = (
+                                            main_window_clone.inner_position(),
+                                            main_window_clone.inner_size(),
+                                        ) {
                                             let new_x = pos.x + size.width as i32;
-                                            let _ = table_player.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
-                                                x: new_x,
-                                                y: pos.y,
-                                            }));
-                                            
+                                            let _ = table_player.set_position(
+                                                tauri::Position::Physical(
+                                                    tauri::PhysicalPosition { x: new_x, y: pos.y },
+                                                ),
+                                            );
+
                                             // Update height to match
                                             if let Ok(tp_size) = table_player.inner_size() {
-                                                let _ = table_player.set_size(tauri::Size::Physical(tauri::PhysicalSize {
-                                                    width: tp_size.width,
-                                                    height: size.height,
-                                                }));
+                                                let _ = table_player.set_size(
+                                                    tauri::Size::Physical(tauri::PhysicalSize {
+                                                        width: tp_size.width,
+                                                        height: size.height,
+                                                    }),
+                                                );
                                             }
                                         }
                                     }

@@ -1,0 +1,906 @@
+o" requires shared lib "libdl.so"
+        Info "D:\\work\\cyrene_music_tauri\\src-tauri\\target\\aarch64-linux-android\\debug\\libcyrene_music_tauri_lib.so" requires shared lib "liblog.so"
+        Info "D:\\work\\cyrene_music_tauri\\src-tauri\\target\\aarch64-linux-android\\debug\\libcyrene_music_tauri_lib.so" requires shared lib "libm.so"
+        Info "D:\\work\\cyrene_music_tauri\\src-tauri\\target\\aarch64-linux-android\\debug\\libcyrene_music_tauri_lib.so" requires shared lib "libc.so"
+e: Daemon compilation failed: null
+java.lang.Exception
+        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:69)
+        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:65)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemon(GradleKotlinCompilerWork.kt:244)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemonOrFallbackImpl(GradleKotlinCompilerWork.kt:175)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:135)
+        at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:73)
+        at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+        at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+        at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+        at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
+        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
+        at org.gradle.internal.Factories$1.create(Factories.java:31)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
+        at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+        at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+        at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+        at java.base/java.lang.Thread.run(Thread.java:842)
+Caused by: java.lang.IllegalArgumentException: this and base files have different roots: C:\Users\22376\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-dialog-2.7.1\android\src\main\java\DialogPlugin.kt and D:\work\cyrene_music_tauri\src-tauri\gen\android.
+        at kotlin.io.FilesKt__UtilsKt.toRelativeString(Utils.kt:117)
+        at kotlin.io.FilesKt__UtilsKt.relativeTo(Utils.kt:128)
+        at org.jetbrains.kotlin.incremental.storage.RelocatableFileToPathConverter.toPath(RelocatableFileToPathConverter.kt:22)
+        at org.jetbrains.kotlin.incremental.storage.ComplementarySourceFilesMap.get(ComplementarySourceFilesMap.kt:22)
+        at org.jetbrains.kotlin.incremental.AbstractIncrementalCache.getComplementaryFilesRecursive(AbstractIncrementalCache.kt:227)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:455)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:400)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:281)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:125)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:657)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:105)
+        at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1624)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+        at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+        at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+        at java.base/java.security.AccessController.doPrivileged(AccessController.java:712)
+        at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:587)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:828)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:705)
+        at java.base/java.security.AccessController.doPrivileged(AccessController.java:399)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:704)
+        ... 3 more
+
+Failed to compile with Kotlin daemon: java.lang.Exception
+        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:69)
+        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:65)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemon(GradleKotlinCompilerWork.kt:244)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemonOrFallbackImpl(GradleKotlinCompilerWork.kt:175)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:135)
+        at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:73)
+        at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+        at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+        at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+        at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
+        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
+        at org.gradle.internal.Factories$1.create(Factories.java:31)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
+        at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+        at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+        at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+        at java.base/java.lang.Thread.run(Thread.java:842)
+Caused by: java.lang.IllegalArgumentException: this and base files have different roots: C:\Users\22376\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-dialog-2.7.1\android\src\main\java\DialogPlugin.kt and D:\work\cyrene_music_tauri\src-tauri\gen\android.
+        at kotlin.io.FilesKt__UtilsKt.toRelativeString(Utils.kt:117)
+        at kotlin.io.FilesKt__UtilsKt.relativeTo(Utils.kt:128)
+        at org.jetbrains.kotlin.incremental.storage.RelocatableFileToPathConverter.toPath(RelocatableFileToPathConverter.kt:22)
+        at org.jetbrains.kotlin.incremental.storage.ComplementarySourceFilesMap.get(ComplementarySourceFilesMap.kt:22)
+        at org.jetbrains.kotlin.incremental.AbstractIncrementalCache.getComplementaryFilesRecursive(AbstractIncrementalCache.kt:227)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:455)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:400)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:281)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:125)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:657)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:105)
+        at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1624)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+        at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+        at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+        at java.base/java.security.AccessController.doPrivileged(AccessController.java:712)
+        at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:587)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:828)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:705)
+        at java.base/java.security.AccessController.doPrivileged(AccessController.java:399)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:704)
+        ... 3 more
+Using fallback strategy: Compile without Kotlin daemon
+Try ./gradlew --stop if this issue persists.
+e: Daemon compilation failed: null
+java.lang.Exception
+        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:69)
+        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:65)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemon(GradleKotlinCompilerWork.kt:244)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemonOrFallbackImpl(GradleKotlinCompilerWork.kt:175)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:135)
+        at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:73)
+        at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+        at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+        at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+        at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
+        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
+        at org.gradle.internal.Factories$1.create(Factories.java:31)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
+        at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+        at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+        at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+        at java.base/java.lang.Thread.run(Thread.java:842)
+Caused by: java.lang.IllegalArgumentException: this and base files have different roots: C:\Users\22376\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-fs-2.5.1\android\src\main\java\FsPlugin.kt and D:\work\cyrene_music_tauri\src-tauri\gen\android.
+        at kotlin.io.FilesKt__UtilsKt.toRelativeString(Utils.kt:117)
+        at kotlin.io.FilesKt__UtilsKt.relativeTo(Utils.kt:128)
+        at org.jetbrains.kotlin.incremental.storage.RelocatableFileToPathConverter.toPath(RelocatableFileToPathConverter.kt:22)
+        at org.jetbrains.kotlin.incremental.storage.ComplementarySourceFilesMap.get(ComplementarySourceFilesMap.kt:22)
+        at org.jetbrains.kotlin.incremental.AbstractIncrementalCache.getComplementaryFilesRecursive(AbstractIncrementalCache.kt:227)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:455)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:400)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:281)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:125)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:657)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:105)
+        at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1624)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+        at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+        at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+        at java.base/java.security.AccessController.doPrivileged(AccessController.java:712)
+        at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:587)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:828)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:705)
+        at java.base/java.security.AccessController.doPrivileged(AccessController.java:399)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:704)
+        ... 3 more
+
+Failed to compile with Kotlin daemon: java.lang.Exception
+        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:69)
+        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:65)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemon(GradleKotlinCompilerWork.kt:244)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemonOrFallbackImpl(GradleKotlinCompilerWork.kt:175)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:135)
+        at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:73)
+        at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+        at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+        at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+        at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
+        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
+        at org.gradle.internal.Factories$1.create(Factories.java:31)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
+        at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+        at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+        at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+        at java.base/java.lang.Thread.run(Thread.java:842)
+Caused by: java.lang.IllegalArgumentException: this and base files have different roots: C:\Users\22376\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-fs-2.5.1\android\src\main\java\FsPlugin.kt and D:\work\cyrene_music_tauri\src-tauri\gen\android.
+        at kotlin.io.FilesKt__UtilsKt.toRelativeString(Utils.kt:117)
+        at kotlin.io.FilesKt__UtilsKt.relativeTo(Utils.kt:128)
+        at org.jetbrains.kotlin.incremental.storage.RelocatableFileToPathConverter.toPath(RelocatableFileToPathConverter.kt:22)
+        at org.jetbrains.kotlin.incremental.storage.ComplementarySourceFilesMap.get(ComplementarySourceFilesMap.kt:22)
+        at org.jetbrains.kotlin.incremental.AbstractIncrementalCache.getComplementaryFilesRecursive(AbstractIncrementalCache.kt:227)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:455)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:400)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:281)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:125)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:657)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:105)
+        at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1624)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+        at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+        at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+        at java.base/java.security.AccessController.doPrivileged(AccessController.java:712)
+        at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:587)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:828)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:705)
+        at java.base/java.security.AccessController.doPrivileged(AccessController.java:399)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:704)
+        ... 3 more
+Using fallback strategy: Compile without Kotlin daemon
+Try ./gradlew --stop if this issue persists.
+e: Daemon compilation failed: null
+java.lang.Exception
+        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:69)
+        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:65)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemon(GradleKotlinCompilerWork.kt:244)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemonOrFallbackImpl(GradleKotlinCompilerWork.kt:175)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:135)
+        at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:73)
+        at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+        at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+        at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+        at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
+        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
+        at org.gradle.internal.Factories$1.create(Factories.java:31)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
+        at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+        at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+        at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+        at java.base/java.lang.Thread.run(Thread.java:842)
+Caused by: java.lang.IllegalArgumentException: this and base files have different roots: C:\Users\22376\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-opener-2.5.3\android\src\main\java\OpenerPlugin.kt and D:\work\cyrene_music_tauri\src-tauri\gen\android.
+        at kotlin.io.FilesKt__UtilsKt.toRelativeString(Utils.kt:117)
+        at kotlin.io.FilesKt__UtilsKt.relativeTo(Utils.kt:128)
+        at org.jetbrains.kotlin.incremental.storage.RelocatableFileToPathConverter.toPath(RelocatableFileToPathConverter.kt:22)
+        at org.jetbrains.kotlin.incremental.storage.ComplementarySourceFilesMap.get(ComplementarySourceFilesMap.kt:22)
+        at org.jetbrains.kotlin.incremental.AbstractIncrementalCache.getComplementaryFilesRecursive(AbstractIncrementalCache.kt:227)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:455)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:400)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:281)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:125)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:657)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:105)
+        at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1624)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+        at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+        at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+        at java.base/java.security.AccessController.doPrivileged(AccessController.java:712)
+        at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:587)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:828)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:705)
+        at java.base/java.security.AccessController.doPrivileged(AccessController.java:399)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:704)
+        ... 3 more
+
+Failed to compile with Kotlin daemon: java.lang.Exception
+        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:69)
+        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:65)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemon(GradleKotlinCompilerWork.kt:244)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemonOrFallbackImpl(GradleKotlinCompilerWork.kt:175)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:135)
+        at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:73)
+        at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+        at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+        at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+        at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
+        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
+        at org.gradle.internal.Factories$1.create(Factories.java:31)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
+        at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+        at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+        at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+        at java.base/java.lang.Thread.run(Thread.java:842)
+Caused by: java.lang.IllegalArgumentException: this and base files have different roots: C:\Users\22376\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-opener-2.5.3\android\src\main\java\OpenerPlugin.kt and D:\work\cyrene_music_tauri\src-tauri\gen\android.
+        at kotlin.io.FilesKt__UtilsKt.toRelativeString(Utils.kt:117)
+        at kotlin.io.FilesKt__UtilsKt.relativeTo(Utils.kt:128)
+        at org.jetbrains.kotlin.incremental.storage.RelocatableFileToPathConverter.toPath(RelocatableFileToPathConverter.kt:22)
+        at org.jetbrains.kotlin.incremental.storage.ComplementarySourceFilesMap.get(ComplementarySourceFilesMap.kt:22)
+        at org.jetbrains.kotlin.incremental.AbstractIncrementalCache.getComplementaryFilesRecursive(AbstractIncrementalCache.kt:227)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:455)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:400)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:281)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:125)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:657)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:105)
+        at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1624)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+        at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+        at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+        at java.base/java.security.AccessController.doPrivileged(AccessController.java:712)
+        at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:587)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:828)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:705)
+        at java.base/java.security.AccessController.doPrivileged(AccessController.java:399)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:704)
+        ... 3 more
+Using fallback strategy: Compile without Kotlin daemon
+Try ./gradlew --stop if this issue persists.
+e: Daemon compilation failed: null
+java.lang.Exception
+        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:69)
+        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:65)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemon(GradleKotlinCompilerWork.kt:244)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemonOrFallbackImpl(GradleKotlinCompilerWork.kt:175)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:135)
+        at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:73)
+        at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+        at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+        at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+        at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
+        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
+        at org.gradle.internal.Factories$1.create(Factories.java:31)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
+        at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+        at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+        at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+        at java.base/java.lang.Thread.run(Thread.java:842)
+Caused by: java.lang.IllegalArgumentException: this and base files have different roots: C:\Users\22376\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-status-bar-color-1.0.0\android\src\main\java\PluginImpl.kt and D:\work\cyrene_music_tauri\src-tauri\gen\android.
+        at kotlin.io.FilesKt__UtilsKt.toRelativeString(Utils.kt:117)
+        at kotlin.io.FilesKt__UtilsKt.relativeTo(Utils.kt:128)
+        at org.jetbrains.kotlin.incremental.storage.RelocatableFileToPathConverter.toPath(RelocatableFileToPathConverter.kt:22)
+        at org.jetbrains.kotlin.incremental.storage.ComplementarySourceFilesMap.get(ComplementarySourceFilesMap.kt:22)
+        at org.jetbrains.kotlin.incremental.AbstractIncrementalCache.getComplementaryFilesRecursive(AbstractIncrementalCache.kt:227)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:455)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:400)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:281)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:125)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:657)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:105)
+        at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1624)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+        at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+        at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+        at java.base/java.security.AccessController.doPrivileged(AccessController.java:712)
+        at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:587)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:828)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:705)
+        at java.base/java.security.AccessController.doPrivileged(AccessController.java:399)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:704)
+        ... 3 more
+
+Failed to compile with Kotlin daemon: java.lang.Exception
+        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:69)
+        at org.jetbrains.kotlin.daemon.common.CompileService$CallResult$Error.get(CompileService.kt:65)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemon(GradleKotlinCompilerWork.kt:244)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.compileWithDaemonOrFallbackImpl(GradleKotlinCompilerWork.kt:175)
+        at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:135)
+        at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:73)
+        at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+        at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+        at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:210)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:205)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:67)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:60)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:167)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:60)
+        at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:54)
+        at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+        at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+        at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
+        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
+        at org.gradle.internal.Factories$1.create(Factories.java:31)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
+        at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
+        at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
+        at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:539)
+        at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+        at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+        at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+        at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+        at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+        at java.base/java.lang.Thread.run(Thread.java:842)
+Caused by: java.lang.IllegalArgumentException: this and base files have different roots: C:\Users\22376\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-plugin-status-bar-color-1.0.0\android\src\main\java\PluginImpl.kt and D:\work\cyrene_music_tauri\src-tauri\gen\android.
+        at kotlin.io.FilesKt__UtilsKt.toRelativeString(Utils.kt:117)
+        at kotlin.io.FilesKt__UtilsKt.relativeTo(Utils.kt:128)
+        at org.jetbrains.kotlin.incremental.storage.RelocatableFileToPathConverter.toPath(RelocatableFileToPathConverter.kt:22)
+        at org.jetbrains.kotlin.incremental.storage.ComplementarySourceFilesMap.get(ComplementarySourceFilesMap.kt:22)
+        at org.jetbrains.kotlin.incremental.AbstractIncrementalCache.getComplementaryFilesRecursive(AbstractIncrementalCache.kt:227)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:455)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:400)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileNonIncrementally(IncrementalCompilerRunner.kt:281)
+        at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:125)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:657)
+        at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:105)
+        at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1624)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+        at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+        at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(UnicastServerRef.java:360)
+        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:200)
+        at java.rmi/sun.rmi.transport.Transport$1.run(Transport.java:197)
+        at java.base/java.security.AccessController.doPrivileged(AccessController.java:712)
+        at java.rmi/sun.rmi.transport.Transport.serviceCall(Transport.java:196)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(TCPTransport.java:587)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(TCPTransport.java:828)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(TCPTransport.java:705)
+        at java.base/java.security.AccessController.doPrivileged(AccessController.java:399)
+        at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(TCPTransport.java:704)
+        ... 3 more
+Using fallback strategy: Compile without Kotlin daemon
+Try ./gradlew --stop if this issue persists.
+w: file:///D:/work/cyrene_music_tauri/src-tauri/gen/android/app/src/main/java/com/cyrenemusic/app/MediaPlaybackService.kt:70:55 'WIFI_MODE_FULL_HIGH_PERF: Int' is deprecated. Deprecated in Java
+w: file:///D:/work/cyrene_music_tauri/src-tauri/gen/android/app/src/main/java/com/cyrenemusic/app/MediaPlaybackService.kt:171:28 'FLAG_HANDLES_MEDIA_BUTTONS: Int' is deprecated. Deprecated in Java
+w: file:///D:/work/cyrene_music_tauri/src-tauri/gen/android/app/src/main/java/com/cyrenemusic/app/MediaPlaybackService.kt:172:30 'FLAG_HANDLES_TRANSPORT_CONTROLS: Int' is deprecated. Deprecated in Java
+w: file:///D:/work/cyrene_music_tauri/src-tauri/gen/android/app/src/main/java/com/cyrenemusic/app/generated/RustWebView.kt:26:18 'setter for databaseEnabled: Boolean' is deprecated. Deprecated in Java
+w: file:///D:/work/cyrene_music_tauri/src-tauri/gen/android/app/src/main/java/com/cyrenemusic/app/generated/WryActivity.kt:69:46 'onBackPressed(): Unit' is deprecated. This method has been deprecated in favor of using the
+      {@link OnBackPressedDispatcher} via {@link #getOnBackPressedDispatcher()}.
+      The OnBackPressedDispatcher controls how back button events are dispatched
+      to one or more {@link OnBackPressedCallback} objects.
+
+[Incubating] Problems report is available at: file:///D:/work/cyrene_music_tauri/src-tauri/gen/android/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14.3/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+Performing Streamed Install
+Success
+Starting: Intent { cmp=com.cyrenemusic.app/.MainActivity }
+
+Exception occurred while executing 'keyevent':
+java.lang.SecurityException: Injecting input events requires the caller (or the source of the instrumentation, if any) to have the INJECT_EVENTS permission.
+        at com.android.server.input.InputManagerService.injectInputEventToTarget(InputManagerService.java:1103)
+        at com.android.server.input.InputManagerService.injectInputEventToTarget(InputManagerService.java:1089)
+        at android.hardware.input.InputManagerGlobal.injectInputEvent(InputManagerGlobal.java:1698)
+        at android.hardware.input.InputManagerGlobal.injectInputEvent(InputManagerGlobal.java:1708)
+        at com.android.server.input.InputShellCommand.injectInputEvent(InputShellCommand.java:158)
+        at com.android.server.input.InputShellCommand.$r8$lambda$hGxb9MovDr1pEN3Qnb51vH9VzpA(Unknown Source:0)
+        at com.android.server.input.InputShellCommand$$ExternalSyntheticLambda0.accept(D8$$SyntheticClass:0)
+        at com.android.server.input.InputShellCommand.injectKeyEvent(InputShellCommand.java:167)
+        at com.android.server.input.InputShellCommand.sendKeyEvent(InputShellCommand.java:491)
+        at com.android.server.input.InputShellCommand.runKeyEvent(InputShellCommand.java:473)
+        at com.android.server.input.InputShellCommand.onCommand(InputShellCommand.java:324)
+        at com.android.modules.utils.BasicShellCommandHandler.exec(BasicShellCommandHandler.java:97)
+        at android.os.ShellCommand.exec(ShellCommand.java:38)
+        at com.android.server.input.InputManagerService.onShellCommand(InputManagerService.java:4151)
+        at android.os.Binder.shellCommand(Binder.java:1158)
+        at android.os.Binder.onTransact(Binder.java:960)
+        at android.hardware.input.IInputManager$Stub.onTransact(IInputManager.java:1576)
+        at android.os.Binder.execTransactInternal(Binder.java:1433)
+        at android.os.Binder.execTransact(Binder.java:1372)
+        Info Watching D:\work\cyrene_music_tauri\src-tauri for changes...
+--------- beginning of main
+07-23 19:52:37.107 12445 12445 E Zygote  : process_name_ptr:12445 com.cyrenemusic.app
+07-23 19:52:37.107 12445 12445 E Zygote  : SetMemoryProtected process_name_ptr:12445 com.cyrenemusic.app
+07-23 19:52:37.139 12445 12445 I cyrenemusic.app: Late-enabling -Xcheck:jni
+07-23 19:52:37.174 12445 12445 I cyrenemusic.app: Using CollectorTypeCC GC.
+--------- beginning of system
+07-23 19:52:37.195 12445 12445 I ActivityThread: Current dynamic renderEngine type=0
+07-23 19:52:37.211 12445 12445 I RENDER_TURBO: onActivityThreadCreate not in white list, pkg=com.cyrenemusic.app, type=prague
+07-23 19:52:37.299 12445 12445 I cyrenemusic.app: AssetManager2(0xb400007285e114b8) locale list changing from [] to [zh-CN]
+07-23 19:52:37.332 12445 19943 E ashmem  : Pinning is deprecated since Android Q. Please use trim or other methods.
+07-23 19:52:37.346 12445 19936 I ActivityThread: TrafficStats init done
+07-23 19:52:37.348 12445 19936 I ForceDarkHelperStubImpl: initialize for com.cyrenemusic.app , ForceDarkOrigin
+07-23 19:52:37.349 12445 19936 I MiuiForceDarkConfig: setConfig density:3.250000, mainRule:0, secondaryRule:0, tertiaryRule:0
+07-23 19:52:37.354 12445 19936 I ActivityThread: Miui Feature Init done
+07-23 19:52:37.359 12445 12445 I ActivityThread: currentPkg not in xmlPackages
+07-23 19:52:37.359 12445 12445 W libc    : Access denied finding property "ro.vendor.perf.scroll_opt"
+07-23 19:52:37.366 12445 12445 I PowerHalWrapper: PowerHalWrapper.getInstance
+07-23 19:52:37.366 12445 12445 I PowerHalWrapper: PowerHalWrapper.getInstance
+07-23 19:52:37.373 12445 19936 I ActivityThread: HardwareRenderer preload  done
+07-23 19:52:37.374 12445 19961 I DisplayManager: Choreographer implicitly registered for the refresh rate.
+07-23 19:52:37.375 12445 12445 I cyrenemusic.app: AssetManager2(0xb400007285e10518) locale list changing from [] to [zh-CN]
+07-23 19:52:37.385 12445 12445 I cyrenemusic.app: AssetManager2(0xb400007285e1b0f8) locale list changing from [] to [zh-CN]
+07-23 19:52:37.389 12445 19961 W libc    : Access denied finding property "vendor.mivk.log.debug"
+07-23 19:52:37.405 12445 19961 I mali    : [MEMPROF] Memory instrumentation via debugfs enabled
+07-23 19:52:37.405 12445 19961 I MMUD    : CMEM_HOARD_POLICY_MODE: 1
+07-23 19:52:37.405 12445 19961 I MMUD    : CMEM_HOARD_PURGE_THRESHOLD: 24 MB
+07-23 19:52:37.405 12445 19961 I MMUD    : CMEM_HOARD_MAX_ONLINE_PURGE: 24 MB
+07-23 19:52:37.411 12445 19961 E HWUI    : Archi_PipelineCache, LoadPipelineInfoFile /data/user_de/0/com.cyrenemusic.app/cache/com.android.vulkan.pipelineinfo failed
+07-23 19:52:37.422 12445 19979 I cyrenemusic.app: AssetManager2(0xb400007285e16f58) locale list changing from [] to [zh-CN]
+07-23 19:52:37.438 12445 12445 I cyrenemusic.app: AssetManager2(0xb400007285e05938) locale list changing from [] to [zh-CN]
+07-23 19:52:37.438 12445 12445 I WebViewFactory: Loading com.google.android.webview version 150.0.7871.46 (code 787104603)
+07-23 19:52:37.439 12445 12445 I MiResource: Start adding sharedLibAssets
+07-23 19:52:37.440 12445 12445 I cyrenemusic.app: AssetManager2(0xb400007285e16c38) locale list changing from [] to [zh-CN]
+07-23 19:52:37.440 12445 12445 I MiResource: Updating cached ResourcesImpl for resources : android.content.res.MiuiResources@c3d876a, old impl = android.content.res.MiuiResourcesImpl@323ef83, new impl = android.content.res.MiuiResourcesImpl@2942139 , new paths = [/system/framework/framework-res.apk, /vendor/overlay/FrameworkResOverlay/FrameworkResOverlay.apk, /vendor/overlay/FrameworkResOverlayExt/FrameworkResOverlayExt.apk, /vendor/overlay/FrameworkResOverlay_prague.apk, /product/overlay/GmsCnConfigOverlay.apk, /product/overlay/MiuiServiceOverlay/MiuiServiceOverlay.apk, /product/overlay/framework-res__nosdcard__auto_generated_characteristics_rro.apk, /product/overlay/MiuiHomeLauncherResOverlay.apk, /product/overlay/AospFrameworkResOverlay.apk, /product/overlay/DevicesAndroidOverlay.apk, /product/overlay/VoiceAssistAndroidOverlay/VoiceAssistAndroidOverlay.apk, /product/overlay/AospFrameworkTelephonyResOverlay.apk, /system_ext/framework/framework-ext-res/framework-ext-res.apk, /product/overlay/MiuiFrameworkResOverlay.apk, /product/overlay/MiuiFrameworkTelephonyResOverlay.apk, /system_ext/app/mediatek-res/mediatek-res.apk, /data/app/~~Vsf3kSQpNz-lBQFG5LysVw==/com.cyrenemusic.app-bf_u8xX7x_iN4sVpcsHRgA==/base.apk, /data/app/~~zrNDQNqqvlqL3utiv1s9Lg==/com.google.android.webview-tC7os3eyp6cbpwua6CpuPQ==/base.apk, /product/overlay/GestureLineOverlay.apk, /data/resource-cache/com.android.systemui-neutral-eDtj.frro, /data/resource-cache/com.android.systemui-accent-weNv.frro, /data/resource-cache/com.android.systemui-dynamic-f8Gf.frro]
+07-23 19:52:37.441 12445 12445 I cyrenemusic.app: AssetManager2(0xb400007285e16918) locale list changing from [] to [zh-CN]
+07-23 19:52:37.441 12445 12445 I MiResource: Updating cached ResourcesImpl for resources : android.content.res.MiuiResources@a79f772, old impl = android.content.res.MiuiResourcesImpl@f52de3d, new impl = android.content.res.MiuiResourcesImpl@647b37e , new paths = [/system/framework/framework-res.apk, /vendor/overlay/FrameworkResOverlay/FrameworkResOverlay.apk, /vendor/overlay/FrameworkResOverlayExt/FrameworkResOverlayExt.apk, /vendor/overlay/FrameworkResOverlay_prague.apk, /product/overlay/GmsCnConfigOverlay.apk, /product/overlay/MiuiServiceOverlay/MiuiServiceOverlay.apk, /product/overlay/framework-res__nosdcard__auto_generated_characteristics_rro.apk, /product/overlay/MiuiHomeLauncherResOverlay.apk, /product/overlay/AospFrameworkResOverlay.apk, /product/overlay/DevicesAndroidOverlay.apk, /product/overlay/VoiceAssistAndroidOverlay/VoiceAssistAndroidOverlay.apk, /product/overlay/AospFrameworkTelephonyResOverlay.apk, /system_ext/framework/framework-ext-res/framework-ext-res.apk, /product/overlay/MiuiFrameworkResOverlay.apk, /product/overlay/MiuiFrameworkTelephonyResOverlay.apk, /system_ext/app/mediatek-res/mediatek-res.apk, /data/app/~~Vsf3kSQpNz-lBQFG5LysVw==/com.cyrenemusic.app-bf_u8xX7x_iN4sVpcsHRgA==/base.apk, /data/app/~~zrNDQNqqvlqL3utiv1s9Lg==/com.google.android.webview-tC7os3eyp6cbpwua6CpuPQ==/base.apk, /product/overlay/GestureLineOverlay.apk, /data/resource-cache/com.android.systemui-neutral-eDtj.frro, /data/resource-cache/com.android.systemui-accent-weNv.frro, /data/resource-cache/com.android.systemui-dynamic-f8Gf.frro]
+07-23 19:52:37.441 12445 12445 I MiResource: Updating cached ResourcesImpl for resources : android.content.res.MiuiResources@cd02ca, old impl = android.content.res.MiuiResourcesImpl@323ef83, new impl = android.content.res.MiuiResourcesImpl@2942139 , new paths = [/system/framework/framework-res.apk, /vendor/overlay/FrameworkResOverlay/FrameworkResOverlay.apk, /vendor/overlay/FrameworkResOverlayExt/FrameworkResOverlayExt.apk, /vendor/overlay/FrameworkResOverlay_prague.apk, /product/overlay/GmsCnConfigOverlay.apk, /product/overlay/MiuiServiceOverlay/MiuiServiceOverlay.apk, /product/overlay/framework-res__nosdcard__auto_generated_characteristics_rro.apk, /product/overlay/MiuiHomeLauncherResOverlay.apk, /product/overlay/AospFrameworkResOverlay.apk, /product/overlay/DevicesAndroidOverlay.apk, /product/overlay/VoiceAssistAndroidOverlay/VoiceAssistAndroidOverlay.apk, /product/overlay/AospFrameworkTelephonyResOverlay.apk, /system_ext/framework/framework-ext-res/framework-ext-res.apk, /product/overlay/MiuiFrameworkResOverlay.apk, /product/overlay/MiuiFrameworkTelephonyResOverlay.apk, /system_ext/app/mediatek-res/mediatek-res.apk, /data/app/~~Vsf3kSQpNz-lBQFG5LysVw==/com.cyrenemusic.app-bf_u8xX7x_iN4sVpcsHRgA==/base.apk, /data/app/~~zrNDQNqqvlqL3utiv1s9Lg==/com.google.android.webview-tC7os3eyp6cbpwua6CpuPQ==/base.apk, /product/overlay/GestureLineOverlay.apk, /data/resource-cache/com.android.systemui-neutral-eDtj.frro, /data/resource-cache/com.android.systemui-accent-weNv.frro, /data/resource-cache/com.android.systemui-dynamic-f8Gf.frro]
+07-23 19:52:37.442 12445 12445 I cyrenemusic.app: AssetManager2(0xb400007285e15018) locale list changing from [] to [zh-CN]
+07-23 19:52:37.442 12445 12445 I MiResource: Updating cached ResourcesImpl for resources : android.content.res.MiuiResources@5fec3b, old impl = android.content.res.MiuiResourcesImpl@2857be7, new impl = android.content.res.MiuiResourcesImpl@6ac00df , new paths = [/system/framework/framework-res.apk, /vendor/overlay/FrameworkResOverlay/FrameworkResOverlay.apk, /vendor/overlay/FrameworkResOverlayExt/FrameworkResOverlayExt.apk, /vendor/overlay/FrameworkResOverlay_prague.apk, /product/overlay/GmsCnConfigOverlay.apk, /product/overlay/MiuiServiceOverlay/MiuiServiceOverlay.apk, /product/overlay/framework-res__nosdcard__auto_generated_characteristics_rro.apk, /product/overlay/MiuiHomeLauncherResOverlay.apk, /product/overlay/AospFrameworkResOverlay.apk, /product/overlay/DevicesAndroidOverlay.apk, /product/overlay/VoiceAssistAndroidOverlay/VoiceAssistAndroidOverlay.apk, /product/overlay/AospFrameworkTelephonyResOverlay.apk, /system_ext/framework/framework-ext-res/framework-ext-res.apk, /product/overlay/MiuiFrameworkResOverlay.apk, /product/overlay/MiuiFrameworkTelephonyResOverlay.apk, /system_ext/app/mediatek-res/mediatek-res.apk, /data/app/~~Vsf3kSQpNz-lBQFG5LysVw==/com.cyrenemusic.app-bf_u8xX7x_iN4sVpcsHRgA==/base.apk, /data/app/~~zrNDQNqqvlqL3utiv1s9Lg==/com.google.android.webview-tC7os3eyp6cbpwua6CpuPQ==/base.apk, /product/overlay/GestureLineOverlay.apk, /data/resource-cache/com.android.systemui-neutral-eDtj.frro, /data/resource-cache/com.android.systemui-accent-weNv.frro, /data/resource-cache/com.android.systemui-dynamic-f8Gf.frro]
+07-23 19:52:37.442 12445 12445 I MiResource: Updating cached ResourcesImpl for resources : android.content.res.MiuiResources@5208196, old impl = android.content.res.MiuiResourcesImpl@323ef83, new impl = android.content.res.MiuiResourcesImpl@2942139 , new paths = [/system/framework/framework-res.apk, /vendor/overlay/FrameworkResOverlay/FrameworkResOverlay.apk, /vendor/overlay/FrameworkResOverlayExt/FrameworkResOverlayExt.apk, /vendor/overlay/FrameworkResOverlay_prague.apk, /product/overlay/GmsCnConfigOverlay.apk, /product/overlay/MiuiServiceOverlay/MiuiServiceOverlay.apk, /product/overlay/framework-res__nosdcard__auto_generated_characteristics_rro.apk, /product/overlay/MiuiHomeLauncherResOverlay.apk, /product/overlay/AospFrameworkResOverlay.apk, /product/overlay/DevicesAndroidOverlay.apk, /product/overlay/VoiceAssistAndroidOverlay/VoiceAssistAndroidOverlay.apk, /product/overlay/AospFrameworkTelephonyResOverlay.apk, /system_ext/framework/framework-ext-res/framework-ext-res.apk, /product/overlay/MiuiFrameworkResOverlay.apk, /product/overlay/MiuiFrameworkTelephonyResOverlay.apk, /system_ext/app/mediatek-res/mediatek-res.apk, /data/app/~~Vsf3kSQpNz-lBQFG5LysVw==/com.cyrenemusic.app-bf_u8xX7x_iN4sVpcsHRgA==/base.apk, /data/app/~~zrNDQNqqvlqL3utiv1s9Lg==/com.google.android.webview-tC7os3eyp6cbpwua6CpuPQ==/base.apk, /product/overlay/GestureLineOverlay.apk, /data/resource-cache/com.android.systemui-neutral-eDtj.frro, /data/resource-cache/com.android.systemui-accent-weNv.frro, /data/resource-cache/com.android.systemui-dynamic-f8Gf.frro]
+07-23 19:52:37.443 12445 12445 I cyrenemusic.app: AssetManager2(0xb400007285e178b8) locale list changing from [] to [zh-CN]
+07-23 19:52:37.443 12445 12445 I MiResource: Updating cached ResourcesImpl for resources : android.content.res.MiuiResources@b3e4a0b, old impl = android.content.res.MiuiResourcesImpl@62d6632, new impl = android.content.res.MiuiResourcesImpl@afa812c , new paths = [/system/framework/framework-res.apk, /vendor/overlay/FrameworkResOverlay/FrameworkResOverlay.apk, /vendor/overlay/FrameworkResOverlayExt/FrameworkResOverlayExt.apk, /vendor/overlay/FrameworkResOverlay_prague.apk, /product/overlay/GmsCnConfigOverlay.apk, /product/overlay/MiuiServiceOverlay/MiuiServiceOverlay.apk, /product/overlay/framework-res__nosdcard__auto_generated_characteristics_rro.apk, /product/overlay/MiuiHomeLauncherResOverlay.apk, /product/overlay/AospFrameworkResOverlay.apk, /product/overlay/DevicesAndroidOverlay.apk, /product/overlay/VoiceAssistAndroidOverlay/VoiceAssistAndroidOverlay.apk, /product/overlay/AospFrameworkTelephonyResOverlay.apk, /system_ext/framework/framework-ext-res/framework-ext-res.apk, /product/overlay/MiuiFrameworkResOverlay.apk, /product/overlay/MiuiFrameworkTelephonyResOverlay.apk, /system_ext/app/mediatek-res/mediatek-res.apk, /product/app/ContentCatcherOS3_1/ContentCatcherOS3_1.apk, /data/app/~~zrNDQNqqvlqL3utiv1s9Lg==/com.google.android.webview-tC7os3eyp6cbpwua6CpuPQ==/base.apk, /product/overlay/GestureLineOverlay.apk, /data/resource-cache/com.android.systemui-neutral-eDtj.frro, /data/resource-cache/com.android.systemui-accent-weNv.frro, /data/resource-cache/com.android.systemui-dynamic-f8Gf.frro]
+07-23 19:52:37.443 12445 12445 I cyrenemusic.app: AssetManager2(0xb400007285e1a478) locale list changing from [] to [zh-CN]
+07-23 19:52:37.443 12445 12445 I MiResource: Updating cached ResourcesImpl for resources : android.content.res.MiuiResources@fcd95a6, old impl = android.content.res.MiuiResourcesImpl@a405394, new impl = android.content.res.MiuiResourcesImpl@40c97f5 , new paths = [/system/framework/framework-res.apk, /vendor/overlay/FrameworkResOverlay/FrameworkResOverlay.apk, /vendor/overlay/FrameworkResOverlayExt/FrameworkResOverlayExt.apk, /vendor/overlay/FrameworkResOverlay_prague.apk, /product/overlay/GmsCnConfigOverlay.apk, /product/overlay/MiuiServiceOverlay/MiuiServiceOverlay.apk, /product/overlay/framework-res__nosdcard__auto_generated_characteristics_rro.apk, /product/overlay/MiuiHomeLauncherResOverlay.apk, /product/overlay/AospFrameworkResOverlay.apk, /product/overlay/DevicesAndroidOverlay.apk, /product/overlay/VoiceAssistAndroidOverlay/VoiceAssistAndroidOverlay.apk, /product/overlay/AospFrameworkTelephonyResOverlay.apk, /system_ext/framework/framework-ext-res/framework-ext-res.apk, /product/overlay/MiuiFrameworkResOverlay.apk, /product/overlay/MiuiFrameworkTelephonyResOverlay.apk, /system_ext/app/mediatek-res/mediatek-res.apk, /data/app/~~zrNDQNqqvlqL3utiv1s9Lg==/com.google.android.webview-tC7os3eyp6cbpwua6CpuPQ==/base.apk, /data/app/~~zrNDQNqqvlqL3utiv1s9Lg==/com.google.android.webview-tC7os3eyp6cbpwua6CpuPQ==/base.apk, /product/overlay/GestureLineOverlay.apk, /data/resource-cache/com.android.systemui-neutral-eDtj.frro, /data/resource-cache/com.android.systemui-accent-weNv.frro, /data/resource-cache/com.android.systemui-dynamic-f8Gf.frro]
+07-23 19:52:37.445 12445 12445 W cyrenemusic.app: Loading /data/app/~~zrNDQNqqvlqL3utiv1s9Lg==/com.google.android.webview-tC7os3eyp6cbpwua6CpuPQ==/oat/arm64/base.odex non-executable as it requires an image which we failed to load
+07-23 19:52:37.459 12445 12445 I NativeTurboSchedManager: Load libmiui_runtime
+07-23 19:52:37.459 12445 12445 E TurboSchedMonitor: failed to find setSchedAffinity method com.cyrenemusic.app
+07-23 19:52:37.463 12445 19979 I cyrenemusic.app: AssetManager2(0xb400007285e19b18) locale list changing from [] to [zh-CN]
+07-23 19:52:37.463 12445 19979 I ContentCatcher: ViewContentFetcher : ViewContentFetcher
+07-23 19:52:37.465 12445 19979 E SettingTrigger: getStaticObjectField error
+07-23 19:52:37.465 12445 19979 E SettingTrigger: java.lang.NoSuchFieldException: No field mContentExtensionEnabled in class Lmiui/contentcatcher/InterceptorProxy; (declaration of 'miui.contentcatcher.InterceptorProxy' appears in /system_ext/framework/miui-framework.jar)
+07-23 19:52:37.465 12445 19979 E SettingTrigger:        at java.lang.Class.getDeclaredField(Native Method)
+07-23 19:52:37.465 12445 19979 E SettingTrigger:        at com.miui.contentcatcher.Interceptor.<init>(Unknown Source:372)
+07-23 19:52:37.465 12445 19979 E SettingTrigger:        at java.lang.reflect.Constructor.newInstance0(Native Method)
+07-23 19:52:37.465 12445 19979 E SettingTrigger:        at java.lang.reflect.Constructor.newInstance(Constructor.java:343)
+07-23 19:52:37.465 12445 19979 E SettingTrigger:        at miui.contentcatcher.InterceptorFactory.createInterceptor(InterceptorFactory.java:50)
+07-23 19:52:37.465 12445 19979 E SettingTrigger:        at miui.contentcatcher.InterceptorProxy$H.handleMessage(InterceptorProxy.java:329)
+07-23 19:52:37.465 12445 19979 E SettingTrigger:        at android.os.Handler.dispatchMessage(Handler.java:114)
+07-23 19:52:37.465 12445 19979 E SettingTrigger:        at android.os.Looper.loopOnce(Looper.java:274)
+07-23 19:52:37.465 12445 19979 E SettingTrigger:        at android.os.Looper.loop(Looper.java:369)
+07-23 19:52:37.465 12445 19979 E SettingTrigger:        at android.os.HandlerThread.run(HandlerThread.java:85)
+07-23 19:52:37.465 12445 19979 I Interceptor_Catcher: notifyActivityCreate:
+07-23 19:52:37.467 12445 19979 I ContentCatcher: Interceptor_Catcher : Catcher list invalid for com.cyrenemusic.app@com.cyrenemusic.app.MainActivity@103290832
+07-23 19:52:37.467 12445 19979 I ContentCatcher: Interceptor_Catcher : Get featureInfo from config image_pick_mode
+07-23 19:52:37.467 12445 19979 I ContentCatcher: Interceptor_Catcher : Get featureInfo from config pick_mode
+07-23 19:52:37.478 12445 12445 I cr_WVCFactoryProvider: version=150.0.7871.46 (787104603) minSdkVersion=29 multiprocess=true packageId=2 splits=<none>
+07-23 19:52:37.479 12445 12445 I cyrenemusic.app: AssetManager2(0xb400007285e15fb8) locale list changing from [] to [zh-CN]
+07-23 19:52:37.496 12445 20000 I chromium: [INFO:android_webview/browser/variations/variations_seed_loader.cc:67] Failed to open file for reading.: No such file or directory (2)
+07-23 19:52:37.497 12445 19984 I RustStdoutStderr: [INFO:android_webview/browser/variations/variations_seed_loader.cc:67] Failed to open file for reading.: No such file or directory (2)
+07-23 19:52:37.499 12445 12445 I cr_LibraryLoader: Successfully loaded native library
+07-23 19:52:37.499 12445 20000 I chromium: [INFO:android_webview/browser/variations/variations_seed_loader.cc:67] Failed to open file for reading.: No such file or directory (2)
+07-23 19:52:37.499 12445 19984 I RustStdoutStderr: [INFO:android_webview/browser/variations/variations_seed_loader.cc:67] Failed to open file for reading.: No such file or directory (2)
+07-23 19:52:37.500 12445 12445 I cr_CachingUmaRecorder: Flushed 46 samples from 22 histograms, 0 samples were dropped.
+07-23 19:52:37.503 12445 12445 I cr_ChildProcLH: ScopedServiceBindingBatch.tryActivate: false
+07-23 19:52:37.504 12445 12445 I cr_CombinedPProvider: #registerProvider() provider:WV.wk@2876b63 isPolicyCacheEnabled:false policyProvidersSize:0
+07-23 19:52:37.504 12445 12445 I cr_PolicyProvider: #setManagerAndSource() 0
+07-23 19:52:37.505 12445 12445 E TurboSchedMonitor: failed to find setSchedAffinity method com.cyrenemusic.app
+07-23 19:52:37.505 12445 20008 I cr_policy: registerReceiver succeeded after 1ms
+07-23 19:52:37.507 12445 12445 I cr_DisplayManager: Is Display Topology available: false
+07-23 19:52:37.508 12445 12445 I cyrenemusic.app: AssetManager2(0xb400007285e149d8) locale list changing from [] to [zh-CN]
+07-23 19:52:37.516 12445 12445 I cyrenemusic.app: AssetManager2(0xb400007285e35d18) locale list changing from [] to [zh-CN]
+07-23 19:52:37.544 12445 12445 I cr_CombinedPProvider: #linkNativeInternal() 1
+07-23 19:52:37.544 12445 12445 I cr_AppResProvider: #getApplicationRestrictionsFromUserManager() Bundle[EMPTY_PARCEL]
+07-23 19:52:37.544 12445 12445 I cr_PolicyProvider: #notifySettingsAvailable() 0
+07-23 19:52:37.544 12445 12445 I cr_CombinedPProvider: #onSettingsAvailable() 0
+07-23 19:52:37.544 12445 12445 I cr_CombinedPProvider: #flushPolicies()
+07-23 19:52:37.608 12445 20026 W chromium: [WARNING:net/dns/dns_config_service_android.cc:69] Failed to read DnsConfig.
+07-23 19:52:37.608 12445 19984 I RustStdoutStderr: [WARNING:net/dns/dns_config_service_android.cc:69] Failed to read DnsConfig.
+07-23 19:52:37.608 12445 12445 W chromium: [WARNING:android_webview/browser/network_service/net_helpers.cc:137] HTTP Cache size is: 20971520
+07-23 19:52:37.608 12445 19984 I RustStdoutStderr: [WARNING:android_webview/browser/network_service/net_helpers.cc:137] HTTP Cache size is: 20971520
+07-23 19:52:37.618 12445 12445 E TurboSchedMonitor: failed to find setSchedAffinity method com.cyrenemusic.app
+07-23 19:52:37.638 12445 12445 I cyrenemusic.app: hiddenapi: Accessing hidden method Landroid/view/ViewGroup;->makeOptionalFitsSystemWindows()V (runtime_flags=0, domain=platform, api=unsupported) from Landroidx/appcompat/widget/ViewUtils; (domain=app) using reflection: allowed
+07-23 19:52:37.649 12445 19954 I PowerHalWrapper: PowerHalWrapper.getInstance
+07-23 19:52:37.650 12445 12445 I SurfaceFactory: [static] sSurfaceFactory = com.mediatek.view.impl.SurfaceFactoryImpl@c169dd9
+07-23 19:52:37.654 12445 19979 I ContentCatcher: SettingTrigger : register screen QA status observer com.cyrenemusic.app.MainActivity
+07-23 19:52:37.664 12445 19979 I ContentCatcher: SettingTrigger : register global collect status observer com.cyrenemusic.app.MainActivity
+07-23 19:52:37.666 12445 12445 E MI-PreRender: init cloud whiteList failed
+07-23 19:52:37.667 12445 19979 I ContentCatcher: SettingTrigger : registerUIAgentListener com.cyrenemusic.app.MainActivity, uid:10405
+07-23 19:52:37.669 12445 19979 I ContentCatcher_TaplusBlackListHelper:  mActivities isEmpty
+07-23 19:52:37.669 12445 19979 I ContentCatcher_TaplusBlackListHelper:  blackList size: 14 package is com.cyrenemusic.app isInTaplusWhiteList: true
+07-23 19:52:37.671 12445 12445 I MiuiProcessManagerImpl: setSchedFifo pid:12445, mode:3
+07-23 19:52:37.673 12445 19961 W libc    : Access denied finding property "ro.vendor.display.iris_x7.support"
+07-23 19:52:37.673 12445 19961 I pwIrisCR: isCnVersion = 1, isSupportIris = 0
+07-23 19:52:37.675 12445 12445 I ViewRootImpl: com.cyrenemusic.app/com.cyrenemusic.app.MainActivity use first frame acceleration
+07-23 19:52:37.682 12445 12445 I cr_AppResProvider: #getApplicationRestrictionsFromUserManager() Bundle[EMPTY_PARCEL]
+07-23 19:52:37.682 12445 12445 I cr_PolicyProvider: #notifySettingsAvailable() 0
+07-23 19:52:37.682 12445 12445 I cr_CombinedPProvider: #onSettingsAvailable() 0
+07-23 19:52:37.682 12445 12445 I cr_CombinedPProvider: #flushPolicies()
+07-23 19:52:37.684 12445 12445 I ComputilityLevel: getComputilityLevel(): 6
+07-23 19:52:37.692 12445 12445 W InsetsSource: Has no intersection or mTmpFrame.height(), return Insets.NONE mTmpFrame.height() =0 hasIntersection =false
+07-23 19:52:37.693 12445 12445 E cyrenemusic.app: [perfctl] 12445 12445 FPSGO ver:8
+07-23 19:52:37.693 12445 12445 E cyrenemusic.app: [perfctl] 1 1 1 1
+07-23 19:52:37.667 12445 12445 W RenderThread: type=1400 audit(0.0:1228490): avc:  denied  { read } for  name="u:object_r:vendor_displayfeature_prop:s0" dev="tmpfs" ino=680 scontext=u:r:untrusted_app:s0:c149,c257,c512,c768 tcontext=u:object_r:vendor_displayfeature_prop:s0 tclass=file permissive=0 app=com.cyrenemusic.app
+07-23 19:52:37.719 12445 12445 W RenderThread: type=1400 audit(0.0:1228491): avc:  denied  { read } for  name="u:object_r:vendor_displayfeature_prop:s0" dev="tmpfs" ino=680 scontext=u:r:untrusted_app:s0:c149,c257,c512,c768 tcontext=u:object_r:vendor_displayfeature_prop:s0 tclass=file permissive=0 app=com.cyrenemusic.app
+07-23 19:52:37.713 12445 20090 I CameraManagerGlobal: Connecting to camera service
+07-23 19:52:37.715 12445 19961 I GrallocExtra: gralloc_extra_query:is_SW3D 0
+07-23 19:52:37.723 12445 19961 I GrallocExtra: gralloc_extra_query:is_SW3D 0
+07-23 19:52:37.723 12445 19961 W libc    : Access denied finding property "ro.vendor.display.iris_x7.support"
+07-23 19:52:37.752 12445 19979 I ContentCatcher: SettingTrigger : unregister status observer com.cyrenemusic.app.MainActivity
+07-23 19:52:37.755 12445 19979 I ContentCatcher: SettingTrigger : unregisterUIAgentListener com.cyrenemusic.app.MainActivity, uid:10405
+07-23 19:52:37.757 12445 12445 W InsetsSource: Has no intersection or mTmpFrame.height(), return Insets.NONE mTmpFrame.height() =0 hasIntersection =false
+07-23 19:52:37.787 12445 12445 W InsetsSource: Has no intersection or mTmpFrame.height(), return Insets.NONE mTmpFrame.height() =0 hasIntersection =false
+07-23 19:52:37.803 12445 20090 W CameraExtImplXiaoMi: ignore the status update of camera: 2
+07-23 19:52:37.804 12445 20090 W CameraExtImplXiaoMi: ignore the status update of camera: 3
+07-23 19:52:37.805 12445 20090 W CameraExtImplXiaoMi: ignore the status update of camera: 4
+07-23 19:52:37.806 12445 19935 W CameraManagerGlobal: ignore the torch status update of camera: 2
+07-23 19:52:37.807 12445 19935 W CameraManagerGlobal: ignore the torch status update of camera: 3
+07-23 19:52:37.808 12445 19932 W CameraManagerGlobal: ignore the torch status update of camera: 4
+07-23 19:52:37.809 12445 19984 I RustStdoutStderr: [AudioProxy] Started on port 44599
+07-23 19:52:37.824 12445 19984 I RustStdoutStderr: [AudioProxy] Listening on 127.0.0.1:44599
+07-23 19:52:37.834 12445 12445 W Activity: Can request only one set of permissions at a time
+07-23 19:52:37.840 12445 19979 I ContentCatcher: Interceptor_Catcher : notifyWebView view: com.cyrenemusic.app.RustWebView{3c11bd7 VFEDHVC.. ......I. 0,0-0,0}, size:1, isLoad:true
+07-23 19:52:37.963 12445 12445 I Choreographer: first vsync insert message into MessageQueue Head
+07-23 19:52:37.967 12445 12445 W libc    : Access denied finding property "vendor.migl.debug"
+07-23 19:52:37.969 12445 12445 I libMiGL : EnableDR: 0
+07-23 19:52:37.972 12445 12445 I MMUD    : CMEM_HOARD_POLICY_MODE: 1
+07-23 19:52:37.972 12445 12445 I MMUD    : CMEM_HOARD_PURGE_THRESHOLD: 24 MB
+07-23 19:52:37.972 12445 12445 I MMUD    : CMEM_HOARD_MAX_ONLINE_PURGE: 24 MB
+07-23 19:52:38.028 12445 20226 I MMUD    : CMEM_HOARD_POLICY_MODE: 1
+07-23 19:52:38.028 12445 20226 I MMUD    : CMEM_HOARD_PURGE_THRESHOLD: 24 MB
+07-23 19:52:38.028 12445 20226 I MMUD    : CMEM_HOARD_MAX_ONLINE_PURGE: 24 MB
+07-23 19:52:38.035 12445 20035 W cr_media: BLUETOOTH_CONNECT permission is missing.
+07-23 19:52:38.038 12445 20035 W cr_media: getBluetoothAdapter() requires BLUETOOTH permission
+07-23 19:52:38.038 12445 20035 W cr_media: registerBluetoothIntentsIfNeeded: Requires BLUETOOTH permission
+07-23 19:52:38.055 12445 12445 W ThreadPoolForeg: type=1400 audit(0.0:1228497): avc:  denied  { read } for  name="cpu.cfs_quota_us" dev="cgroup" ino=22 scontext=u:r:untrusted_app:s0:c149,c257,c512,c768 tcontext=u:object_r:cgroup:s0 tclass=file permissive=0 app=com.cyrenemusic.app
+07-23 19:52:38.051 12445 12445 W InsetsSource: Has no intersection or mTmpFrame.height(), return Insets.NONE mTmpFrame.height() =0 hasIntersection =false
+07-23 19:52:38.148 12445 20081 W BpBinder: PerfMonitor binderTransact: time=334ms interface=com.google.android.gms.common.internal.IGmsServiceBroker code=46
+07-23 19:52:38.343 12445 20049 W AudioCapabilities: Unsupported mediaType audio/aivc
+07-23 19:52:38.349 12445 20049 W AudioCapabilities: Unsupported mediaType audio/aivc
+07-23 19:52:38.350 12445 20049 W AudioCapabilities: Unsupported mediaType audio/mihc
+07-23 19:52:38.350 12445 20049 W AudioCapabilities: Unsupported mediaType audio/mihc
+07-23 19:52:38.371 12445 20049 W VideoCapabilities: Unsupported mime image/vnd.android.heic
+07-23 19:52:38.372 12445 20049 W VideoCapabilities: Unsupported mime image/vnd.android.heic
+07-23 19:52:38.395 12445 20049 W VideoCapabilities: Unsupported mime video/dolby-vision
+07-23 19:52:38.395 12445 20049 W VideoCapabilities: Unsupported mime video/dolby-vision
+07-23 19:52:38.444 12445 20049 W AudioCapabilities: Unsupported mime audio/aivc
+07-23 19:52:38.444 12445 20049 W AudioCapabilities: Unsupported mime audio/aivc
+07-23 19:52:38.444 12445 20049 W AudioCapabilities: Unsupported mime audio/aivc
+07-23 19:52:38.444 12445 20049 W AudioCapabilities: Unsupported mime audio/aivc
+07-23 19:52:38.444 12445 20049 W AudioCapabilities: Unsupported mime audio/mihc
+07-23 19:52:38.444 12445 20049 W AudioCapabilities: Unsupported mime audio/mihc
+07-23 19:52:38.445 12445 20049 W AudioCapabilities: Unsupported mime audio/mihc
+07-23 19:52:38.445 12445 20049 W AudioCapabilities: Unsupported mime audio/mihc
+07-23 19:52:38.501 12445 20049 W VideoCapabilities: Unsupported mime image/vnd.android.heic
+07-23 19:52:38.502 12445 20049 W VideoCapabilities: Unsupported mime image/vnd.android.heic
+07-23 19:52:38.502 12445 20049 W VideoCapabilities: Unsupported mime image/vnd.android.heic
+07-23 19:52:38.502 12445 20049 W VideoCapabilities: Unsupported mime image/vnd.android.heic
+07-23 19:52:38.551 12445 20049 W VideoCapabilities: Unsupported mime video/dolby-vision
+07-23 19:52:38.552 12445 20049 W VideoCapabilities: Unsupported mime video/dolby-vision
+07-23 19:52:38.568 12445 20049 W cr_VAUtil: Unknown level: 1024 for profile 32 of codec video/dolby-vision
+07-23 19:52:38.568 12445 20049 W cr_VAUtil: Unknown level: 1024 for profile 256 of codec video/dolby-vision
+07-23 19:52:38.568 12445 20049 W cr_VAUtil: Unknown profile: 1024 for codec video/dolby-vision
+07-23 19:52:38.568 12445 20049 W cr_VAUtil: Unknown level: 1024 for profile 32 of codec video/dolby-vision
+07-23 19:52:38.568 12445 20049 W cr_VAUtil: Unknown level: 1024 for profile 256 of codec video/dolby-vision
+07-23 19:52:38.568 12445 20049 W cr_VAUtil: Unknown profile: 1024 for codec video/dolby-vision
+07-23 19:52:39.091 12445 19924 I cyrenemusic.app: Compiler allocated 6765KB to compile void android.view.ViewRootImpl.performTraversals()
+07-23 19:52:39.592 12445 19961 W RenderInspector: DequeueBuffer time out on com.cyrenemusic.app/com.cyrenemusic.app.MainActivity, count=1, avg=13 ms, max=13 ms.
+07-23 19:52:39.735 12445 19979 I ContentCatcher: SettingTrigger : register screen QA status observer com.cyrenemusic.app.MainActivity
+07-23 19:52:39.736 12445 19979 I ContentCatcher: SettingTrigger : register global collect status observer com.cyrenemusic.app.MainActivity
+07-23 19:52:39.737 12445 19979 I ContentCatcher: SettingTrigger : registerUIAgentListener com.cyrenemusic.app.MainActivity, uid:10405
+07-23 19:52:39.738 12445 19979 I ContentCatcher_TaplusBlackListHelper:  blackList size: 14 package is com.cyrenemusic.app isInTaplusWhiteList: true
+07-23 19:52:39.739 12445 12445 W InsetsSource: Has no intersection or mTmpFrame.height(), return Insets.NONE mTmpFrame.height() =0 hasIntersection =false
+07-23 19:52:39.747 12445 12445 I HandWritingStubImpl: refreshLastKeyboardType: 1
+07-23 19:52:39.747 12445 12445 I HandWritingStubImpl: getCurrentKeyboardType: 1
+07-23 19:52:39.749 12445 12445 I ImeTracker: com.cyrenemusic.app:1291b1f1: onCancelled at PHASE_CLIENT_ALREADY_HIDDEN
+07-23 19:52:39.751 12445 12445 I HandWritingStubImpl: getCurrentKeyboardType: 1
+07-23 19:52:39.771 12445 12445 W InsetsSource: Has no intersection or mTmpFrame.height(), return Insets.NONE mTmpFrame.height() =0 hasIntersection =false
+○ Compiling / ...
+ GET / 200 in 5.9s (compile: 5.4s, render: 446ms)
+07-23 19:52:44.078 12445 12445 E Tauri/Console: File: http://tauri.localhost/ - Line 0 - Msg: Access to font at 'http://192.168.1.8:3456/_next/static/media/797e433ab948586e-s.p.dbea232f.woff2' from origin 'http://tauri.localhost' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+07-23 19:52:44.082 12445 12445 E Tauri/Console: File: http://tauri.localhost/ - Line 0 - Msg: Access to font at 'http://192.168.1.8:3456/_next/static/media/caa3a2e1cccd8315-s.p.853070df.woff2' from origin 'http://tauri.localhost' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+07-23 19:52:44.476 12445 12445 I Tauri/Console: File: http://192.168.1.8:3456/_next/static/chunks/node_modules_next_dist_f3530cac._.js - Line 2298 - Msg: %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+07-23 19:52:44.477 12445 12445 E Tauri/Console: File: http://tauri.localhost/ - Line 0 - Msg: Access to font at 'http://192.168.1.8:3456/_next/static/media/797e433ab948586e-s.p.dbea232f.woff2' from origin 'http://tauri.localhost' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+07-23 19:52:44.477 12445 12445 E Tauri/Console: File: http://tauri.localhost/ - Line 0 - Msg: Access to font at 'http://192.168.1.8:3456/_next/static/media/caa3a2e1cccd8315-s.p.853070df.woff2' from origin 'http://tauri.localhost' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+07-23 19:52:44.479 12445 12445 I Choreographer: Skipped 30 frames!  The application may be doing too much work on its main thread.
+07-23 19:52:44.835 12445 12445 W RenderThread: type=1400 audit(0.0:1228506): avc:  denied  { getattr } for  path="/sys/module/metis/parameters/minor_window_app" dev="sysfs" ino=139544 scontext=u:r:untrusted_app:s0:c149,c257,c512,c768 tcontext=u:object_r:sysfs_migt:s0 tclass=file permissive=0 app=com.cyrenemusic.app
+07-23 19:52:45.365 12445 12445 I Tauri/Console: File: http://192.168.1.8:3456/_next/static/chunks/node_modules_next_dist_f3530cac._.js - Line 2298 - Msg: 📊 [ListeningStatsService] 服务已初始化，同步间隔: 10s
+07-23 19:52:45.429 12445 12445 E Tauri/Console: File: http://192.168.1.8:3456/_next/static/chunks/node_modules_next_dist_f3530cac._.js - Line 3128 - Msg: Taskbar player is only supported on Windows
+07-23 19:52:45.435 12445 19984 I RustStdoutStderr:
+07-23 19:52:45.435 12445 19984 I RustStdoutStderr: thread '<unnamed>' (20233) panicked at C:\Users\22376\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\ndk-context-0.1.1\src\lib.rs:72:30:
+07-23 19:52:45.435 12445 19984 I RustStdoutStderr: android context was not initialized
+07-23 19:52:45.435 12445 19984 I RustStdoutStderr: note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+07-23 19:52:45.436 12445 19984 I RustStdoutStderr:
+07-23 19:52:45.436 12445 19984 I RustStdoutStderr: thread '<unnamed>' (20233) panicked at library/core/src/panicking.rs:225:5:
+07-23 19:52:45.436 12445 19984 I RustStdoutStderr: panic in a function that cannot unwind
+07-23 19:52:45.436 12445 19984 I RustStdoutStderr: stack backtrace:
+07-23 19:52:45.558 12445 19984 I RustStdoutStderr:    0:       0x700aa9943c - std::backtrace_rs::backtrace::libunwind::trace::h0f1ed28b7f4d0f25
+07-23 19:52:45.558 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/std/src/../../backtrace/src/backtrace/libunwind.rs:117:9
+07-23 19:52:45.558 12445 19984 I RustStdoutStderr:    1:       0x700aa9943c - std::backtrace_rs::backtrace::trace_unsynchronized::h0bcae2dfd4572da8
+07-23 19:52:45.558 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/std/src/../../backtrace/src/backtrace/mod.rs:66:14
+07-23 19:52:45.558 12445 19984 I RustStdoutStderr:    2:       0x700aa9943c - std::sys::backtrace::_print_fmt::he26eaaf7337f1610
+07-23 19:52:45.558 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/std/src/sys/backtrace.rs:68:9
+07-23 19:52:45.558 12445 19984 I RustStdoutStderr:    3:       0x700aa9943c - <std::sys::backtrace::BacktraceLock::print::DisplayBacktrace as core::fmt::Display>::fmt::h7433e3b63478b3c4
+07-23 19:52:45.558 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/std/src/sys/backtrace.rs:38:26
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:    4:       0x700aaacc94 - core::fmt::rt::Argument::fmt::he39ede7d7acc9cb0
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/core/src/fmt/rt.rs:152:76
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:    5:       0x700aaacc94 - core::fmt::write::h022b02c8bc64b572
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/core/src/fmt/mod.rs:1686:22
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:    6:       0x700aa6e6d4 - std::io::default_write_fmt::h70e9873ef701b6bb
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/std/src/io/mod.rs:639:11
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:    7:       0x700aa6e6d4 - std::io::Write::write_fmt::h4013cc15ffe727c7
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/std/src/io/mod.rs:1994:13
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:    8:       0x700aa7e6dc - std::sys::backtrace::BacktraceLock::print::h7cd3f5eb19b7977d
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/std/src/sys/backtrace.rs:41:9
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:    9:       0x700aa7e6dc - std::panicking::default_hook::{{closure}}::hd6bbbd083896d6c1
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/std/src/panicking.rs:292:27
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:   10:       0x700aa7e5b0 - std::panicking::default_hook::ha9ccd08381fc4893
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/std/src/panicking.rs:319:9
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:   11:       0x700aa7eb08 - std::panicking::panic_with_hook::hfab7c3e3cc8c101c
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/std/src/panicking.rs:825:13
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:   12:       0x700aa7e7c0 - std::panicking::panic_handler::{{closure}}::hb06853b7caadc157
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/std/src/panicking.rs:691:13
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:   13:       0x700aa78928 - std::sys::backtrace::__rust_end_short_backtrace::h37473c0ddb8cab86
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/std/src/sys/backtrace.rs:176:18
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:   14:       0x700aa64910 - __rustc[9e6a08e89e4b9111]::rust_begin_unwind
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/std/src/panicking.rs:689:5
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:   15:       0x700aab6ad4 - core::panicking::panic_nounwind_fmt::runtime::habe2fd0fc050b79e
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/core/src/panicking.rs:122:22
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:   16:       0x700aab6ad4 - core::panicking::panic_nounwind_fmt::hf58ac18be0aa65db
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/core/src/intrinsics/mod.rs:2449:9
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:   17:       0x700aab6a5c - core::panicking::panic_nounwind::h7ca6ae14d9ef5edd
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/core/src/panicking.rs:225:5
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:   18:       0x700aab6bb4 - core::panicking::panic_cannot_unwind::h1e7f9f25945cf3de
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:                                at /rustc/01f6ddf7588f42ae2d7eb0a2f21d44e8e96674cf/library/core/src/panicking.rs:337:5
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:   19:       0x7009d13334 - Java_com_cyrenemusic_app_Rust_ipc
+07-23 19:52:45.560 12445 19984 I RustStdoutStderr:                                at C:\Users\22376\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\wry-0.55.1\src\android\binding.rs:82:5
+07-23 19:52:45.566 12445 19984 I RustStdoutStderr:   20:       0x70a47b9904 - <unknown>
+07-23 19:52:45.566 12445 19984 I RustStdoutStderr:   21:       0x70a47a2864 - <unknown>
+07-23 19:52:45.567 12445 19984 I RustStdoutStderr:   22:       0x70a4ae0660 - _ZN3art11interpreter6DoCallILb0EEEbPNS_9ArtMethodEPNS_6ThreadERNS_11ShadowFrameEPKNS_11InstructionEtbPNS_6JValueE
+07-23 19:52:45.567 12445 19984 I RustStdoutStderr:   23:       0x70a4aea394 - <unknown>
+07-23 19:52:45.568 12445 19984 I RustStdoutStderr:   24:       0x70a46e2c4c - <unknown>
+07-23 19:52:45.568 12445 19984 I RustStdoutStderr:   25:       0x70a46e3a58 - <unknown>
+07-23 19:52:45.569 12445 19984 I RustStdoutStderr:   26:       0x70a46e327c - <unknown>
+07-23 19:52:45.569 12445 19984 I RustStdoutStderr:   27:       0x70a47b9a3c - <unknown>
+07-23 19:52:45.569 12445 19984 I RustStdoutStderr:   28:       0x70a47a2598 - <unknown>
+07-23 19:52:45.570 12445 19984 I RustStdoutStderr:   29:       0x70a46e573c - _ZN3art9ArtMethod6InvokeEPNS_6ThreadEPjjPNS_6JValueEPKc
+07-23 19:52:45.571 12445 19984 I RustStdoutStderr:   30:       0x70a46e4638 - <unknown>
+07-23 19:52:45.572 12445 19984 I RustStdoutStderr:   31:       0x70a4aad5f8 - <unknown>
+07-23 19:52:45.572 12445 19984 I RustStdoutStderr:   32:       0x70a4a30be0 - <unknown>
+07-23 19:52:45.578 12445 19984 I RustStdoutStderr:   33:       0x7030f02dbc - <unknown>
+07-23 19:52:45.578 12445 19984 I RustStdoutStderr:   34:       0x7030f02a74 - <unknown>
+07-23 19:52:45.578 12445 19984 I RustStdoutStderr:   35:       0x7030f01aa0 - <unknown>
+07-23 19:52:45.580 12445 19984 I RustStdoutStderr:   36:       0x703084fe2c - <unknown>
+07-23 19:52:45.581 12445 19984 I RustStdoutStderr:   37:       0x7032413f7c - <unknown>
+07-23 19:52:45.581 12445 19984 I RustStdoutStderr:   38:       0x7032411fe4 - <unknown>
+07-23 19:52:45.581 12445 19984 I RustStdoutStderr:   39:       0x7032413868 - <unknown>
+07-23 19:52:45.581 12445 19984 I RustStdoutStderr:   40:       0x70324166dc - <unknown>
+07-23 19:52:45.582 12445 19984 I RustStdoutStderr:   41:       0x7032411d40 - <unknown>
+07-23 19:52:45.582 12445 19984 I RustStdoutStderr:   42:       0x703240edac - <unknown>
+07-23 19:52:45.582 12445 19984 I RustStdoutStderr:   43:       0x703240e954 - <unknown>
+07-23 19:52:45.583 12445 19984 I RustStdoutStderr:   44:       0x7033fd8f84 - <unknown>
+07-23 19:52:45.583 12445 19984 I RustStdoutStderr:   45:       0x7033b7d878 - <unknown>
+07-23 19:52:45.583 12445 19984 I RustStdoutStderr:   46:       0x7033b7d7f8 - <unknown>
+07-23 19:52:45.583 12445 19984 I RustStdoutStderr:   47:       0x70343401c4 - <unknown>
+07-23 19:52:45.585 12445 19984 I RustStdoutStderr:   48:       0x733ead358c - _ZN7android6Looper8pollOnceEiPiS1_PPv
+07-23 19:52:45.597 12445 19984 I RustStdoutStderr:   49:       0x7347448d30 - <unknown>
+07-23 19:52:45.597 12445 19984 I RustStdoutStderr: thread caused non-unwinding panic. aborting.
+07-23 19:52:46.030 12445 19984 I RustStdoutStderr: [0723/195246.028909:ERROR:third_party/crashpad/crashpad/snapshot/elf/elf_dynamic_array_reader.h:64] tag not found
+07-23 19:52:46.193 12445 19984 I RustStdoutStderr: [0723/195246.053254:WARNING:third_party/crashpad/crashpad/snapshot/linux/thread_snapshot_linux.cc:112] Unknown scheduling policy 1073741824
+07-23 19:52:46.193 12445 19984 I RustStdoutStderr: [0723/195246.054226:WARNING:third_party/crashpad/crashpad/snapshot/linux/thread_snapshot_linux.cc:112] Unknown scheduling policy 1073741824
+07-23 19:52:46.193 12445 19984 I RustStdoutStderr: [0723/195246.068111:WARNING:third_party/crashpad/crashpad/snapshot/linux/thread_snapshot_linux.cc:112] Unknown scheduling policy 1073741824
+07-23 19:52:46.193 12445 19984 I RustStdoutStderr: [0723/195246.069405:WARNING:third_party/crashpad/crashpad/snapshot/linux/thread_snapshot_linux.cc:112] Unknown scheduling policy 1073741824
+07-23 19:52:46.193 12445 19984 I RustStdoutStderr: [0723/195246.070151:WARNING:third_party/crashpad/crashpad/snapshot/linux/thread_snapshot_linux.cc:112] Unknown scheduling policy 1073741824
+07-23 19:52:46.193 12445 19984 I RustStdoutStderr: [0723/195246.074753:ERROR:third_party/crashpad/crashpad/util/file/file_io_posix.cc:145] open /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq: Permission denied (13)
+07-23 19:52:46.193 12445 12445 I Choreographer: Skipped 35 frames!  The application may be doing too much work on its main thread.
+07-23 19:52:46.225 12445 20233 I libc    : handling signal: 6
+07-23 19:52:46.225 12445 20233 E libc    : get api level success, 202504
+--------- beginning of crash
+07-23 19:52:46.225 12445 20233 F libc    : Fatal signal 6 (SIGABRT), code -1 (SI_QUEUE) in tid 20233 (JavaBridge), pid 12445 (cyrenemusic.app)
+07-23 19:52:46.226 12445 20233 I libc    : debuggerd_dispatch_pseudothread start. crashing tid: 20233
+07-23 19:52:46.251 12445 20233 I libc    : crash_dump pid: 20672
+07-23 19:52:46.879 12445 19979 I ContentCatcher: SettingTrigger : unregister status observer com.cyrenemusic.app.MainActivity

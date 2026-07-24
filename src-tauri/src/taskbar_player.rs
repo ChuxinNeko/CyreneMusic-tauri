@@ -1,17 +1,18 @@
 #[cfg(target_os = "windows")]
-use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
-#[cfg(target_os = "windows")]
 use tauri::webview::Color;
+#[cfg(target_os = "windows")]
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 #[cfg(target_os = "windows")]
 use windows::core::w;
 #[cfg(target_os = "windows")]
 use windows::Win32::Foundation::RECT;
 #[cfg(target_os = "windows")]
-use windows::Win32::UI::WindowsAndMessaging::{
-    FindWindowW, GetWindowRect, SetWindowLongPtrW, GWLP_HWNDPARENT, EnumChildWindows, IsWindowVisible
-};
-#[cfg(target_os = "windows")]
 use windows::Win32::Foundation::{BOOL, HWND, LPARAM};
+#[cfg(target_os = "windows")]
+use windows::Win32::UI::WindowsAndMessaging::{
+    EnumChildWindows, FindWindowW, GetWindowRect, IsWindowVisible, SetWindowLongPtrW,
+    GWLP_HWNDPARENT,
+};
 
 /// 悬浮模式的窗口尺寸
 const TASKBAR_WIDTH: u32 = 280;
@@ -46,7 +47,9 @@ fn get_best_taskbar_x(taskbar_rect: &RECT, player_width: u32, position: Option<&
         if let Some(parent_hwnd) = get_taskbar_hwnd() {
             unsafe {
                 use windows::Win32::UI::WindowsAndMessaging::FindWindowExW;
-                if let Ok(tray) = FindWindowExW(parent_hwnd, HWND(0 as _), w!("TrayNotifyWnd"), None) {
+                if let Ok(tray) =
+                    FindWindowExW(parent_hwnd, HWND(0 as _), w!("TrayNotifyWnd"), None)
+                {
                     if IsWindowVisible(tray).into() {
                         let mut r = RECT::default();
                         if GetWindowRect(tray, &mut r).is_ok() {
@@ -82,7 +85,10 @@ fn get_best_taskbar_x(taskbar_rect: &RECT, player_width: u32, position: Option<&
             if GetWindowRect(hwnd, &mut r).is_ok() {
                 let w = r.right - r.left;
                 if w > 0 && w < data_ptr.tb_width - 10 {
-                    data_ptr.spans.push(Span { left: r.left, right: r.right });
+                    data_ptr.spans.push(Span {
+                        left: r.left,
+                        right: r.right,
+                    });
                 }
             }
         }
@@ -92,13 +98,20 @@ fn get_best_taskbar_x(taskbar_rect: &RECT, player_width: u32, position: Option<&
     if let Some(parent_hwnd) = get_taskbar_hwnd() {
         unsafe {
             let data_ptr = &mut data as *mut EnumData;
-            let _ = EnumChildWindows(parent_hwnd, Some(enum_child_proc), LPARAM(data_ptr as isize));
+            let _ = EnumChildWindows(
+                parent_hwnd,
+                Some(enum_child_proc),
+                LPARAM(data_ptr as isize),
+            );
 
             if let Ok(start_hwnd) = FindWindowW(w!("Button"), w!("Start")) {
                 if IsWindowVisible(start_hwnd).into() {
                     let mut r = RECT::default();
                     if GetWindowRect(start_hwnd, &mut r).is_ok() {
-                        data.spans.push(Span { left: r.left, right: r.right });
+                        data.spans.push(Span {
+                            left: r.left,
+                            right: r.right,
+                        });
                     }
                 }
             }
@@ -199,7 +212,9 @@ pub async fn get_taskbar_info() -> Result<TaskbarRect, String> {
 pub async fn unpin_taskbar_player(app: AppHandle) -> Result<(), String> {
     // 记录当前窗口位置，用于新窗口定位
     let current_pos = if let Some(window) = app.get_webview_window("taskbar-player") {
-        let pos = window.outer_position().unwrap_or(tauri::PhysicalPosition { x: 100, y: 100 });
+        let pos = window
+            .outer_position()
+            .unwrap_or(tauri::PhysicalPosition { x: 100, y: 100 });
         // 销毁旧窗口
         let _ = window.close();
         pos
@@ -207,28 +222,33 @@ pub async fn unpin_taskbar_player(app: AppHandle) -> Result<(), String> {
         tauri::PhysicalPosition { x: 100, y: 100 }
     };
 
-    let taskbar_rect = get_taskbar_rect().unwrap_or(RECT { left: 0, top: 0, right: 1920, bottom: 1080 });
+    let taskbar_rect = get_taskbar_rect().unwrap_or(RECT {
+        left: 0,
+        top: 0,
+        right: 1920,
+        bottom: 1080,
+    });
     let new_y = taskbar_rect.top - FLOATING_HEIGHT as i32 - 20;
 
     // 重新创建一个干净的悬浮窗口（无 Owner，与 song-recommend 相同的创建方式）
-    let window = WebviewWindowBuilder::new(
-        &app,
-        "taskbar-player",
-        WebviewUrl::App("taskbar".into()),
-    )
-    .title("Taskbar Player")
-    .resizable(false)
-    .focused(false)
-    .decorations(false)
-    .transparent(true)
-    .always_on_top(true)
-    .background_color(Color(0, 0, 0, 0))
-    .shadow(true)
-    .skip_taskbar(true)
-    .inner_size(FLOATING_WIDTH as f64, FLOATING_HEIGHT as f64)
-    .position(current_pos.x as f64, if new_y < 0 { 100.0 } else { new_y as f64 })
-    .build()
-    .map_err(|e| format!("Failed to create floating window: {}", e))?;
+    let window =
+        WebviewWindowBuilder::new(&app, "taskbar-player", WebviewUrl::App("taskbar".into()))
+            .title("Taskbar Player")
+            .resizable(false)
+            .focused(false)
+            .decorations(false)
+            .transparent(true)
+            .always_on_top(true)
+            .background_color(Color(0, 0, 0, 0))
+            .shadow(true)
+            .skip_taskbar(true)
+            .inner_size(FLOATING_WIDTH as f64, FLOATING_HEIGHT as f64)
+            .position(
+                current_pos.x as f64,
+                if new_y < 0 { 100.0 } else { new_y as f64 },
+            )
+            .build()
+            .map_err(|e| format!("Failed to create floating window: {}", e))?;
 
     // 通知前端已切换为悬浮模式
     let _ = window.emit("taskbar-player:mode-change", "floating");
@@ -259,24 +279,21 @@ pub async fn pin_taskbar_player(app: AppHandle, position: Option<String>) -> Res
     let target_x = get_best_taskbar_x(&taskbar_rect, TASKBAR_WIDTH, position.as_deref());
 
     // 重新创建窗口（任务栏模式：以任务栏为 Owner）
-    let window = WebviewWindowBuilder::new(
-        &app,
-        "taskbar-player",
-        WebviewUrl::App("taskbar".into()),
-    )
-    .title("Taskbar Player")
-    .resizable(false)
-    .focused(false)
-    .decorations(false)
-    .transparent(true)
-    .always_on_top(true)
-    .background_color(Color(0, 0, 0, 0))
-    .shadow(false)
-    .skip_taskbar(true)
-    .inner_size(TASKBAR_WIDTH as f64, taskbar_height as f64)
-    .position(target_x as f64, taskbar_rect.top as f64)
-    .build()
-    .map_err(|e| format!("Failed to create taskbar window: {}", e))?;
+    let window =
+        WebviewWindowBuilder::new(&app, "taskbar-player", WebviewUrl::App("taskbar".into()))
+            .title("Taskbar Player")
+            .resizable(false)
+            .focused(false)
+            .decorations(false)
+            .transparent(true)
+            .always_on_top(true)
+            .background_color(Color(0, 0, 0, 0))
+            .shadow(false)
+            .skip_taskbar(true)
+            .inner_size(TASKBAR_WIDTH as f64, taskbar_height as f64)
+            .position(target_x as f64, taskbar_rect.top as f64)
+            .build()
+            .map_err(|e| format!("Failed to create taskbar window: {}", e))?;
 
     // 将窗口的 Owner 设置为任务栏
     if let Ok(my_hwnd_raw) = window.hwnd() {
@@ -297,7 +314,10 @@ pub async fn pin_taskbar_player(app: AppHandle, position: Option<String>) -> Res
 
 #[cfg(not(target_os = "windows"))]
 #[tauri::command]
-pub async fn pin_taskbar_player(_app: tauri::AppHandle, _position: Option<String>) -> Result<(), String> {
+pub async fn pin_taskbar_player(
+    _app: tauri::AppHandle,
+    _position: Option<String>,
+) -> Result<(), String> {
     Err("Taskbar player is only supported on Windows".to_string())
 }
 
@@ -308,7 +328,7 @@ pub async fn open_taskbar_player(app: AppHandle, position: Option<String>) -> Re
     if let Some(window) = app.get_webview_window("taskbar-player") {
         let _ = window.show();
         let _ = window.set_focus();
-        
+
         // 如果窗口已经存在，根据最新的设置重新计算位置
         if let Some(rect) = get_taskbar_rect() {
             let target_x = get_best_taskbar_x(&rect, TASKBAR_WIDTH, position.as_deref());
@@ -333,22 +353,19 @@ pub async fn open_taskbar_player(app: AppHandle, position: Option<String>) -> Re
         x = get_best_taskbar_x(&rect, width, position.as_deref());
     }
 
-    let window = WebviewWindowBuilder::new(
-        &app,
-        "taskbar-player",
-        WebviewUrl::App("taskbar".into()),
-    )
-    .title("Taskbar Player")
-    .resizable(false)
-    .focused(false)
-    .decorations(false)
-    .transparent(true)
-    .always_on_top(true)
-    .background_color(Color(0, 0, 0, 0))
-    .shadow(false)
-    .skip_taskbar(true)
-    .build()
-    .map_err(|e| format!("Failed to create taskbar window: {}", e))?;
+    let window =
+        WebviewWindowBuilder::new(&app, "taskbar-player", WebviewUrl::App("taskbar".into()))
+            .title("Taskbar Player")
+            .resizable(false)
+            .focused(false)
+            .decorations(false)
+            .transparent(true)
+            .always_on_top(true)
+            .background_color(Color(0, 0, 0, 0))
+            .shadow(false)
+            .skip_taskbar(true)
+            .build()
+            .map_err(|e| format!("Failed to create taskbar window: {}", e))?;
 
     // 设置实际物理尺寸和位置
     let _ = window.set_size(tauri::Size::Physical(tauri::PhysicalSize {
@@ -378,7 +395,10 @@ pub async fn open_taskbar_player(app: AppHandle, position: Option<String>) -> Re
 
 #[cfg(not(target_os = "windows"))]
 #[tauri::command]
-pub async fn open_taskbar_player(_app: tauri::AppHandle, _position: Option<String>) -> Result<(), String> {
+pub async fn open_taskbar_player(
+    _app: tauri::AppHandle,
+    _position: Option<String>,
+) -> Result<(), String> {
     Err("Taskbar player is only supported on Windows".to_string())
 }
 
@@ -494,7 +514,7 @@ pub async fn is_left_mouse_button_pressed() -> bool {
     unsafe {
         // 如果返回值的高位被置 1，说明按键正被按下（返回值的最高位表示是否被按下）
         windows::Win32::UI::Input::KeyboardAndMouse::GetAsyncKeyState(
-            windows::Win32::UI::Input::KeyboardAndMouse::VK_LBUTTON.0 as i32
+            windows::Win32::UI::Input::KeyboardAndMouse::VK_LBUTTON.0 as i32,
         ) < 0
     }
 }

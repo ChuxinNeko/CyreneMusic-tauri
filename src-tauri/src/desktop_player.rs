@@ -1,17 +1,17 @@
 #[cfg(target_os = "windows")]
 use std::collections::HashMap;
 #[cfg(target_os = "windows")]
-use std::sync::{Mutex, OnceLock};
-#[cfg(target_os = "windows")]
 use std::ffi::c_void;
 #[cfg(target_os = "windows")]
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use std::sync::{Mutex, OnceLock};
 #[cfg(target_os = "windows")]
 use tauri::webview::Color;
 #[cfg(target_os = "windows")]
+use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+#[cfg(target_os = "windows")]
 use windows::core::{w, PCSTR};
 #[cfg(target_os = "windows")]
-use windows::Win32::Foundation::{BOOL, HWND, LPARAM, LRESULT, WPARAM, RECT};
+use windows::Win32::Foundation::{BOOL, HWND, LPARAM, LRESULT, RECT, WPARAM};
 #[cfg(target_os = "windows")]
 use windows::Win32::Graphics::Dwm::{
     DwmSetWindowAttribute, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND,
@@ -24,9 +24,9 @@ use windows::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress};
 use windows::Win32::UI::WindowsAndMessaging::{
     CallWindowProcW, EnumChildWindows, EnumWindows, FindWindowExW, FindWindowW, GetClientRect,
     GetWindowLongPtrW, SendMessageTimeoutW, SetParent, SetWindowLongPtrW, SetWindowPos,
-    GWL_EXSTYLE, GWL_STYLE, GWLP_WNDPROC, SMTO_NORMAL, SWP_FRAMECHANGED, SWP_NOACTIVATE,
-    SWP_NOZORDER, SWP_SHOWWINDOW, WM_MOUSEACTIVATE, WM_NCDESTROY, MA_NOACTIVATE,
-    WS_CHILD, WS_EX_NOACTIVATE, WS_OVERLAPPEDWINDOW, WS_POPUP, WNDPROC, HWND_TOP,
+    GWLP_WNDPROC, GWL_EXSTYLE, GWL_STYLE, HWND_TOP, MA_NOACTIVATE, SMTO_NORMAL, SWP_FRAMECHANGED,
+    SWP_NOACTIVATE, SWP_NOZORDER, SWP_SHOWWINDOW, WM_MOUSEACTIVATE, WM_NCDESTROY, WNDPROC,
+    WS_CHILD, WS_EX_NOACTIVATE, WS_OVERLAPPEDWINDOW, WS_POPUP,
 };
 
 /// 查找 WorkerW 窗口句柄及其客户区矩形
@@ -40,20 +40,24 @@ fn find_workerw() -> Option<(HWND, RECT)> {
 
         // 触发 WorkerW 创建
         let _ = SendMessageTimeoutW(
-            progman, 0x052C, WPARAM(0), LPARAM(0), SMTO_NORMAL, 1000, None,
+            progman,
+            0x052C,
+            WPARAM(0),
+            LPARAM(0),
+            SMTO_NORMAL,
+            1000,
+            None,
         );
 
         // 查找包含 SHELLDLL_DefView 的 WorkerW
         let mut workerw = HWND::default();
         unsafe extern "system" fn enum_windows_proc(tophandle: HWND, lparam: LPARAM) -> BOOL {
             let p_workerw = lparam.0 as *mut HWND;
-            let defview = FindWindowExW(
-                tophandle, HWND::default(), w!("SHELLDLL_DefView"), None,
-            ).unwrap_or_default();
+            let defview = FindWindowExW(tophandle, HWND::default(), w!("SHELLDLL_DefView"), None)
+                .unwrap_or_default();
             if !defview.0.is_null() {
-                let target = FindWindowExW(
-                    HWND::default(), tophandle, w!("WorkerW"), None,
-                ).unwrap_or_default();
+                let target = FindWindowExW(HWND::default(), tophandle, w!("WorkerW"), None)
+                    .unwrap_or_default();
                 if !target.0.is_null() {
                     *p_workerw = target;
                 }
@@ -121,7 +125,9 @@ unsafe extern "system" fn passive_overlay_wndproc(
 fn install_passive_wndproc(hwnd: HWND) {
     unsafe {
         let overlays = PASSIVE_OVERLAY_WNDPROCS.get_or_init(|| Mutex::new(HashMap::new()));
-        let mut overlays = overlays.lock().expect("passive overlay window procedure lock");
+        let mut overlays = overlays
+            .lock()
+            .expect("passive overlay window procedure lock");
         if overlays.contains_key(&(hwnd.0 as isize)) {
             return;
         }
@@ -151,9 +157,7 @@ unsafe extern "system" fn configure_passive_overlay_child(hwnd: HWND, _lparam: L
 fn configure_passive_overlay(hwnd: HWND) {
     unsafe {
         let style = GetWindowLongPtrW(hwnd, GWL_STYLE);
-        let new_style = (style
-            & !(WS_OVERLAPPEDWINDOW.0 as isize)
-            & !(WS_POPUP.0 as isize))
+        let new_style = (style & !(WS_OVERLAPPEDWINDOW.0 as isize) & !(WS_POPUP.0 as isize))
             | WS_CHILD.0 as isize;
         let _ = SetWindowLongPtrW(hwnd, GWL_STYLE, new_style);
 
@@ -161,16 +165,15 @@ fn configure_passive_overlay(hwnd: HWND) {
         let _ = SetWindowLongPtrW(hwnd, GWL_EXSTYLE, ex_style | WS_EX_NOACTIVATE.0 as isize);
 
         install_passive_wndproc(hwnd);
-        let _ = EnumChildWindows(
-            hwnd,
-            Some(configure_passive_overlay_child),
-            LPARAM(0),
-        );
+        let _ = EnumChildWindows(hwnd, Some(configure_passive_overlay_child), LPARAM(0));
 
         let _ = SetWindowPos(
             hwnd,
             HWND::default(),
-            0, 0, 0, 0,
+            0,
+            0,
+            0,
+            0,
             SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED,
         );
     }
@@ -193,9 +196,7 @@ fn attach_to_workerw(hwnd: HWND, workerw: HWND) {
 fn configure_passive_top_level_overlay(hwnd: HWND) {
     unsafe {
         let style = GetWindowLongPtrW(hwnd, GWL_STYLE);
-        let new_style = (style
-            & !(WS_OVERLAPPEDWINDOW.0 as isize)
-            & !(WS_CHILD.0 as isize))
+        let new_style = (style & !(WS_OVERLAPPEDWINDOW.0 as isize) & !(WS_CHILD.0 as isize))
             | WS_POPUP.0 as isize;
         let _ = SetWindowLongPtrW(hwnd, GWL_STYLE, new_style);
 
@@ -203,11 +204,7 @@ fn configure_passive_top_level_overlay(hwnd: HWND) {
         let _ = SetWindowLongPtrW(hwnd, GWL_EXSTYLE, ex_style | WS_EX_NOACTIVATE.0 as isize);
 
         install_passive_wndproc(hwnd);
-        let _ = EnumChildWindows(
-            hwnd,
-            Some(configure_passive_overlay_child),
-            LPARAM(0),
-        );
+        let _ = EnumChildWindows(hwnd, Some(configure_passive_overlay_child), LPARAM(0));
         let _ = SetWindowPos(
             hwnd,
             HWND::default(),
@@ -248,17 +245,14 @@ const ACCENT_ENABLE_ACRYLICBLURBEHIND: u32 = 4;
 /// 因此桌面控制条必须维持这层原生 Acrylic 合成。
 #[cfg(target_os = "windows")]
 fn apply_wallpaper_acrylic(hwnd: HWND) -> Result<(), String> {
-    type SetWindowCompositionAttribute = unsafe extern "system" fn(
-        HWND,
-        *mut WindowCompositionAttributeData,
-    ) -> BOOL;
+    type SetWindowCompositionAttribute =
+        unsafe extern "system" fn(HWND, *mut WindowCompositionAttributeData) -> BOOL;
 
     let user32 = unsafe { GetModuleHandleA(PCSTR(b"user32.dll\0".as_ptr())) }
         .map_err(|error| format!("Failed to load user32.dll: {error}"))?;
-    let procedure = unsafe {
-        GetProcAddress(user32, PCSTR(b"SetWindowCompositionAttribute\0".as_ptr()))
-    }
-    .ok_or("SetWindowCompositionAttribute is unavailable")?;
+    let procedure =
+        unsafe { GetProcAddress(user32, PCSTR(b"SetWindowCompositionAttribute\0".as_ptr())) }
+            .ok_or("SetWindowCompositionAttribute is unavailable")?;
     let set_window_composition_attribute: SetWindowCompositionAttribute =
         unsafe { std::mem::transmute(procedure) };
 
@@ -297,9 +291,7 @@ fn apply_rounded_window_shape(hwnd: HWND, width: i32, height: i32, corner: i32) 
         )
     };
 
-    let region = unsafe {
-        CreateRoundRectRgn(0, 0, width + 1, height + 1, corner * 2, corner * 2)
-    };
+    let region = unsafe { CreateRoundRectRgn(0, 0, width + 1, height + 1, corner * 2, corner * 2) };
     if !region.0.is_null() {
         unsafe {
             let _ = SetWindowRgn(hwnd, region, true);
@@ -333,15 +325,7 @@ fn configure_desktop_player_bar(
     // 控制条需要作为独立 WebView2 窗口渲染，但不允许激活。
     configure_passive_top_level_overlay(hwnd);
     unsafe {
-        let _ = SetWindowPos(
-            hwnd,
-            HWND_TOP,
-            bar_x,
-            bar_y,
-            bar_w,
-            bar_h,
-            SWP_NOACTIVATE,
-        );
+        let _ = SetWindowPos(hwnd, HWND_TOP, bar_x, bar_y, bar_w, bar_h, SWP_NOACTIVATE);
     }
     apply_rounded_window_shape(hwnd, bar_w, bar_h, (32.0 * scale) as i32);
     apply_wallpaper_acrylic(hwnd)?;
@@ -381,8 +365,7 @@ fn configure_desktop_player_main(
 #[tauri::command]
 pub async fn open_desktop_player(app: AppHandle) -> Result<(), String> {
     // 查找 WorkerW（壁纸层），获取屏幕物理尺寸
-    let (workerw, screen_rect) = find_workerw()
-        .ok_or("Failed to find WorkerW")?;
+    let (workerw, screen_rect) = find_workerw().ok_or("Failed to find WorkerW")?;
     let screen_w = screen_rect.right - screen_rect.left;
     let screen_h = screen_rect.bottom - screen_rect.top;
 
@@ -392,7 +375,9 @@ pub async fn open_desktop_player(app: AppHandle) -> Result<(), String> {
         let _ = window.show();
     } else {
         let main_window = WebviewWindowBuilder::new(
-            &app, "desktop-player", WebviewUrl::App("desktop-player".into()),
+            &app,
+            "desktop-player",
+            WebviewUrl::App("desktop-player".into()),
         )
         .title("Desktop Player")
         .resizable(false)
@@ -410,7 +395,12 @@ pub async fn open_desktop_player(app: AppHandle) -> Result<(), String> {
             // 主窗口匹配 WorkerW 全屏尺寸
             unsafe {
                 let _ = SetWindowPos(
-                    hwnd, HWND::default(), 0, 0, screen_w, screen_h,
+                    hwnd,
+                    HWND::default(),
+                    0,
+                    0,
+                    screen_w,
+                    screen_h,
                     SWP_NOZORDER | SWP_SHOWWINDOW | SWP_NOACTIVATE,
                 );
             }

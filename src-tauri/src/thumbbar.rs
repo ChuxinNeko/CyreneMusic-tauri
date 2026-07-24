@@ -1,22 +1,22 @@
 #![cfg(target_os = "windows")]
 
 use std::sync::{Mutex, OnceLock};
+use windows::core::PCWSTR;
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::Graphics::Gdi::{
-    CreateCompatibleDC, CreateDIBSection, DeleteDC, DeleteObject, BITMAPINFO,
-    BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS, HBITMAP,
+    CreateCompatibleDC, CreateDIBSection, DeleteDC, DeleteObject, BITMAPINFO, BITMAPINFOHEADER,
+    BI_RGB, DIB_RGB_COLORS, HBITMAP,
 };
 use windows::Win32::System::Com::{
     CoCreateInstance, CoInitializeEx, CLSCTX_ALL, COINIT_APARTMENTTHREADED,
 };
 use windows::Win32::UI::Shell::{
-    ITaskbarList3, TaskbarList, THUMBBUTTON, THB_FLAGS, THB_ICON, THB_TOOLTIP, THBF_ENABLED,
+    ITaskbarList3, TaskbarList, THBF_ENABLED, THB_FLAGS, THB_ICON, THB_TOOLTIP, THUMBBUTTON,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
     CallWindowProcW, CreateIconIndirect, GetWindowLongPtrW, RegisterWindowMessageW,
     SetWindowLongPtrW, GWLP_WNDPROC, HICON, ICONINFO, WM_COMMAND, WNDPROC,
 };
-use windows::core::PCWSTR;
 
 const BTN_ID_PREV: u32 = 0;
 const BTN_ID_PLAY_PAUSE: u32 = 1;
@@ -106,11 +106,15 @@ fn draw_shape(pixels: &mut [u32], w: usize, h: usize, shape: &str) {
                 // Left-pointing: right edge fixed, left edge moves right as dy increases
                 let start1 = 8usize.saturating_sub(extent);
                 for x in start1..=8 {
-                    if x >= 3 { pixels[y * w + x] = white; }
+                    if x >= 3 {
+                        pixels[y * w + x] = white;
+                    }
                 }
                 let start2 = 14usize.saturating_sub(extent);
                 for x in start2..=14 {
-                    if x >= 9 { pixels[y * w + x] = white; }
+                    if x >= 9 {
+                        pixels[y * w + x] = white;
+                    }
                 }
             }
         }
