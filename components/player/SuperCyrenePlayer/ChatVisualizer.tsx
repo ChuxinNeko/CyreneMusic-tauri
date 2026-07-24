@@ -1229,6 +1229,7 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
   // 用户头像是完整图片，按整图 cover 显示，不做封面九宫格裁剪。
   const useAvatarGridCrop = !useRightUserAvatar && chatTuning.avatarSource === "cover" && Boolean(coverUrl)
   const lineHeightPx = bubbleFontSize * 1.45
+  const isActiveLyric = isActiveMessage && message.kind === "lyric"
   const preparedMetrics = useMemo(
     () => isActiveLyric
       ? getOrBuildBubbleMetrics(metricsCache.current, {
@@ -1244,7 +1245,6 @@ const ChatMessageRow = React.forwardRef<HTMLDivElement, ChatMessageRowProps>(({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [bubbleFontSize, bubblePaddingX, bubblePaddingY, isActiveLyric, lineHeightPx, maxTextWidth, message, metricsCache, theme],
   )
-  const isActiveLyric = isActiveMessage && message.kind === "lyric"
   // 激活歌词的度量放进 ref，供 useTransform 的转换函数读取最新值，避免闭包过期。
   const metricsRef = useRef<PreparedBubbleMetrics | null>(null)
   metricsRef.current = preparedMetrics
